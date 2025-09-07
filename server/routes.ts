@@ -233,9 +233,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/recipes", async (req, res) => {
     try {
-      const recipe = insertRecipeSchema.parse(req.body);
+      const { recipeIngredients, ...recipeData } = req.body;
+      const recipe = insertRecipeSchema.parse(recipeData);
       const newRecipe = await storage.createRecipe(recipe);
-      res.status(201).json(newRecipe);
+      
+      // Add recipe ingredients if provided
+      if (recipeIngredients && Array.isArray(recipeIngredients)) {
+        for (const ri of recipeIngredients) {
+          const recipeIngredient = insertRecipeIngredientSchema.parse({
+            ...ri,
+            recipeId: newRecipe.id
+          });
+          await storage.addRecipeIngredient(recipeIngredient);
+        }
+      }
+      
+      // Return the recipe with ingredients
+      const recipeWithIngredients = await storage.getRecipe(newRecipe.id);
+      res.status(201).json(recipeWithIngredients);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid recipe data", errors: error.errors });

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import RecipeCard from "@/components/recipe-card";
+import AddRecipeDialog from "@/components/add-recipe-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -44,10 +45,14 @@ export default function Recipes() {
           title="Recipe Library" 
           subtitle="Manage and organize your complete recipe collection"
           action={
-            <Button data-testid="button-add-recipe">
-              <Plus size={16} className="mr-2" />
-              New Recipe
-            </Button>
+            <AddRecipeDialog 
+              trigger={
+                <Button data-testid="button-add-recipe">
+                  <Plus size={16} className="mr-2" />
+                  New Recipe
+                </Button>
+              }
+            />
           }
         />
         

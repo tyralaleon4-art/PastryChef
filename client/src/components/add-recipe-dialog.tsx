@@ -1,0 +1,441 @@
+import { useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Calculator } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import RecipeCategoryDialog from "./recipe-category-dialog";
+import type { InsertRecipe, Category, Ingredient } from "@shared/schema";
+
+interface AddRecipeDialogProps {
+  trigger?: React.ReactNode;
+}
+
+interface RecipeIngredientItem {
+  ingredientId: string;
+  quantity: string;
+  unit: string;
+}
+
+export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [servings, setServings] = useState("");
+  const [prepTime, setPrepTime] = useState("");
+  const [cookTime, setCookTime] = useState("");
+  const [difficulty, setDifficulty] = useState("");
+  const [isVegan, setIsVegan] = useState(false);
+  const [isGlutenFree, setIsGlutenFree] = useState(false);
+  const [isLactoseFree, setIsLactoseFree] = useState(false);
+  const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredientItem[]>([]);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ["/api/categories"],
+  });
+
+  const { data: ingredients = [] } = useQuery<Ingredient[]>({
+    queryKey: ["/api/ingredients"],
+  });
+
+  // Calculate cost per serving and detect allergens from selected ingredients
+  const { costPerServing, detectedAllergens, isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible } = useMemo(() => {
+    let totalCost = 0;
+    const allergenSet = new Set<string>();
+    let vegan = true;
+    let glutenFree = true;
+    let lactoseFree = true;
+
+    recipeIngredients.forEach(ri => {
+      const ingredient = ingredients.find(ing => ing.id === ri.ingredientId);
+      if (ingredient && ri.quantity) {
+        // Calculate cost
+        totalCost += Number(ingredient.costPerUnit) * Number(ri.quantity);
+        
+        // Collect allergens
+        if (ingredient.allergens && Array.isArray(ingredient.allergens)) {
+          ingredient.allergens.forEach(allergen => allergenSet.add(allergen));
+        }
+
+        // Check dietary compatibility
+        if (!ingredient.isVegan) vegan = false;
+        if (!ingredient.isGlutenFree) glutenFree = false;
+        if (!ingredient.isLactoseFree) lactoseFree = false;
+      }
+    });
+
+    const servingsNum = Number(servings) || 1;
+    return {
+      costPerServing: totalCost / servingsNum,
+      detectedAllergens: Array.from(allergenSet),
+      isVeganCompatible: vegan,
+      isGlutenFreeCompatible: glutenFree,
+      isLactoseFreeCompatible: lactoseFree
+    };
+  }, [recipeIngredients, ingredients, servings]);
+
+  const createRecipe = useMutation({
+    mutationFn: async (recipe: InsertRecipe & { recipeIngredients: RecipeIngredientItem[] }) => {
+      const response = await apiRequest("POST", "/api/recipes", recipe);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      setOpen(false);
+      resetForm();
+      toast({
+        title: "Recipe added",
+        description: "Recipe has been added successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add recipe.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setCategoryId("");
+    setServings("");
+    setPrepTime("");
+    setCookTime("");
+    setDifficulty("");
+    setIsVegan(false);
+    setIsGlutenFree(false);
+    setIsLactoseFree(false);
+    setRecipeIngredients([]);
+  };
+
+  const addIngredient = () => {
+    setRecipeIngredients([...recipeIngredients, { ingredientId: "", quantity: "", unit: "kg" }]);
+  };
+
+  const updateIngredient = (index: number, field: keyof RecipeIngredientItem, value: string) => {
+    const updated = recipeIngredients.map((item, i) => 
+      i === index ? { ...item, [field]: value } : item
+    );
+    setRecipeIngredients(updated);
+  };
+
+  const removeIngredient = (index: number) => {
+    setRecipeIngredients(recipeIngredients.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || !servings.trim() || recipeIngredients.length === 0) return;
+    
+    createRecipe.mutate({
+      name: name.trim(),
+      description: description.trim() || undefined,
+      categoryId: categoryId && categoryId !== "none" ? categoryId : undefined,
+      servings: Number(servings),
+      prepTime: prepTime ? Number(prepTime) : undefined,
+      cookTime: cookTime ? Number(cookTime) : undefined,
+      difficulty: difficulty || undefined,
+      allergens: detectedAllergens,
+      isVegan,
+      isGlutenFree,
+      isLactoseFree,
+      instructions: [],
+      recipeIngredients: recipeIngredients.filter(ri => ri.ingredientId && ri.quantity)
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger || (
+          <Button data-testid="button-add-recipe">
+            <Plus size={16} className="mr-2" />
+            Add Recipe
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-add-recipe">
+        <DialogHeader>
+          <DialogTitle>Add New Recipe</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="name">Recipe Name</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., Sernik krakowski"
+                required
+                data-testid="input-recipe-name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <div className="flex space-x-2">
+                <Select value={categoryId} onValueChange={setCategoryId} data-testid="select-recipe-category">
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <RecipeCategoryDialog />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="description">Description (optional)</Label>
+            <Textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Description of the recipe..."
+              rows={3}
+              data-testid="input-recipe-description"
+            />
+          </div>
+
+          {/* Recipe Details */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <Label htmlFor="servings">Servings</Label>
+              <Input
+                id="servings"
+                type="number"
+                value={servings}
+                onChange={(e) => setServings(e.target.value)}
+                placeholder="8"
+                required
+                data-testid="input-servings"
+              />
+            </div>
+            <div>
+              <Label htmlFor="prepTime">Prep Time (min)</Label>
+              <Input
+                id="prepTime"
+                type="number"
+                value={prepTime}
+                onChange={(e) => setPrepTime(e.target.value)}
+                placeholder="30"
+                data-testid="input-prep-time"
+              />
+            </div>
+            <div>
+              <Label htmlFor="cookTime">Cook Time (min)</Label>
+              <Input
+                id="cookTime"
+                type="number"
+                value={cookTime}
+                onChange={(e) => setCookTime(e.target.value)}
+                placeholder="60"
+                data-testid="input-cook-time"
+              />
+            </div>
+            <div>
+              <Label htmlFor="difficulty">Difficulty</Label>
+              <Select value={difficulty} onValueChange={setDifficulty} data-testid="select-difficulty">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Dietary Flags */}
+          <div>
+            <Label>Dietary Properties</Label>
+            <div className="flex space-x-6 mt-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="vegan" 
+                  checked={isVegan} 
+                  onCheckedChange={(checked) => setIsVegan(checked === true)}
+                  data-testid="checkbox-vegan"
+                />
+                <Label htmlFor="vegan">Vegan</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="glutenFree" 
+                  checked={isGlutenFree} 
+                  onCheckedChange={(checked) => setIsGlutenFree(checked === true)}
+                  data-testid="checkbox-gluten-free"
+                />
+                <Label htmlFor="glutenFree">Gluten Free</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="lactoseFree" 
+                  checked={isLactoseFree} 
+                  onCheckedChange={(checked) => setIsLactoseFree(checked === true)}
+                  data-testid="checkbox-lactose-free"
+                />
+                <Label htmlFor="lactoseFree">Lactose Free</Label>
+              </div>
+            </div>
+          </div>
+
+          {/* Ingredients Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Label>Ingredients</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addIngredient} data-testid="button-add-ingredient-to-recipe">
+                <Plus size={16} className="mr-2" />
+                Add Ingredient
+              </Button>
+            </div>
+
+            <div className="space-y-3">
+              {recipeIngredients.map((item, index) => (
+                <div key={index} className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <Select 
+                      value={item.ingredientId} 
+                      onValueChange={(value) => updateIngredient(index, 'ingredientId', value)}
+                      data-testid={`select-ingredient-${index}`}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select ingredient" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ingredients.map((ingredient) => (
+                          <SelectItem key={ingredient.id} value={ingredient.id}>
+                            {ingredient.name} ({Number(ingredient.costPerUnit).toFixed(2)} PLN/kg)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-24">
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={item.quantity}
+                      onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                      placeholder="0.5"
+                      data-testid={`input-quantity-${index}`}
+                    />
+                  </div>
+                  <div className="w-20">
+                    <Select 
+                      value={item.unit} 
+                      onValueChange={(value) => updateIngredient(index, 'unit', value)}
+                      data-testid={`select-unit-${index}`}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="kg">kg</SelectItem>
+                        <SelectItem value="g">g</SelectItem>
+                        <SelectItem value="l">l</SelectItem>
+                        <SelectItem value="ml">ml</SelectItem>
+                        <SelectItem value="pcs">pcs</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => removeIngredient(index)}
+                    data-testid={`button-remove-ingredient-${index}`}
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              ))}
+              
+              {recipeIngredients.length === 0 && (
+                <p className="text-muted-foreground text-sm">No ingredients added yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Cost and Allergen Information */}
+          {recipeIngredients.length > 0 && servings && (
+            <div className="bg-muted p-4 rounded-lg">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium flex items-center">
+                  <Calculator size={16} className="mr-2" />
+                  Recipe Analysis
+                </h4>
+                <div className="text-lg font-bold text-primary">
+                  {costPerServing.toFixed(2)} PLN/serving
+                </div>
+              </div>
+              
+              {detectedAllergens.length > 0 && (
+                <div className="mb-3">
+                  <Label className="text-sm font-medium">Detected Allergens:</Label>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {detectedAllergens.map((allergen) => (
+                      <Badge key={allergen} variant="secondary" className="text-xs">
+                        {allergen}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex space-x-4 text-sm">
+                <span className={isVeganCompatible ? "text-green-600" : "text-muted-foreground"}>
+                  {isVeganCompatible ? "✓" : "✗"} Vegan Compatible
+                </span>
+                <span className={isGlutenFreeCompatible ? "text-green-600" : "text-muted-foreground"}>
+                  {isGlutenFreeCompatible ? "✓" : "✗"} Gluten Free Compatible
+                </span>
+                <span className={isLactoseFreeCompatible ? "text-green-600" : "text-muted-foreground"}>
+                  {isLactoseFreeCompatible ? "✓" : "✗"} Lactose Free Compatible
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={createRecipe.isPending || !name.trim() || !servings.trim() || recipeIngredients.length === 0}
+              data-testid="button-save-recipe"
+            >
+              {createRecipe.isPending ? "Adding..." : "Add Recipe"}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
