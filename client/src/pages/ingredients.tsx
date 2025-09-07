@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
+import AddIngredientDialog from "@/components/add-ingredient-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,10 +46,7 @@ export default function Ingredients() {
           title="Ingredient Management" 
           subtitle="Track inventory, costs, and supplier information"
           action={
-            <Button data-testid="button-add-ingredient">
-              <Plus size={16} className="mr-2" />
-              New Ingredient
-            </Button>
+            <AddIngredientDialog />
           }
         />
         
@@ -83,10 +81,14 @@ export default function Ingredients() {
               <p className="text-muted-foreground text-sm mt-2">
                 {search ? "Try adjusting your search criteria" : "Start by adding your first ingredient"}
               </p>
-              <Button className="mt-4" data-testid="button-create-first-ingredient">
-                <Plus size={16} className="mr-2" />
-                Add Ingredient
-              </Button>
+              <AddIngredientDialog 
+                trigger={
+                  <Button className="mt-4" data-testid="button-create-first-ingredient">
+                    <Plus size={16} className="mr-2" />
+                    Add Ingredient
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -96,6 +98,9 @@ export default function Ingredients() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h3 className="font-semibold text-foreground mb-1">{ingredient.name}</h3>
+                        {ingredient.category && (
+                          <p className="text-sm text-primary font-medium mb-1">{ingredient.category.name}</p>
+                        )}
                         <p className="text-sm text-muted-foreground">{ingredient.supplier || "No supplier"}</p>
                       </div>
                       <Badge variant={getStockBadgeVariant(ingredient.stockStatus)} data-testid={`badge-stock-${ingredient.id}`}>
@@ -105,8 +110,8 @@ export default function Ingredients() {
                     
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Cost per {ingredient.unit}:</span>
-                        <span className="font-medium">${Number(ingredient.costPerUnit).toFixed(2)}</span>
+                        <span className="text-muted-foreground">Price per kg:</span>
+                        <span className="font-medium">{Number(ingredient.costPerUnit).toFixed(2)} PLN</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Current Stock:</span>
