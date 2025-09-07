@@ -72,7 +72,7 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
     
     createIngredient.mutate({
       name: name.trim(),
-      categoryId: categoryId || undefined,
+      categoryId: categoryId && categoryId !== "none" ? categoryId : undefined,
       unit: "kg", // Default to kg as requested (price per kg)
       costPerUnit: costPerUnit,
       supplier: supplier.trim() || undefined,
@@ -117,7 +117,7 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
+                  <SelectItem value="none">No category</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.id} value={category.id}>
                       {category.name}

@@ -48,26 +48,24 @@ export default function Sidebar() {
             const isActive = location === item.href;
             return (
               <li key={item.name}>
-                <Link href={item.href}>
-                  <a className={cn(
-                    "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )} data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
-                    <item.icon className="w-5 h-5 mr-3" />
-                    {item.name}
-                    {item.name === "Recipes" && (
-                      <span className="ml-auto bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                        847
-                      </span>
-                    )}
-                    {item.name === "Ingredients" && (
-                      <span className="ml-auto bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                        423
-                      </span>
-                    )}
-                  </a>
+                <Link href={item.href} className={cn(
+                  "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                )} data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
+                  <item.icon className="w-5 h-5 mr-3" />
+                  {item.name}
+                  {item.name === "Recipes" && (
+                    <span className="ml-auto bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                      847
+                    </span>
+                  )}
+                  {item.name === "Ingredients" && (
+                    <span className="ml-auto bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
+                      423
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -81,10 +79,8 @@ export default function Sidebar() {
           <ul className="space-y-1">
             {categories.map((category) => (
               <li key={category.name}>
-                <Link href={category.href}>
-                  <a className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid={`category-${category.name.toLowerCase()}`}>
-                    {category.name}
-                  </a>
+                <Link href={category.href} className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid={`category-${category.name.toLowerCase()}`}>
+                  {category.name}
                 </Link>
               </li>
             ))}
