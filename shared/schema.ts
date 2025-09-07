@@ -32,6 +32,10 @@ export const ingredients = pgTable("ingredients", {
   supplier: text("supplier"),
   currentStock: decimal("current_stock", { precision: 10, scale: 3 }).default("0"),
   minimumStock: decimal("minimum_stock", { precision: 10, scale: 3 }).default("0"),
+  allergens: json("allergens").$type<string[]>().default([]), // gluten, dairy, nuts, eggs, etc.
+  isVegan: boolean("is_vegan").default(false),
+  isGlutenFree: boolean("is_gluten_free").default(false),
+  isLactoseFree: boolean("is_lactose_free").default(false),
   expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -47,6 +51,10 @@ export const recipes = pgTable("recipes", {
   servings: integer("servings").notNull(),
   difficulty: text("difficulty"), // easy, medium, hard
   imageUrl: text("image_url"),
+  allergens: json("allergens").$type<string[]>().default([]), // automatically populated from ingredients
+  isVegan: boolean("is_vegan").default(false),
+  isGlutenFree: boolean("is_gluten_free").default(false),
+  isLactoseFree: boolean("is_lactose_free").default(false),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
