@@ -1,46 +1,70 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit, Copy, Calculator } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Edit, Copy, Calculator, Utensils } from "lucide-react";
 import type { RecipeWithDetails } from "@shared/schema";
 
 interface RecipeCardProps {
   recipe: RecipeWithDetails;
-  costPerServing?: string;
 }
 
-export default function RecipeCard({ recipe, costPerServing }: RecipeCardProps) {
-  const defaultImage = "https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=400&h=200&fit=crop";
+export default function RecipeCard({ recipe }: RecipeCardProps) {
+  // Calculate total cost
+  const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
+    return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
+  }, 0);
 
   return (
-    <Card className="recipe-card bg-background border border-border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer" data-testid={`recipe-card-${recipe.id}`}>
-      <img 
-        src={recipe.imageUrl || defaultImage}
-        alt={recipe.name}
-        className="w-full h-48 object-cover"
-        onError={(e) => {
-          const target = e.target as HTMLImageElement;
-          target.src = defaultImage;
-        }}
-      />
+    <Card className="recipe-card bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all" data-testid={`recipe-card-${recipe.id}`}>
       <CardContent className="p-4">
-        <h4 className="font-semibold text-foreground mb-2" data-testid={`recipe-name-${recipe.id}`}>
-          {recipe.name}
-        </h4>
-        <p className="text-sm text-muted-foreground mb-3" data-testid={`recipe-description-${recipe.id}`}>
-          {recipe.description || "No description available"}
-        </p>
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span data-testid={`recipe-category-${recipe.id}`}>
-            {recipe.category?.name || "Uncategorized"}
-          </span>
-          <span data-testid={`recipe-servings-${recipe.id}`}>
-            {recipe.servings} servings
-          </span>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h4 className="font-semibold text-foreground text-lg mb-1 flex items-center" data-testid={`recipe-name-${recipe.id}`}>
+              <Utensils size={16} className="mr-2 text-primary" />
+              {recipe.name}
+            </h4>
+            {recipe.description && (
+              <p className="text-sm text-muted-foreground mb-2" data-testid={`recipe-description-${recipe.id}`}>
+                {recipe.description}
+              </p>
+            )}
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-primary" data-testid={`recipe-cost-${recipe.id}`}>
+              {totalCost.toFixed(2)} PLN
+            </div>
+            <div className="text-xs text-muted-foreground">Total Cost</div>
+          </div>
         </div>
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-sm font-medium text-primary" data-testid={`recipe-cost-${recipe.id}`}>
-            {costPerServing || "$0.00/serving"}
-          </span>
+
+        <div className="flex flex-wrap gap-2 mb-3">
+          {recipe.category && (
+            <Badge variant="secondary" data-testid={`recipe-category-${recipe.id}`}>
+              {recipe.category.name}
+            </Badge>
+          )}
+          {recipe.isVegan && <Badge variant="outline" className="text-green-600">Vegan</Badge>}
+          {recipe.isGlutenFree && <Badge variant="outline" className="text-blue-600">Gluten Free</Badge>}
+          {recipe.isLactoseFree && <Badge variant="outline" className="text-purple-600">Lactose Free</Badge>}
+        </div>
+
+        {recipe.allergens && recipe.allergens.length > 0 && (
+          <div className="mb-3">
+            <div className="text-xs text-muted-foreground mb-1">Allergens:</div>
+            <div className="flex flex-wrap gap-1">
+              {recipe.allergens.map((allergen) => (
+                <Badge key={allergen} variant="destructive" className="text-xs">
+                  {allergen}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {recipe.recipeIngredients.length} ingredients
+          </div>
           <div className="flex items-center space-x-1">
             <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-primary" data-testid={`button-edit-recipe-${recipe.id}`}>
               <Edit size={14} />

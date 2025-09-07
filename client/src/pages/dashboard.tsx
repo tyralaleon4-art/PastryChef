@@ -38,12 +38,6 @@ export default function Dashboard() {
   const recentRecipes = recipes.slice(0, 3);
   const featuredRecipes = recipes.slice(0, 4);
 
-  const formatCostPerServing = (recipe: RecipeWithDetails) => {
-    const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
-      return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
-    }, 0);
-    return `$${(totalCost / recipe.servings).toFixed(2)}/serving`;
-  };
 
   const getAlertSeverity = (ingredient: IngredientWithStock) => {
     if (ingredient.stockStatus === "expired") return "red";
@@ -277,7 +271,6 @@ export default function Dashboard() {
                     <RecipeCard 
                       key={recipe.id} 
                       recipe={recipe}
-                      costPerServing={formatCostPerServing(recipe)}
                     />
                   ))
                 )}

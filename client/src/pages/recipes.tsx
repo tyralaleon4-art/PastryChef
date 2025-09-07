@@ -23,12 +23,6 @@ export default function Recipes() {
     queryKey: ["/api/categories"],
   });
 
-  const formatCostPerServing = (recipe: RecipeWithDetails) => {
-    const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
-      return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
-    }, 0);
-    return `$${(totalCost / recipe.servings).toFixed(2)}/serving`;
-  };
 
   const filteredRecipes = recipes.filter(recipe => {
     const matchesSearch = !search || recipe.name.toLowerCase().includes(search.toLowerCase());
@@ -117,7 +111,6 @@ export default function Recipes() {
                   <RecipeCard 
                     key={recipe.id} 
                     recipe={recipe}
-                    costPerServing={formatCostPerServing(recipe)}
                   />
                 ))}
               </div>
