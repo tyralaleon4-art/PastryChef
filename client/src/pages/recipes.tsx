@@ -18,7 +18,7 @@ export default function Recipes() {
     enabled: true,
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
   });
 

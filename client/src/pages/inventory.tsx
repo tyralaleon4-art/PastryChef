@@ -88,7 +88,7 @@ export default function Inventory() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant={getAlertSeverity(ingredient.stockStatus)}>
+                        <Badge variant="destructive">
                           {ingredient.stockStatus === "expired" ? "Expired" : "Low Stock"}
                         </Badge>
                         <Button size="sm" data-testid={`button-restock-${ingredient.id}`}>

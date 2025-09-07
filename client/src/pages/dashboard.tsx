@@ -14,7 +14,12 @@ import { ChartLine, BookOpen, Sprout, DollarSign, TriangleAlert, Search, Filter,
 import type { RecipeWithDetails, IngredientWithStock } from "@shared/schema";
 
 export default function Dashboard() {
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    totalRecipes: number;
+    activeIngredients: number;
+    lowStockItems: number;
+    totalCategories: number;
+  }>({
     queryKey: ["/api/stats"],
   });
 
@@ -26,7 +31,7 @@ export default function Dashboard() {
     queryKey: ["/api/inventory/low-stock"],
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
   });
 

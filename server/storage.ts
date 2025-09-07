@@ -21,7 +21,7 @@ import {
   type IngredientWithStock
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, ilike, and, lt, desc, asc } from "drizzle-orm";
+import { eq, ilike, and, lt, desc, asc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -101,7 +101,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCategory(id: string): Promise<boolean> {
     const result = await db.delete(categories).where(eq(categories.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getIngredients(search?: string): Promise<IngredientWithStock[]> {
@@ -146,7 +146,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteIngredient(id: string): Promise<boolean> {
     const result = await db.delete(ingredients).where(eq(ingredients.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getRecipes(search?: string, categoryId?: string): Promise<RecipeWithDetails[]> {
@@ -198,10 +198,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateRecipe(id: string, recipe: Partial<InsertRecipe>): Promise<Recipe | undefined> {
-    const [updated] = await db.update(recipes).set({
+    const updateData = {
       ...recipe,
       updatedAt: new Date()
-    }).where(eq(recipes.id, id)).returning();
+    };
+    const [updated] = await db.update(recipes).set(updateData).where(eq(recipes.id, id)).returning();
     return updated || undefined;
   }
 
@@ -233,7 +234,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteRecipeIngredient(id: string): Promise<boolean> {
     const result = await db.delete(recipeIngredients).where(eq(recipeIngredients.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getLowStockIngredients(): Promise<IngredientWithStock[]> {
