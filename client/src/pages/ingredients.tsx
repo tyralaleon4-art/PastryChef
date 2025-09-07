@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Plus, Edit, Trash2, Package } from "lucide-react";
 import type { IngredientWithStock } from "@shared/schema";
 
@@ -65,13 +66,11 @@ export default function Ingredients() {
             </div>
           </div>
 
-          {/* Ingredients Grid */}
+          {/* Ingredients Table */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="space-y-3">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-muted rounded-lg h-48"></div>
-                </div>
+                <div key={i} className="animate-pulse h-12 bg-muted rounded"></div>
               ))}
             </div>
           ) : filteredIngredients.length === 0 ? (
@@ -91,61 +90,91 @@ export default function Ingredients() {
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredIngredients.map((ingredient) => (
-                <Card key={ingredient.id} className="hover:shadow-md transition-shadow" data-testid={`ingredient-card-${ingredient.id}`}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-foreground mb-1">{ingredient.name}</h3>
-                        {ingredient.category && (
-                          <p className="text-sm text-primary font-medium mb-1">{ingredient.category.name}</p>
-                        )}
-                        <p className="text-sm text-muted-foreground">{ingredient.supplier || "No supplier"}</p>
-                      </div>
-                      <Badge variant={getStockBadgeVariant(ingredient.stockStatus)} data-testid={`badge-stock-${ingredient.id}`}>
-                        {getStockBadgeText(ingredient.stockStatus)}
-                      </Badge>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Price per kg:</span>
-                        <span className="font-medium">{Number(ingredient.costPerUnit).toFixed(2)} PLN</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Current Stock:</span>
-                        <span className="font-medium">{Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Minimum Stock:</span>
-                        <span className="font-medium">{Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}</span>
-                      </div>
-                      {ingredient.expiryDate && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Expires:</span>
-                          <span className="font-medium">{new Date(ingredient.expiryDate).toLocaleDateString()}</span>
+            <Card>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price/kg</TableHead>
+                    <TableHead>Current Stock</TableHead>
+                    <TableHead>Min Stock</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Supplier</TableHead>
+                    <TableHead>Allergens</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredIngredients.map((ingredient) => (
+                    <TableRow key={ingredient.id} data-testid={`ingredient-row-${ingredient.id}`}>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="font-semibold">{ingredient.name}</div>
+                          <div className="text-xs text-muted-foreground flex gap-1 mt-1">
+                            {ingredient.isVegan && <Badge variant="outline" className="text-xs text-green-600">V</Badge>}
+                            {ingredient.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
+                            {ingredient.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">LF</Badge>}
+                          </div>
                         </div>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-1">
-                        <Button size="sm" variant="outline" data-testid={`button-edit-${ingredient.id}`}>
-                          <Edit size={14} />
-                        </Button>
-                        <Button size="sm" variant="outline" data-testid={`button-delete-${ingredient.id}`}>
-                          <Trash2 size={14} />
-                        </Button>
-                      </div>
-                      <Button size="sm" variant="outline" data-testid={`button-restock-${ingredient.id}`}>
-                        Restock
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                      </TableCell>
+                      <TableCell>
+                        {ingredient.category ? (
+                          <Badge variant="secondary" className="text-xs">{ingredient.category.name}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {Number(ingredient.costPerUnit).toFixed(2)} PLN
+                      </TableCell>
+                      <TableCell>
+                        {Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}
+                      </TableCell>
+                      <TableCell>
+                        {Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStockBadgeVariant(ingredient.stockStatus)} data-testid={`badge-stock-${ingredient.id}`}>
+                          {getStockBadgeText(ingredient.stockStatus)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {ingredient.supplier || <span className="text-muted-foreground">-</span>}
+                      </TableCell>
+                      <TableCell>
+                        {ingredient.allergens && ingredient.allergens.length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-32">
+                            {ingredient.allergens.slice(0, 2).map((allergen) => (
+                              <Badge key={allergen} variant="destructive" className="text-xs">
+                                {allergen}
+                              </Badge>
+                            ))}
+                            {ingredient.allergens.length > 2 && (
+                              <Badge variant="destructive" className="text-xs">
+                                +{ingredient.allergens.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Button size="sm" variant="outline" data-testid={`button-edit-${ingredient.id}`}>
+                            <Edit size={14} />
+                          </Button>
+                          <Button size="sm" variant="outline" data-testid={`button-delete-${ingredient.id}`}>
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
           )}
         </div>
       </main>
