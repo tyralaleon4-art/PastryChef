@@ -16,9 +16,17 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const ingredientCategories = pgTable("ingredient_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const ingredients = pgTable("ingredients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  categoryId: varchar("category_id").references(() => ingredientCategories.id),
   unit: text("unit").notNull(), // g, ml, cups, etc.
   costPerUnit: decimal("cost_per_unit", { precision: 10, scale: 4 }).notNull(),
   supplier: text("supplier"),
@@ -67,7 +75,15 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
   recipes: many(recipes),
 }));
 
-export const ingredientsRelations = relations(ingredients, ({ many }) => ({
+export const ingredientCategoriesRelations = relations(ingredientCategories, ({ many }) => ({
+  ingredients: many(ingredients),
+}));
+
+export const ingredientsRelations = relations(ingredients, ({ one, many }) => ({
+  category: one(ingredientCategories, {
+    fields: [ingredients.categoryId],
+    references: [ingredientCategories.id],
+  }),
   recipeIngredients: many(recipeIngredients),
   inventoryLogs: many(inventoryLogs),
 }));
@@ -109,6 +125,11 @@ export const insertCategorySchema = createInsertSchema(categories).omit({
   createdAt: true,
 });
 
+export const insertIngredientCategorySchema = createInsertSchema(ingredientCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertIngredientSchema = createInsertSchema(ingredients).omit({
   id: true,
   createdAt: true,
@@ -136,6 +157,9 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
 
+export type IngredientCategory = typeof ingredientCategories.$inferSelect;
+export type InsertIngredientCategory = z.infer<typeof insertIngredientCategorySchema>;
+
 export type Ingredient = typeof ingredients.$inferSelect;
 export type InsertIngredient = z.infer<typeof insertIngredientSchema>;
 
@@ -155,5 +179,6 @@ export type RecipeWithDetails = Recipe & {
 };
 
 export type IngredientWithStock = Ingredient & {
+  category: IngredientCategory | null;
   stockStatus: "low" | "normal" | "expired";
 };
