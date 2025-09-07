@@ -1,6 +1,7 @@
 import { 
   users, 
   categories, 
+  ingredientCategories,
   ingredients, 
   recipes, 
   recipeIngredients, 
@@ -9,6 +10,8 @@ import {
   type InsertUser,
   type Category,
   type InsertCategory,
+  type IngredientCategory,
+  type InsertIngredientCategory,
   type Ingredient,
   type InsertIngredient,
   type Recipe,
@@ -34,6 +37,12 @@ export interface IStorage {
   createCategory(category: InsertCategory): Promise<Category>;
   updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
   deleteCategory(id: string): Promise<boolean>;
+
+  // Ingredient Categories
+  getIngredientCategories(): Promise<IngredientCategory[]>;
+  createIngredientCategory(category: InsertIngredientCategory): Promise<IngredientCategory>;
+  updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>): Promise<IngredientCategory | undefined>;
+  deleteIngredientCategory(id: string): Promise<boolean>;
 
   // Ingredients
   getIngredients(search?: string): Promise<IngredientWithStock[]>;
@@ -104,14 +113,39 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
+  async getIngredientCategories(): Promise<IngredientCategory[]> {
+    return await db.select().from(ingredientCategories).orderBy(asc(ingredientCategories.name));
+  }
+
+  async createIngredientCategory(category: InsertIngredientCategory): Promise<IngredientCategory> {
+    const [newCategory] = await db.insert(ingredientCategories).values(category).returning();
+    return newCategory;
+  }
+
+  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>): Promise<IngredientCategory | undefined> {
+    const [updated] = await db.update(ingredientCategories).set(category).where(eq(ingredientCategories.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteIngredientCategory(id: string): Promise<boolean> {
+    const result = await db.delete(ingredientCategories).where(eq(ingredientCategories.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
   async getIngredients(search?: string): Promise<IngredientWithStock[]> {
-    let query = db.select().from(ingredients);
+    let whereCondition = undefined;
     
     if (search) {
-      query = query.where(ilike(ingredients.name, `%${search}%`));
+      whereCondition = ilike(ingredients.name, `%${search}%`);
     }
     
-    const results = await query.orderBy(asc(ingredients.name));
+    const results = await db.query.ingredients.findMany({
+      where: whereCondition,
+      with: {
+        category: true
+      },
+      orderBy: asc(ingredients.name)
+    });
     
     return results.map(ingredient => ({
       ...ingredient,

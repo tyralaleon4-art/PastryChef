@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertCategorySchema, 
+  insertIngredientCategorySchema,
   insertIngredientSchema, 
   insertRecipeSchema,
   insertRecipeIngredientSchema,
@@ -67,6 +68,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete category" });
+    }
+  });
+
+  // Ingredient Categories
+  app.get("/api/ingredient-categories", async (req, res) => {
+    try {
+      const categories = await storage.getIngredientCategories();
+      res.json(categories);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch ingredient categories" });
+    }
+  });
+
+  app.post("/api/ingredient-categories", async (req, res) => {
+    try {
+      const category = insertIngredientCategorySchema.parse(req.body);
+      const newCategory = await storage.createIngredientCategory(category);
+      res.status(201).json(newCategory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid ingredient category data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create ingredient category" });
+      }
+    }
+  });
+
+  app.put("/api/ingredient-categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const category = insertIngredientCategorySchema.partial().parse(req.body);
+      const updated = await storage.updateIngredientCategory(id, category);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Ingredient category not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid ingredient category data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update ingredient category" });
+      }
+    }
+  });
+
+  app.delete("/api/ingredient-categories/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteIngredientCategory(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Ingredient category not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete ingredient category" });
     }
   });
 
