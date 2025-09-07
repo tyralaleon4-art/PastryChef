@@ -7,10 +7,28 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import IngredientCategoryDialog from "./ingredient-category-dialog";
 import type { InsertIngredient, IngredientCategory } from "@shared/schema";
+
+const POLISH_ALLERGENS = [
+  "Gluten",
+  "Crustaceans",
+  "Eggs",
+  "Fish",
+  "Peanuts",
+  "Soybeans",
+  "Milk",
+  "Nuts",
+  "Celery",
+  "Mustard",
+  "Sesame",
+  "Sulfites",
+  "Lupin",
+  "Mollusks"
+];
 
 interface AddIngredientDialogProps {
   trigger?: React.ReactNode;
@@ -25,6 +43,10 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
   const [currentStock, setCurrentStock] = useState("");
   const [minimumStock, setMinimumStock] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [allergens, setAllergens] = useState<string[]>([]);
+  const [isVegan, setIsVegan] = useState(false);
+  const [isGlutenFree, setIsGlutenFree] = useState(false);
+  const [isLactoseFree, setIsLactoseFree] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -64,6 +86,18 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
     setCurrentStock("");
     setMinimumStock("");
     setExpiryDate("");
+    setAllergens([]);
+    setIsVegan(false);
+    setIsGlutenFree(false);
+    setIsLactoseFree(false);
+  };
+
+  const toggleAllergen = (allergen: string) => {
+    setAllergens(prev => 
+      prev.includes(allergen) 
+        ? prev.filter(a => a !== allergen)
+        : [...prev, allergen]
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -78,6 +112,10 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
       supplier: supplier.trim() || undefined,
       currentStock: currentStock || "0",
       minimumStock: minimumStock || "0",
+      allergens: allergens,
+      isVegan,
+      isGlutenFree,
+      isLactoseFree,
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
     });
   };
@@ -141,6 +179,66 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
               required
               data-testid="input-price-per-kg"
             />
+          </div>
+
+          {/* Allergens Section */}
+          <div>
+            <Label>Allergens (Polish Restaurant Requirements)</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {POLISH_ALLERGENS.map((allergen) => (
+                <div key={allergen} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={`allergen-${allergen}`}
+                    checked={allergens.includes(allergen)}
+                    onCheckedChange={(checked) => {
+                      if (checked === true) {
+                        toggleAllergen(allergen);
+                      } else {
+                        toggleAllergen(allergen);
+                      }
+                    }}
+                    data-testid={`checkbox-allergen-${allergen.toLowerCase()}`}
+                  />
+                  <Label htmlFor={`allergen-${allergen}`} className="text-sm font-normal">
+                    {allergen}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Dietary Properties */}
+          <div>
+            <Label>Dietary Properties</Label>
+            <div className="flex space-x-6 mt-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="ingredient-vegan" 
+                  checked={isVegan} 
+                  onCheckedChange={(checked) => setIsVegan(checked === true)}
+                  data-testid="checkbox-ingredient-vegan"
+                />
+                <Label htmlFor="ingredient-vegan" className="text-sm font-normal">Vegan</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="ingredient-glutenFree" 
+                  checked={isGlutenFree} 
+                  onCheckedChange={(checked) => setIsGlutenFree(checked === true)}
+                  data-testid="checkbox-ingredient-gluten-free"
+                />
+                <Label htmlFor="ingredient-glutenFree" className="text-sm font-normal">Gluten Free</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="ingredient-lactoseFree" 
+                  checked={isLactoseFree} 
+                  onCheckedChange={(checked) => setIsLactoseFree(checked === true)}
+                  data-testid="checkbox-ingredient-lactose-free"
+                />
+                <Label htmlFor="ingredient-lactoseFree" className="text-sm font-normal">Lactose Free</Label>
+              </div>
+            </div>
           </div>
 
           <div>

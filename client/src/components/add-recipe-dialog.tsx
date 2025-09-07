@@ -29,10 +29,6 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [servings, setServings] = useState("");
-  const [prepTime, setPrepTime] = useState("");
-  const [cookTime, setCookTime] = useState("");
-  const [difficulty, setDifficulty] = useState("");
   const [isVegan, setIsVegan] = useState(false);
   const [isGlutenFree, setIsGlutenFree] = useState(false);
   const [isLactoseFree, setIsLactoseFree] = useState(false);
@@ -48,9 +44,9 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
     queryKey: ["/api/ingredients"],
   });
 
-  // Calculate cost per serving and detect allergens from selected ingredients
-  const { costPerServing, detectedAllergens, isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible } = useMemo(() => {
-    let totalCost = 0;
+  // Calculate total cost and detect allergens from selected ingredients
+  const { totalCost, detectedAllergens, isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible } = useMemo(() => {
+    let cost = 0;
     const allergenSet = new Set<string>();
     let vegan = true;
     let glutenFree = true;
@@ -60,7 +56,7 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
       const ingredient = ingredients.find(ing => ing.id === ri.ingredientId);
       if (ingredient && ri.quantity) {
         // Calculate cost
-        totalCost += Number(ingredient.costPerUnit) * Number(ri.quantity);
+        cost += Number(ingredient.costPerUnit) * Number(ri.quantity);
         
         // Collect allergens
         if (ingredient.allergens && Array.isArray(ingredient.allergens)) {
@@ -74,15 +70,14 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
       }
     });
 
-    const servingsNum = Number(servings) || 1;
     return {
-      costPerServing: totalCost / servingsNum,
+      totalCost: cost,
       detectedAllergens: Array.from(allergenSet),
       isVeganCompatible: vegan,
       isGlutenFreeCompatible: glutenFree,
       isLactoseFreeCompatible: lactoseFree
     };
-  }, [recipeIngredients, ingredients, servings]);
+  }, [recipeIngredients, ingredients]);
 
   const createRecipe = useMutation({
     mutationFn: async (recipe: InsertRecipe & { recipeIngredients: RecipeIngredientItem[] }) => {
@@ -112,10 +107,6 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
     setName("");
     setDescription("");
     setCategoryId("");
-    setServings("");
-    setPrepTime("");
-    setCookTime("");
-    setDifficulty("");
     setIsVegan(false);
     setIsGlutenFree(false);
     setIsLactoseFree(false);
@@ -139,16 +130,12 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !servings.trim() || recipeIngredients.length === 0) return;
+    if (!name.trim() || recipeIngredients.length === 0) return;
     
     createRecipe.mutate({
       name: name.trim(),
       description: description.trim() || undefined,
       categoryId: categoryId && categoryId !== "none" ? categoryId : undefined,
-      servings: Number(servings),
-      prepTime: prepTime ? Number(prepTime) : undefined,
-      cookTime: cookTime ? Number(cookTime) : undefined,
-      difficulty: difficulty || undefined,
       allergens: detectedAllergens,
       isVegan,
       isGlutenFree,
@@ -220,56 +207,6 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
             />
           </div>
 
-          {/* Recipe Details */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
-              <Label htmlFor="servings">Servings</Label>
-              <Input
-                id="servings"
-                type="number"
-                value={servings}
-                onChange={(e) => setServings(e.target.value)}
-                placeholder="8"
-                required
-                data-testid="input-servings"
-              />
-            </div>
-            <div>
-              <Label htmlFor="prepTime">Prep Time (min)</Label>
-              <Input
-                id="prepTime"
-                type="number"
-                value={prepTime}
-                onChange={(e) => setPrepTime(e.target.value)}
-                placeholder="30"
-                data-testid="input-prep-time"
-              />
-            </div>
-            <div>
-              <Label htmlFor="cookTime">Cook Time (min)</Label>
-              <Input
-                id="cookTime"
-                type="number"
-                value={cookTime}
-                onChange={(e) => setCookTime(e.target.value)}
-                placeholder="60"
-                data-testid="input-cook-time"
-              />
-            </div>
-            <div>
-              <Label htmlFor="difficulty">Difficulty</Label>
-              <Select value={difficulty} onValueChange={setDifficulty} data-testid="select-difficulty">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
           {/* Dietary Flags */}
           <div>
@@ -383,15 +320,15 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
           </div>
 
           {/* Cost and Allergen Information */}
-          {recipeIngredients.length > 0 && servings && (
+          {recipeIngredients.length > 0 && (
             <div className="bg-muted p-4 rounded-lg">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium flex items-center">
                   <Calculator size={16} className="mr-2" />
-                  Recipe Analysis
+                  Recipe Cost Analysis
                 </h4>
                 <div className="text-lg font-bold text-primary">
-                  {costPerServing.toFixed(2)} PLN/serving
+                  {totalCost.toFixed(2)} PLN total
                 </div>
               </div>
               
@@ -428,7 +365,7 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
             </Button>
             <Button 
               type="submit" 
-              disabled={createRecipe.isPending || !name.trim() || !servings.trim() || recipeIngredients.length === 0}
+              disabled={createRecipe.isPending || !name.trim() || recipeIngredients.length === 0}
               data-testid="button-save-recipe"
             >
               {createRecipe.isPending ? "Adding..." : "Add Recipe"}

@@ -46,10 +46,6 @@ export const recipes = pgTable("recipes", {
   description: text("description"),
   categoryId: varchar("category_id").references(() => categories.id),
   instructions: json("instructions").$type<string[]>().default([]),
-  prepTime: integer("prep_time"), // minutes
-  cookTime: integer("cook_time"), // minutes
-  servings: integer("servings").notNull(),
-  difficulty: text("difficulty"), // easy, medium, hard
   imageUrl: text("image_url"),
   allergens: json("allergens").$type<string[]>().default([]), // automatically populated from ingredients
   isVegan: boolean("is_vegan").default(false),
