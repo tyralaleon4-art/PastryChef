@@ -79,6 +79,15 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
     };
   }, [recipeIngredients, ingredients]);
 
+  // Auto-set dietary flags based on ingredient compatibility
+  useEffect(() => {
+    if (recipeIngredients.length > 0) {
+      setIsVegan(isVeganCompatible);
+      setIsGlutenFree(isGlutenFreeCompatible);
+      setIsLactoseFree(isLactoseFreeCompatible);
+    }
+  }, [isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible, recipeIngredients.length]);
+
   const createRecipe = useMutation({
     mutationFn: async (recipe: InsertRecipe & { recipeIngredients: RecipeIngredientItem[] }) => {
       const response = await apiRequest("POST", "/api/recipes", recipe);
@@ -210,7 +219,7 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
 
           {/* Dietary Flags */}
           <div>
-            <Label>Dietary Properties</Label>
+            <Label>Dietary Properties {recipeIngredients.length > 0 && <span className="text-xs text-muted-foreground">(auto-detected from ingredients)</span>}</Label>
             <div className="flex space-x-6 mt-2">
               <div className="flex items-center space-x-2">
                 <Checkbox 

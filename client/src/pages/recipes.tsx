@@ -7,7 +7,10 @@ import AddRecipeDialog from "@/components/add-recipe-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Search, Filter, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { Search, Filter, Plus, Utensils, Calculator } from "lucide-react";
 import type { RecipeWithDetails } from "@shared/schema";
 
 export default function Recipes() {
@@ -84,38 +87,130 @@ export default function Recipes() {
             </div>
           </div>
 
-          {/* Recipe Grid */}
+          {/* Recipe Table */}
           {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="space-y-3">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="animate-pulse">
-                  <div className="bg-muted rounded-lg h-64"></div>
-                </div>
+                <div key={i} className="animate-pulse h-16 bg-muted rounded"></div>
               ))}
             </div>
           ) : filteredRecipes.length === 0 ? (
             <div className="text-center py-12">
+              <Utensils className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-muted-foreground text-lg">No recipes found</p>
               <p className="text-muted-foreground text-sm mt-2">
                 {search || categoryFilter ? "Try adjusting your search or filter criteria" : "Start by creating your first recipe"}
               </p>
-              <Button className="mt-4" data-testid="button-create-first-recipe">
-                <Plus size={16} className="mr-2" />
-                Create Recipe
-              </Button>
+              <AddRecipeDialog 
+                trigger={
+                  <Button className="mt-4" data-testid="button-create-first-recipe">
+                    <Plus size={16} className="mr-2" />
+                    Create Recipe
+                  </Button>
+                }
+              />
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredRecipes.map((recipe) => (
-                  <RecipeCard 
-                    key={recipe.id} 
-                    recipe={recipe}
-                  />
-                ))}
-              </div>
+              <Card>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Recipe Name</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Ingredients</TableHead>
+                      <TableHead>Total Cost</TableHead>
+                      <TableHead>Dietary</TableHead>
+                      <TableHead>Allergens</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecipes.map((recipe) => {
+                      const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
+                        return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
+                      }, 0);
 
-              <div className="mt-8 flex items-center justify-between">
+                      return (
+                        <TableRow key={recipe.id} data-testid={`recipe-row-${recipe.id}`}>
+                          <TableCell className="font-medium">
+                            <div className="flex items-center">
+                              <Utensils size={16} className="mr-2 text-primary" />
+                              <div>
+                                <div className="font-semibold">{recipe.name}</div>
+                                {recipe.description && (
+                                  <div className="text-xs text-muted-foreground mt-1 max-w-48 truncate">
+                                    {recipe.description}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {recipe.category ? (
+                              <Badge variant="secondary" className="text-xs">{recipe.category.name}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <span className="font-medium">{recipe.recipeIngredients.length}</span>
+                              <span className="text-muted-foreground"> ingredients</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Calculator size={14} className="mr-1 text-primary" />
+                              <span className="font-bold text-primary">{totalCost.toFixed(2)} PLN</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">Vegan</Badge>}
+                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
+                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">LF</Badge>}
+                              {!recipe.isVegan && !recipe.isGlutenFree && !recipe.isLactoseFree && (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {recipe.allergens && recipe.allergens.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-40">
+                                {recipe.allergens.slice(0, 3).map((allergen) => (
+                                  <Badge key={allergen} variant="destructive" className="text-xs">
+                                    {allergen}
+                                  </Badge>
+                                ))}
+                                {recipe.allergens.length > 3 && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    +{recipe.allergens.length - 3}
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">None</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1">
+                              <Button size="sm" variant="outline" data-testid={`button-edit-recipe-${recipe.id}`}>
+                                <Plus size={14} />
+                              </Button>
+                              <Button size="sm" variant="outline" data-testid={`button-copy-recipe-${recipe.id}`}>
+                                <Calculator size={14} />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </Card>
+
+              <div className="mt-6 flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   Showing {filteredRecipes.length} of {recipes.length} recipes
                 </p>
