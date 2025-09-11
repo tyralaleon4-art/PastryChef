@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -44,19 +43,72 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
     queryKey: ["/api/ingredients"],
   });
 
-  // Calculate total cost and detect allergens from selected ingredients
-  const { totalCost, detectedAllergens, isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible } = useMemo(() => {
+  // Helper function to convert units to kg for cost calculation
+  const convertToKg = (quantity: number, unit: string): number => {
+    switch (unit) {
+      case 'g': return quantity / 1000;
+      case 'kg': return quantity;
+      case 'ml': return quantity / 1000; // Assuming 1ml ≈ 1g for most ingredients
+      case 'l': return quantity;
+      case 'pcs': return quantity * 0.1; // Rough estimate: 1 piece ≈ 100g
+      default: return quantity;
+    }
+  };
+
+  // Calculate total cost, weight, percentages and detect allergens from selected ingredients
+  const { totalCost, totalWeight, recipeDetails, validDetails, detectedAllergens, isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible } = useMemo(() => {
     let cost = 0;
+    let weight = 0; // Total weight in kg for percentage calculation
     const allergenSet = new Set<string>();
     let vegan = true;
     let glutenFree = true;
     let lactoseFree = true;
+    
+    // Index-aligned details array (same length as recipeIngredients)
+    const details: Array<{
+      ingredientId: string;
+      ingredientName: string;
+      quantity: number;
+      unit: string;
+      cost: number;
+      weightInKg: number;
+      percentage: number;
+    } | null> = [];
 
-    recipeIngredients.forEach(ri => {
+    // Valid details for the breakdown list (only complete rows)
+    const validDetailsForBreakdown: Array<{
+      ingredientId: string;
+      ingredientName: string;
+      quantity: number;
+      unit: string;
+      cost: number;
+      weightInKg: number;
+      percentage: number;
+    }> = [];
+
+    // First pass: calculate costs and weights for each row
+    recipeIngredients.forEach((ri, index) => {
       const ingredient = ingredients.find(ing => ing.id === ri.ingredientId);
       if (ingredient && ri.quantity) {
-        // Calculate cost
-        cost += Number(ingredient.costPerUnit) * Number(ri.quantity);
+        const quantity = Number(ri.quantity);
+        const weightInKg = convertToKg(quantity, ri.unit);
+        const ingredientCost = Number(ingredient.costPerUnit) * weightInKg;
+        
+        cost += ingredientCost;
+        weight += weightInKg;
+        
+        const detail = {
+          ingredientId: ri.ingredientId,
+          ingredientName: ingredient.name,
+          quantity,
+          unit: ri.unit,
+          cost: ingredientCost,
+          weightInKg,
+          percentage: 0 // Will be calculated in second pass
+        };
+        
+        details[index] = detail;
+        validDetailsForBreakdown.push(detail);
         
         // Collect allergens
         if (ingredient.allergens && Array.isArray(ingredient.allergens)) {
@@ -67,11 +119,28 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
         if (!ingredient.isVegan) vegan = false;
         if (!ingredient.isGlutenFree) glutenFree = false;
         if (!ingredient.isLactoseFree) lactoseFree = false;
+      } else {
+        details[index] = null; // Keep index alignment for incomplete rows
       }
     });
 
+    // Second pass: calculate percentages
+    if (weight > 0) {
+      details.forEach(detail => {
+        if (detail) {
+          detail.percentage = (detail.weightInKg / weight) * 100;
+        }
+      });
+      validDetailsForBreakdown.forEach(detail => {
+        detail.percentage = (detail.weightInKg / weight) * 100;
+      });
+    }
+
     return {
       totalCost: cost,
+      totalWeight: weight,
+      recipeDetails: details,
+      validDetails: validDetailsForBreakdown,
       detectedAllergens: Array.from(allergenSet),
       isVeganCompatible: vegan,
       isGlutenFreeCompatible: glutenFree,
@@ -123,7 +192,7 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
   };
 
   const addIngredient = () => {
-    setRecipeIngredients([...recipeIngredients, { ingredientId: "", quantity: "", unit: "kg" }]);
+    setRecipeIngredients([...recipeIngredients, { ingredientId: "", quantity: "", unit: "g" }]);
   };
 
   const updateIngredient = (index: number, field: keyof RecipeIngredientItem, value: string) => {
@@ -217,39 +286,6 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
           </div>
 
 
-          {/* Dietary Flags */}
-          <div>
-            <Label>Dietary Properties {recipeIngredients.length > 0 && <span className="text-xs text-muted-foreground">(auto-detected from ingredients)</span>}</Label>
-            <div className="flex space-x-6 mt-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="vegan" 
-                  checked={isVegan} 
-                  onCheckedChange={(checked) => setIsVegan(checked === true)}
-                  data-testid="checkbox-vegan"
-                />
-                <Label htmlFor="vegan">Vegan</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="glutenFree" 
-                  checked={isGlutenFree} 
-                  onCheckedChange={(checked) => setIsGlutenFree(checked === true)}
-                  data-testid="checkbox-gluten-free"
-                />
-                <Label htmlFor="glutenFree">Gluten Free</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="lactoseFree" 
-                  checked={isLactoseFree} 
-                  onCheckedChange={(checked) => setIsLactoseFree(checked === true)}
-                  data-testid="checkbox-lactose-free"
-                />
-                <Label htmlFor="lactoseFree">Lactose Free</Label>
-              </div>
-            </div>
-          </div>
 
           {/* Ingredients Section */}
           <div>
@@ -262,65 +298,73 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
             </div>
 
             <div className="space-y-3">
-              {recipeIngredients.map((item, index) => (
-                <div key={index} className="flex gap-3 items-end">
-                  <div className="flex-1">
-                    <Select 
-                      value={item.ingredientId} 
-                      onValueChange={(value) => updateIngredient(index, 'ingredientId', value)}
-                      data-testid={`select-ingredient-${index}`}
+              {recipeIngredients.map((item, index) => {
+                const recipeDetail = recipeDetails[index];
+                return (
+                  <div key={index} className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <Select 
+                        value={item.ingredientId} 
+                        onValueChange={(value) => updateIngredient(index, 'ingredientId', value)}
+                        data-testid={`select-ingredient-${index}`}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select ingredient" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ingredients.map((ingredient) => (
+                            <SelectItem key={ingredient.id} value={ingredient.id}>
+                              {ingredient.name} ({Number(ingredient.costPerUnit).toFixed(2)} PLN/kg)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-24">
+                      <Input
+                        type="number"
+                        step="1"
+                        value={item.quantity}
+                        onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
+                        placeholder="500"
+                        data-testid={`input-quantity-${index}`}
+                      />
+                    </div>
+                    <div className="w-20">
+                      <Select 
+                        value={item.unit} 
+                        onValueChange={(value) => updateIngredient(index, 'unit', value)}
+                        data-testid={`select-unit-${index}`}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="g">g</SelectItem>
+                          <SelectItem value="kg">kg</SelectItem>
+                          <SelectItem value="ml">ml</SelectItem>
+                          <SelectItem value="l">l</SelectItem>
+                          <SelectItem value="pcs">pcs</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {recipeDetail && recipeDetail.percentage > 0 && (
+                      <div className="w-20 text-sm font-medium text-primary text-center">
+                        {recipeDetail.percentage.toFixed(1)}%
+                      </div>
+                    )}
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => removeIngredient(index)}
+                      data-testid={`button-remove-ingredient-${index}`}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select ingredient" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ingredients.map((ingredient) => (
-                          <SelectItem key={ingredient.id} value={ingredient.id}>
-                            {ingredient.name} ({Number(ingredient.costPerUnit).toFixed(2)} PLN/kg)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Trash2 size={16} />
+                    </Button>
                   </div>
-                  <div className="w-24">
-                    <Input
-                      type="number"
-                      step="0.1"
-                      value={item.quantity}
-                      onChange={(e) => updateIngredient(index, 'quantity', e.target.value)}
-                      placeholder="0.5"
-                      data-testid={`input-quantity-${index}`}
-                    />
-                  </div>
-                  <div className="w-20">
-                    <Select 
-                      value={item.unit} 
-                      onValueChange={(value) => updateIngredient(index, 'unit', value)}
-                      data-testid={`select-unit-${index}`}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="kg">kg</SelectItem>
-                        <SelectItem value="g">g</SelectItem>
-                        <SelectItem value="l">l</SelectItem>
-                        <SelectItem value="ml">ml</SelectItem>
-                        <SelectItem value="pcs">pcs</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => removeIngredient(index)}
-                    data-testid={`button-remove-ingredient-${index}`}
-                  >
-                    <Trash2 size={16} />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
               
               {recipeIngredients.length === 0 && (
                 <p className="text-muted-foreground text-sm">No ingredients added yet.</p>
@@ -334,12 +378,36 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium flex items-center">
                   <Calculator size={16} className="mr-2" />
-                  Recipe Cost Analysis
+                  Recipe Analysis
                 </h4>
-                <div className="text-lg font-bold text-primary">
-                  {totalCost.toFixed(2)} PLN total
+                <div className="text-right">
+                  <div className="text-lg font-bold text-primary">
+                    {totalCost.toFixed(2)} PLN total
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Total weight: {(totalWeight * 1000).toFixed(0)}g
+                  </div>
                 </div>
               </div>
+              
+              {/* Ingredient breakdown with percentages */}
+              {validDetails.length > 0 && (
+                <div className="mb-3">
+                  <Label className="text-sm font-medium">Ingredient Breakdown:</Label>
+                  <div className="mt-2 space-y-1">
+                    {validDetails.map((detail, index) => (
+                      <div key={`${detail.ingredientId}-${index}`} className="flex justify-between items-center text-sm">
+                        <span className="font-medium">{detail.ingredientName}</span>
+                        <div className="flex items-center space-x-3">
+                          <span>{detail.quantity}{detail.unit}</span>
+                          <span className="text-primary font-medium">{detail.percentage.toFixed(1)}%</span>
+                          <span className="text-muted-foreground">{detail.cost.toFixed(2)} PLN</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {detectedAllergens.length > 0 && (
                 <div className="mb-3">
