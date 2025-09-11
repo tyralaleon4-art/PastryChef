@@ -20,7 +20,7 @@ export default function Ingredients() {
   const queryClient = useQueryClient();
 
   const { data: ingredients = [], isLoading } = useQuery<IngredientWithStock[]>({
-    queryKey: ["/api/ingredients", search],
+    queryKey: ["/api/ingredients"],
   });
 
   const deleteIngredient = useMutation({
