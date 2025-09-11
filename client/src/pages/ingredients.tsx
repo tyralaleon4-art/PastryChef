@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import AddIngredientDialog from "@/components/add-ingredient-dialog";
@@ -8,14 +9,40 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Plus, Edit, Trash2, Package } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { IngredientWithStock } from "@shared/schema";
 
 export default function Ingredients() {
   const [search, setSearch] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: ingredients = [], isLoading } = useQuery<IngredientWithStock[]>({
     queryKey: ["/api/ingredients", search],
+  });
+
+  const deleteIngredient = useMutation({
+    mutationFn: async (ingredientId: string) => {
+      const response = await apiRequest("DELETE", `/api/ingredients/${ingredientId}`);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Ingredient deleted",
+        description: "Ingredient has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete ingredient. It may be used in recipes.",
+        variant: "destructive",
+      });
+    },
   });
 
   const filteredIngredients = ingredients.filter(ingredient =>
@@ -162,12 +189,39 @@ export default function Ingredients() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
-                          <Button size="sm" variant="outline" data-testid={`button-edit-${ingredient.id}`}>
-                            <Edit size={14} />
-                          </Button>
-                          <Button size="sm" variant="outline" data-testid={`button-delete-${ingredient.id}`}>
-                            <Trash2 size={14} />
-                          </Button>
+                          <AddIngredientDialog
+                            ingredient={ingredient}
+                            mode="edit"
+                            trigger={
+                              <Button size="sm" variant="outline" data-testid={`button-edit-${ingredient.id}`}>
+                                <Edit size={14} />
+                              </Button>
+                            }
+                          />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline" data-testid={`button-delete-${ingredient.id}`}>
+                                <Trash2 size={14} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Ingredient</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{ingredient.name}"? This action cannot be undone and may affect recipes that use this ingredient.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteIngredient.mutate(ingredient.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deleteIngredient.isPending ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

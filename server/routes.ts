@@ -263,14 +263,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/recipes/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const recipe = insertRecipeSchema.partial().parse(req.body);
+      const { recipeIngredients, ...recipeData } = req.body;
+      const recipe = insertRecipeSchema.partial().parse(recipeData);
       const updated = await storage.updateRecipe(id, recipe);
       
       if (!updated) {
         return res.status(404).json({ message: "Recipe not found" });
       }
       
-      res.json(updated);
+      // Update recipe ingredients if provided
+      if (recipeIngredients && Array.isArray(recipeIngredients)) {
+        const validatedIngredients = recipeIngredients.map(ri => 
+          insertRecipeIngredientSchema.parse({
+            ...ri,
+            recipeId: id
+          })
+        );
+        await storage.replaceRecipeIngredients(id, validatedIngredients);
+      }
+      
+      // Return the recipe with updated ingredients
+      const recipeWithIngredients = await storage.getRecipe(id);
+      res.json(recipeWithIngredients);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Invalid recipe data", errors: error.errors });
@@ -420,13 +434,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalCost += ingredientCost;
       }
 
-      const costPerServing = totalCost / (recipe.servings * scalingFactor);
+      const costPerServing = totalCost; // Assume 1 serving for now since servings field doesn't exist
 
       res.json({
         totalCost: totalCost.toFixed(2),
         costPerServing: costPerServing.toFixed(2),
         scalingFactor,
-        servings: recipe.servings * scalingFactor
+        servings: scalingFactor
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate recipe cost" });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import IngredientCategoryDialog from "./ingredient-category-dialog";
-import type { InsertIngredient, IngredientCategory } from "@shared/schema";
+import type { InsertIngredient, IngredientCategory, IngredientWithStock } from "@shared/schema";
 
 const POLISH_ALLERGENS = [
   "Gluten",
@@ -32,9 +32,11 @@ const POLISH_ALLERGENS = [
 
 interface AddIngredientDialogProps {
   trigger?: React.ReactNode;
+  ingredient?: IngredientWithStock; // For editing existing ingredient
+  mode?: "add" | "edit";
 }
 
-export default function AddIngredientDialog({ trigger }: AddIngredientDialogProps) {
+export default function AddIngredientDialog({ trigger, ingredient, mode = "add" }: AddIngredientDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -54,10 +56,34 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
     queryKey: ["/api/ingredient-categories"],
   });
 
+  // Initialize form with ingredient data when editing
+  useEffect(() => {
+    if (ingredient && mode === "edit") {
+      setName(ingredient.name);
+      setCategoryId(ingredient.categoryId || "none");
+      setCostPerUnit(ingredient.costPerUnit);
+      setSupplier(ingredient.supplier || "");
+      setCurrentStock(ingredient.currentStock || "0");
+      setMinimumStock(ingredient.minimumStock || "0");
+      setExpiryDate(ingredient.expiryDate ? ingredient.expiryDate.toISOString().split('T')[0] : "");
+      setAllergens(ingredient.allergens || []);
+      setIsVegan(ingredient.isVegan || false);
+      setIsGlutenFree(ingredient.isGlutenFree || false);
+      setIsLactoseFree(ingredient.isLactoseFree || false);
+    } else if (mode === "add") {
+      resetForm();
+    }
+  }, [ingredient, mode]);
+
   const createIngredient = useMutation({
-    mutationFn: async (ingredient: InsertIngredient) => {
-      const response = await apiRequest("POST", "/api/ingredients", ingredient);
-      return response.json();
+    mutationFn: async (ingredientData: InsertIngredient) => {
+      if (mode === "edit" && ingredient) {
+        const response = await apiRequest("PUT", `/api/ingredients/${ingredient.id}`, ingredientData);
+        return response.json();
+      } else {
+        const response = await apiRequest("POST", "/api/ingredients", ingredientData);
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
@@ -65,14 +91,16 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
       setOpen(false);
       resetForm();
       toast({
-        title: "Ingredient added",
-        description: "Ingredient has been added successfully.",
+        title: mode === "edit" ? "Ingredient updated" : "Ingredient added",
+        description: mode === "edit" 
+          ? "Ingredient has been updated successfully." 
+          : "Ingredient has been added successfully.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to add ingredient.",
+        description: mode === "edit" ? "Failed to update ingredient." : "Failed to add ingredient.",
         variant: "destructive",
       });
     },
@@ -132,7 +160,7 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="dialog-add-ingredient">
         <DialogHeader>
-          <DialogTitle>Add New Ingredient</DialogTitle>
+          <DialogTitle>{mode === "edit" ? "Edit Ingredient" : "Add New Ingredient"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
@@ -300,7 +328,10 @@ export default function AddIngredientDialog({ trigger }: AddIngredientDialogProp
               disabled={createIngredient.isPending || !name.trim() || !costPerUnit.trim()}
               data-testid="button-save-ingredient"
             >
-              {createIngredient.isPending ? "Adding..." : "Add Ingredient"}
+              {createIngredient.isPending 
+                ? (mode === "edit" ? "Updating..." : "Adding...") 
+                : (mode === "edit" ? "Update Ingredient" : "Add Ingredient")
+              }
             </Button>
           </div>
         </form>

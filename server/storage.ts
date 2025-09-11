@@ -63,6 +63,7 @@ export interface IStorage {
   addRecipeIngredient(recipeIngredient: InsertRecipeIngredient): Promise<RecipeIngredient>;
   updateRecipeIngredient(id: string, recipeIngredient: Partial<InsertRecipeIngredient>): Promise<RecipeIngredient | undefined>;
   deleteRecipeIngredient(id: string): Promise<boolean>;
+  replaceRecipeIngredients(recipeId: string, ingredients: InsertRecipeIngredient[]): Promise<RecipeIngredient[]>;
 
   // Inventory
   getLowStockIngredients(): Promise<IngredientWithStock[]>;
@@ -269,6 +270,26 @@ export class DatabaseStorage implements IStorage {
   async deleteRecipeIngredient(id: string): Promise<boolean> {
     const result = await db.delete(recipeIngredients).where(eq(recipeIngredients.id, id));
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async replaceRecipeIngredients(recipeId: string, ingredients: InsertRecipeIngredient[]): Promise<RecipeIngredient[]> {
+    // Delete all existing recipe ingredients for this recipe
+    await db.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
+    
+    // If no new ingredients, return empty array
+    if (ingredients.length === 0) {
+      return [];
+    }
+    
+    // Insert all new recipe ingredients
+    const newRecipeIngredients = await db.insert(recipeIngredients)
+      .values(ingredients.map(ingredient => ({
+        ...ingredient,
+        recipeId // Ensure the recipeId is set correctly
+      })))
+      .returning();
+    
+    return newRecipeIngredients;
   }
 
   async getLowStockIngredients(): Promise<IngredientWithStock[]> {

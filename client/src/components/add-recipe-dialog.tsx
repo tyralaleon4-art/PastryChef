@@ -11,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import RecipeCategoryDialog from "./recipe-category-dialog";
-import type { InsertRecipe, Category, Ingredient } from "@shared/schema";
+import type { InsertRecipe, Category, Ingredient, RecipeWithDetails } from "@shared/schema";
 
 interface AddRecipeDialogProps {
   trigger?: React.ReactNode;
+  recipe?: RecipeWithDetails; // For editing existing recipe
+  mode?: "add" | "edit";
 }
 
 interface RecipeIngredientItem {
@@ -23,7 +25,7 @@ interface RecipeIngredientItem {
   unit: string;
 }
 
-export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
+export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRecipeDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -42,6 +44,28 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
   const { data: ingredients = [] } = useQuery<Ingredient[]>({
     queryKey: ["/api/ingredients"],
   });
+
+  // Initialize form with recipe data when editing
+  useEffect(() => {
+    if (recipe && mode === "edit") {
+      setName(recipe.name);
+      setDescription(recipe.description || "");
+      setCategoryId(recipe.categoryId || "");
+      setIsVegan(recipe.isVegan || false);
+      setIsGlutenFree(recipe.isGlutenFree || false);
+      setIsLactoseFree(recipe.isLactoseFree || false);
+      
+      // Convert recipe ingredients to the form format
+      const recipeIngredientsData = recipe.recipeIngredients.map(ri => ({
+        ingredientId: ri.ingredientId,
+        quantity: ri.quantity.toString(),
+        unit: ri.unit
+      }));
+      setRecipeIngredients(recipeIngredientsData);
+    } else if (mode === "add") {
+      resetForm();
+    }
+  }, [recipe, mode]);
 
   // Helper function to convert units to kg for cost calculation
   const convertToKg = (quantity: number, unit: string): number => {
@@ -158,9 +182,14 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
   }, [isVeganCompatible, isGlutenFreeCompatible, isLactoseFreeCompatible, recipeIngredients.length]);
 
   const createRecipe = useMutation({
-    mutationFn: async (recipe: InsertRecipe & { recipeIngredients: RecipeIngredientItem[] }) => {
-      const response = await apiRequest("POST", "/api/recipes", recipe);
-      return response.json();
+    mutationFn: async (recipeData: InsertRecipe & { recipeIngredients: RecipeIngredientItem[] }) => {
+      if (mode === "edit" && recipe) {
+        const response = await apiRequest("PUT", `/api/recipes/${recipe.id}`, recipeData);
+        return response.json();
+      } else {
+        const response = await apiRequest("POST", "/api/recipes", recipeData);
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
@@ -168,14 +197,16 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
       setOpen(false);
       resetForm();
       toast({
-        title: "Recipe added",
-        description: "Recipe has been added successfully.",
+        title: mode === "edit" ? "Recipe updated" : "Recipe added",
+        description: mode === "edit" 
+          ? "Recipe has been updated successfully." 
+          : "Recipe has been added successfully.",
       });
     },
     onError: () => {
       toast({
         title: "Error",
-        description: "Failed to add recipe.",
+        description: mode === "edit" ? "Failed to update recipe." : "Failed to add recipe.",
         variant: "destructive",
       });
     },
@@ -235,7 +266,7 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-add-recipe">
         <DialogHeader>
-          <DialogTitle>Add New Recipe</DialogTitle>
+          <DialogTitle>{mode === "edit" ? "Edit Recipe" : "Add New Recipe"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
@@ -445,7 +476,10 @@ export default function AddRecipeDialog({ trigger }: AddRecipeDialogProps) {
               disabled={createRecipe.isPending || !name.trim() || recipeIngredients.length === 0}
               data-testid="button-save-recipe"
             >
-              {createRecipe.isPending ? "Adding..." : "Add Recipe"}
+              {createRecipe.isPending 
+                ? (mode === "edit" ? "Updating..." : "Adding...") 
+                : (mode === "edit" ? "Update Recipe" : "Add Recipe")
+              }
             </Button>
           </div>
         </form>

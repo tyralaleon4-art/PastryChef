@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import RecipeCard from "@/components/recipe-card";
@@ -10,12 +11,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Search, Filter, Plus, Utensils, Calculator } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Search, Filter, Plus, Utensils, Calculator, Edit, Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import type { RecipeWithDetails } from "@shared/schema";
 
 export default function Recipes() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: recipes = [], isLoading } = useQuery<RecipeWithDetails[]>({
     queryKey: ["/api/recipes", search, categoryFilter],
@@ -24,6 +29,28 @@ export default function Recipes() {
 
   const { data: categories = [] } = useQuery<any[]>({
     queryKey: ["/api/categories"],
+  });
+
+  const deleteRecipe = useMutation({
+    mutationFn: async (recipeId: string) => {
+      const response = await apiRequest("DELETE", `/api/recipes/${recipeId}`);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      toast({
+        title: "Recipe deleted",
+        description: "Recipe has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete recipe. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
 
@@ -195,12 +222,39 @@ export default function Recipes() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-1">
-                              <Button size="sm" variant="outline" data-testid={`button-edit-recipe-${recipe.id}`}>
-                                <Plus size={14} />
-                              </Button>
-                              <Button size="sm" variant="outline" data-testid={`button-copy-recipe-${recipe.id}`}>
-                                <Calculator size={14} />
-                              </Button>
+                              <AddRecipeDialog
+                                recipe={recipe}
+                                mode="edit"
+                                trigger={
+                                  <Button size="sm" variant="outline" data-testid={`button-edit-recipe-${recipe.id}`}>
+                                    <Edit size={14} />
+                                  </Button>
+                                }
+                              />
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="outline" data-testid={`button-delete-recipe-${recipe.id}`}>
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{recipe.name}"? This action cannot be undone and will permanently remove all recipe data including ingredients and instructions.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => deleteRecipe.mutate(recipe.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      {deleteRecipe.isPending ? "Deleting..." : "Delete"}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             </div>
                           </TableCell>
                         </TableRow>
