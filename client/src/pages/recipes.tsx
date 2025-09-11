@@ -23,7 +23,7 @@ export default function Recipes() {
   const queryClient = useQueryClient();
 
   const { data: recipes = [], isLoading } = useQuery<RecipeWithDetails[]>({
-    queryKey: ["/api/recipes", search, categoryFilter],
+    queryKey: ["/api/recipes"],
     enabled: true,
   });
 
@@ -55,7 +55,9 @@ export default function Recipes() {
 
 
   const filteredRecipes = recipes.filter(recipe => {
-    const matchesSearch = !search || recipe.name.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = !search || 
+      recipe.name.toLowerCase().includes(search.toLowerCase()) ||
+      (recipe.description && recipe.description.toLowerCase().includes(search.toLowerCase()));
     const matchesCategory = !categoryFilter || categoryFilter === "all" || recipe.categoryId === categoryFilter;
     return matchesSearch && matchesCategory;
   });
