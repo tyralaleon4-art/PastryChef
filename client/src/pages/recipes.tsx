@@ -11,14 +11,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Filter, Plus, Utensils, Calculator, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Utensils, Calculator, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { RecipeWithDetails } from "@shared/schema";
 
 export default function Recipes() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [dietaryFilters, setDietaryFilters] = useState({
+    vegan: false,
+    glutenFree: false,
+    lactoseFree: false,
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -59,7 +65,11 @@ export default function Recipes() {
       recipe.name.toLowerCase().includes(search.toLowerCase()) ||
       (recipe.description && recipe.description.toLowerCase().includes(search.toLowerCase()));
     const matchesCategory = !categoryFilter || categoryFilter === "all" || recipe.categoryId === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesDietary = 
+      (!dietaryFilters.vegan || recipe.isVegan) &&
+      (!dietaryFilters.glutenFree || recipe.isGlutenFree) &&
+      (!dietaryFilters.lactoseFree || recipe.isLactoseFree);
+    return matchesSearch && matchesCategory && matchesDietary;
   });
 
   return (
@@ -109,10 +119,41 @@ export default function Recipes() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button variant="outline" data-testid="button-filter-recipes">
-                <Filter size={16} className="mr-2" />
-                Filter
-              </Button>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="vegan-filter" 
+                    checked={dietaryFilters.vegan}
+                    onCheckedChange={(checked) => setDietaryFilters(prev => ({...prev, vegan: checked === true}))}
+                    data-testid="checkbox-filter-vegan"
+                  />
+                  <label htmlFor="vegan-filter" className="text-sm font-medium cursor-pointer">
+                    Vegan
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="gluten-free-filter" 
+                    checked={dietaryFilters.glutenFree}
+                    onCheckedChange={(checked) => setDietaryFilters(prev => ({...prev, glutenFree: checked === true}))}
+                    data-testid="checkbox-filter-gluten-free"
+                  />
+                  <label htmlFor="gluten-free-filter" className="text-sm font-medium cursor-pointer">
+                    Gluten Free
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="lactose-free-filter" 
+                    checked={dietaryFilters.lactoseFree}
+                    onCheckedChange={(checked) => setDietaryFilters(prev => ({...prev, lactoseFree: checked === true}))}
+                    data-testid="checkbox-filter-lactose-free"
+                  />
+                  <label htmlFor="lactose-free-filter" className="text-sm font-medium cursor-pointer">
+                    Lactose Free
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
