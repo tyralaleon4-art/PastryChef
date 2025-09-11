@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Plus, Edit, Trash2, Package } from "lucide-react";
@@ -16,6 +17,11 @@ import type { IngredientWithStock } from "@shared/schema";
 
 export default function Ingredients() {
   const [search, setSearch] = useState("");
+  const [dietaryFilters, setDietaryFilters] = useState({
+    vegan: false,
+    glutenFree: false,
+    lactoseFree: false,
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -45,9 +51,14 @@ export default function Ingredients() {
     },
   });
 
-  const filteredIngredients = ingredients.filter(ingredient =>
-    ingredient.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredIngredients = ingredients.filter(ingredient => {
+    const matchesSearch = ingredient.name.toLowerCase().includes(search.toLowerCase());
+    const matchesDietary = 
+      (!dietaryFilters.vegan || ingredient.isVegan) &&
+      (!dietaryFilters.glutenFree || ingredient.isGlutenFree) &&
+      (!dietaryFilters.lactoseFree || ingredient.isLactoseFree);
+    return matchesSearch && matchesDietary;
+  });
 
   const getStockBadgeVariant = (stockStatus: string) => {
     switch (stockStatus) {
@@ -79,17 +90,54 @@ export default function Ingredients() {
         />
         
         <div className="p-6">
-          {/* Search */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
-              <Input 
-                className="pl-10" 
-                placeholder="Search ingredients..." 
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                data-testid="input-search-ingredients"
-              />
+          {/* Search and Filter */}
+          <div className="flex items-center justify-between mb-6 gap-4">
+            <div className="flex items-center space-x-3 flex-1">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+                <Input 
+                  className="pl-10" 
+                  placeholder="Search ingredients..." 
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  data-testid="input-search-ingredients"
+                />
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="ingredient-vegan-filter" 
+                    checked={dietaryFilters.vegan}
+                    onCheckedChange={(checked) => setDietaryFilters(prev => ({...prev, vegan: checked === true}))}
+                    data-testid="checkbox-filter-ingredient-vegan"
+                  />
+                  <label htmlFor="ingredient-vegan-filter" className="text-sm font-medium cursor-pointer">
+                    Vegan
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="ingredient-gluten-free-filter" 
+                    checked={dietaryFilters.glutenFree}
+                    onCheckedChange={(checked) => setDietaryFilters(prev => ({...prev, glutenFree: checked === true}))}
+                    data-testid="checkbox-filter-ingredient-gluten-free"
+                  />
+                  <label htmlFor="ingredient-gluten-free-filter" className="text-sm font-medium cursor-pointer">
+                    Gluten Free
+                  </label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="ingredient-lactose-free-filter" 
+                    checked={dietaryFilters.lactoseFree}
+                    onCheckedChange={(checked) => setDietaryFilters(prev => ({...prev, lactoseFree: checked === true}))}
+                    data-testid="checkbox-filter-ingredient-lactose-free"
+                  />
+                  <label htmlFor="ingredient-lactose-free-filter" className="text-sm font-medium cursor-pointer">
+                    Lactose Free
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
 
