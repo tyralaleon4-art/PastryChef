@@ -160,7 +160,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   }, [canScale, targetWeight, targetUnit, originalWeight]);
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
+    contentRef: printRef,
     documentTitle: selectedRecipe ? `${selectedRecipe.name} - Scaled Recipe` : 'Scaled Recipe',
     onAfterPrint: () => {
       toast({
