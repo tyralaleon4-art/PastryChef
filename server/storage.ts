@@ -170,12 +170,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createIngredient(ingredient: InsertIngredient): Promise<Ingredient> {
-    const [newIngredient] = await db.insert(ingredients).values(ingredient).returning();
+    const [newIngredient] = await db.insert(ingredients).values({
+      ...ingredient,
+      allergens: ingredient.allergens ?? []
+    }).returning();
     return newIngredient;
   }
 
   async updateIngredient(id: string, ingredient: Partial<InsertIngredient>): Promise<Ingredient | undefined> {
-    const [updated] = await db.update(ingredients).set(ingredient).where(eq(ingredients.id, id)).returning();
+    const updateData: Partial<typeof ingredients.$inferInsert> = { ...ingredient };
+    if (ingredient.allergens !== undefined) updateData.allergens = ingredient.allergens;
+    const [updated] = await db.update(ingredients).set(updateData).where(eq(ingredients.id, id)).returning();
     return updated || undefined;
   }
 
@@ -228,15 +233,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createRecipe(recipe: InsertRecipe): Promise<Recipe> {
-    const [newRecipe] = await db.insert(recipes).values(recipe).returning();
+    const [newRecipe] = await db.insert(recipes).values({
+      ...recipe,
+      allergens: recipe.allergens ?? [],
+      instructions: recipe.instructions ?? []
+    }).returning();
     return newRecipe;
   }
 
   async updateRecipe(id: string, recipe: Partial<InsertRecipe>): Promise<Recipe | undefined> {
-    const updateData = {
-      ...recipe,
-      updatedAt: new Date()
-    };
+    const updateData: Partial<typeof recipes.$inferInsert> = { ...recipe, updatedAt: new Date() };
+    if (recipe.allergens !== undefined) updateData.allergens = recipe.allergens;
+    if (recipe.instructions !== undefined) updateData.instructions = recipe.instructions;
     const [updated] = await db.update(recipes).set(updateData).where(eq(recipes.id, id)).returning();
     return updated || undefined;
   }
@@ -293,7 +301,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getLowStockIngredients(): Promise<IngredientWithStock[]> {
-    const results = await db.select().from(ingredients).orderBy(asc(ingredients.name));
+    const results = await db.query.ingredients.findMany({
+      with: {
+        category: true
+      },
+      orderBy: asc(ingredients.name)
+    });
     
     return results
       .map(ingredient => ({

@@ -139,12 +139,17 @@ export const insertIngredientCategorySchema = createInsertSchema(ingredientCateg
   createdAt: true,
 });
 
-export const insertIngredientSchema = createInsertSchema(ingredients).omit({
+export const insertIngredientSchema = createInsertSchema(ingredients, {
+  allergens: z.array(z.string()).default([])
+}).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertRecipeSchema = createInsertSchema(recipes).omit({
+export const insertRecipeSchema = createInsertSchema(recipes, {
+  instructions: z.array(z.string()).default([]),
+  allergens: z.array(z.string()).default([])
+}).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
