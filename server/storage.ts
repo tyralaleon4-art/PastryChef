@@ -281,23 +281,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async replaceRecipeIngredients(recipeId: string, ingredients: InsertRecipeIngredient[]): Promise<RecipeIngredient[]> {
-    // Delete all existing recipe ingredients for this recipe
-    await db.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
-    
-    // If no new ingredients, return empty array
-    if (ingredients.length === 0) {
-      return [];
-    }
-    
-    // Insert all new recipe ingredients
-    const newRecipeIngredients = await db.insert(recipeIngredients)
-      .values(ingredients.map(ingredient => ({
-        ...ingredient,
-        recipeId // Ensure the recipeId is set correctly
-      })))
-      .returning();
-    
-    return newRecipeIngredients;
+    // Use transaction to ensure atomicity of delete + insert operations
+    return await db.transaction(async (tx) => {
+      // Delete all existing recipe ingredients for this recipe
+      await tx.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
+      
+      // If no new ingredients, return empty array
+      if (ingredients.length === 0) {
+        return [];
+      }
+      
+      // Insert all new recipe ingredients
+      const newRecipeIngredients = await tx.insert(recipeIngredients)
+        .values(ingredients.map(ingredient => ({
+          ...ingredient,
+          recipeId // Ensure the recipeId is set correctly
+        })))
+        .returning();
+      
+      return newRecipeIngredients;
+    });
   }
 
   async getLowStockIngredients(): Promise<IngredientWithStock[]> {
