@@ -36,6 +36,9 @@ export const ingredients = pgTable("ingredients", {
   isVegan: boolean("is_vegan").default(false),
   isGlutenFree: boolean("is_gluten_free").default(false),
   isLactoseFree: boolean("is_lactose_free").default(false),
+  // Recipe scaling metadata
+  densityGPerMl: decimal("density_g_per_ml", { precision: 6, scale: 3 }), // For ml/l conversions (optional)
+  weightPerPieceG: decimal("weight_per_piece_g", { precision: 10, scale: 3 }), // For pcs conversions (optional)
   expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -52,6 +55,8 @@ export const recipes = pgTable("recipes", {
   isGlutenFree: boolean("is_gluten_free").default(false),
   isLactoseFree: boolean("is_lactose_free").default(false),
   isActive: boolean("is_active").default(true),
+  // Recipe scaling metadata
+  totalYieldGrams: decimal("total_yield_grams", { precision: 10, scale: 2 }), // Fallback for scaling when ingredient metadata is missing (optional)
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

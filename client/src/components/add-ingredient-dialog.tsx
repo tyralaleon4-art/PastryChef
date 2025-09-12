@@ -49,6 +49,9 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
   const [isVegan, setIsVegan] = useState(false);
   const [isGlutenFree, setIsGlutenFree] = useState(false);
   const [isLactoseFree, setIsLactoseFree] = useState(false);
+  // Recipe scaling metadata (optional)
+  const [densityGPerMl, setDensityGPerMl] = useState("");
+  const [weightPerPieceG, setWeightPerPieceG] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -70,6 +73,8 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       setIsVegan(ingredient.isVegan || false);
       setIsGlutenFree(ingredient.isGlutenFree || false);
       setIsLactoseFree(ingredient.isLactoseFree || false);
+      setDensityGPerMl(ingredient.densityGPerMl || "");
+      setWeightPerPieceG(ingredient.weightPerPieceG || "");
     } else if (mode === "add") {
       resetForm();
     }
@@ -118,6 +123,8 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
     setIsVegan(false);
     setIsGlutenFree(false);
     setIsLactoseFree(false);
+    setDensityGPerMl("");
+    setWeightPerPieceG("");
   };
 
   const toggleAllergen = (allergen: string) => {
@@ -144,6 +151,9 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       isVegan,
       isGlutenFree,
       isLactoseFree,
+      // Recipe scaling metadata (optional)
+      densityGPerMl: densityGPerMl ? densityGPerMl : undefined,
+      weightPerPieceG: weightPerPieceG ? weightPerPieceG : undefined,
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
     });
   };
@@ -278,6 +288,43 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                   />
                   <Label htmlFor="ingredient-lactoseFree" className="text-sm font-normal">Lactose Free</Label>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recipe Scaling Metadata (Optional) */}
+          <div className="border-t pt-4">
+            <Label className="text-sm font-medium mb-3 block">Recipe Scaling Properties (Optional)</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="densityGPerMl">Density (g per ml)</Label>
+                <Input
+                  id="densityGPerMl"
+                  type="number"
+                  step="0.001"
+                  value={densityGPerMl}
+                  onChange={(e) => setDensityGPerMl(e.target.value)}
+                  placeholder="e.g., 1.000 for water, 0.915 for oil"
+                  data-testid="input-density-g-per-ml"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Used to convert ml/l measurements to grams for recipe scaling
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="weightPerPieceG">Weight per piece (g)</Label>
+                <Input
+                  id="weightPerPieceG"
+                  type="number"
+                  step="0.1"
+                  value={weightPerPieceG}
+                  onChange={(e) => setWeightPerPieceG(e.target.value)}
+                  placeholder="e.g., 60 for large egg, 2 for almond"
+                  data-testid="input-weight-per-piece-g"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Used to convert piece measurements to grams for recipe scaling
+                </p>
               </div>
             </div>
           </div>

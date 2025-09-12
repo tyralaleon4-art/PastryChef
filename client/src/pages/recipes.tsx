@@ -5,6 +5,7 @@ import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import RecipeCard from "@/components/recipe-card";
 import AddRecipeDialog from "@/components/add-recipe-dialog";
+import RecipeScaleDialog from "@/components/recipe-scale-dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -265,6 +266,14 @@ export default function Recipes() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-1">
+                              <RecipeScaleDialog
+                                recipe={recipe}
+                                trigger={
+                                  <Button size="sm" variant="outline" data-testid={`button-scale-recipe-${recipe.id}`}>
+                                    <Calculator size={14} />
+                                  </Button>
+                                }
+                              />
                               <AddRecipeDialog
                                 recipe={recipe}
                                 mode="edit"

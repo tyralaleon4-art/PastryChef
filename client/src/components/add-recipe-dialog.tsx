@@ -33,6 +33,8 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
   const [isVegan, setIsVegan] = useState(false);
   const [isGlutenFree, setIsGlutenFree] = useState(false);
   const [isLactoseFree, setIsLactoseFree] = useState(false);
+  // Recipe scaling metadata
+  const [totalYieldGrams, setTotalYieldGrams] = useState("");
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredientItem[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,6 +56,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
       setIsVegan(recipe.isVegan || false);
       setIsGlutenFree(recipe.isGlutenFree || false);
       setIsLactoseFree(recipe.isLactoseFree || false);
+      setTotalYieldGrams(recipe.totalYieldGrams || "");
       
       // Convert recipe ingredients to the form format
       const recipeIngredientsData = recipe.recipeIngredients.map(ri => ({
@@ -219,6 +222,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
     setIsVegan(false);
     setIsGlutenFree(false);
     setIsLactoseFree(false);
+    setTotalYieldGrams("");
     setRecipeIngredients([]);
   };
 
@@ -249,6 +253,8 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
       isVegan,
       isGlutenFree,
       isLactoseFree,
+      // Recipe scaling metadata
+      totalYieldGrams: totalYieldGrams ? totalYieldGrams : undefined,
       instructions: [],
       recipeIngredients: recipeIngredients.filter(ri => ri.ingredientId && ri.quantity)
     });
@@ -314,6 +320,23 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               rows={3}
               data-testid="input-recipe-description"
             />
+          </div>
+
+          {/* Recipe Scaling Metadata (Optional) */}
+          <div>
+            <Label htmlFor="totalYieldGrams">Total Yield (grams) - Optional</Label>
+            <Input
+              id="totalYieldGrams"
+              type="number"
+              step="1"
+              value={totalYieldGrams}
+              onChange={(e) => setTotalYieldGrams(e.target.value)}
+              placeholder="e.g., 1200 (final weight of prepared recipe)"
+              data-testid="input-total-yield-grams"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Used as fallback for recipe scaling when ingredient density data is missing
+            </p>
           </div>
 
 
