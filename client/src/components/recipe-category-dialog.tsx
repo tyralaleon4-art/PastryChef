@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { InsertCategory } from "@shared/schema";
@@ -52,17 +52,34 @@ export default function RecipeCategoryDialog() {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Add Recipe Category"
+      className="sm:max-w-md"
+      testId="dialog-add-recipe-category"
+      trigger={
         <Button type="button" variant="outline" size="sm" data-testid="button-add-recipe-category">
           <Plus size={16} />
         </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md" data-testid="dialog-add-recipe-category">
-        <DialogHeader>
-          <DialogTitle>Add Recipe Category</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+      }
+      footer={
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-recipe-category">
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            form="recipe-category-form"
+            disabled={createCategory.isPending || !name.trim()}
+            data-testid="button-save-recipe-category"
+          >
+            {createCategory.isPending ? "Adding..." : "Add Category"}
+          </Button>
+        </div>
+      }
+    >
+      <form id="recipe-category-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="categoryName">Category Name</Label>
             <Input
@@ -87,20 +104,7 @@ export default function RecipeCategoryDialog() {
             />
           </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-recipe-category">
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={createCategory.isPending || !name.trim()}
-              data-testid="button-save-recipe-category"
-            >
-              {createCategory.isPending ? "Adding..." : "Add Category"}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

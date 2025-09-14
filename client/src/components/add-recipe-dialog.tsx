@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -279,20 +279,38 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button data-testid="button-add-recipe">
-            <Plus size={16} className="mr-2" />
-            Add Recipe
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={mode === "edit" ? "Edit Recipe" : "Add New Recipe"}
+      className="sm:max-w-3xl max-h-[90vh] overflow-y-auto"
+      testId="dialog-add-recipe"
+      trigger={trigger || (
+        <Button data-testid="button-add-recipe">
+          <Plus size={16} className="mr-2" />
+          Add Recipe
+        </Button>
+      )}
+      footer={
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
+            Cancel
           </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="dialog-add-recipe">
-        <DialogHeader>
-          <DialogTitle>{mode === "edit" ? "Edit Recipe" : "Add New Recipe"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-6">
+          <Button 
+            type="submit" 
+            form="recipe-form"
+            disabled={createRecipe.isPending || !name.trim() || recipeIngredients.length === 0}
+            data-testid="button-save-recipe"
+          >
+            {createRecipe.isPending 
+              ? (mode === "edit" ? "Updating..." : "Adding...") 
+              : (mode === "edit" ? "Update Recipe" : "Add Recipe")
+            }
+          </Button>
+        </div>
+      }
+    >
+      <form id="recipe-form" onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -550,23 +568,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
             </div>
           )}
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={createRecipe.isPending || !name.trim() || recipeIngredients.length === 0}
-              data-testid="button-save-recipe"
-            >
-              {createRecipe.isPending 
-                ? (mode === "edit" ? "Updating..." : "Adding...") 
-                : (mode === "edit" ? "Update Recipe" : "Add Recipe")
-              }
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -159,20 +159,38 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button data-testid="button-add-ingredient">
-            <Plus size={16} className="mr-2" />
-            Add Ingredient
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={mode === "edit" ? "Edit Ingredient" : "Add New Ingredient"}
+      className="sm:max-w-2xl max-h-[80vh] overflow-y-auto"
+      testId="dialog-add-ingredient"
+      trigger={trigger || (
+        <Button data-testid="button-add-ingredient">
+          <Plus size={16} className="mr-2" />
+          Add Ingredient
+        </Button>
+      )}
+      footer={
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
+            Cancel
           </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto" data-testid="dialog-add-ingredient">
-        <DialogHeader>
-          <DialogTitle>{mode === "edit" ? "Edit Ingredient" : "Add New Ingredient"}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
+          <Button 
+            type="submit" 
+            form="ingredient-form"
+            disabled={createIngredient.isPending || !name.trim() || !costPerUnit.trim()}
+            data-testid="button-save-ingredient"
+          >
+            {createIngredient.isPending 
+              ? (mode === "edit" ? "Updating..." : "Adding...") 
+              : (mode === "edit" ? "Update Ingredient" : "Add Ingredient")
+            }
+          </Button>
+        </div>
+      }
+    >
+      <form id="ingredient-form" onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="name">Ingredient Name</Label>
@@ -366,23 +384,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={createIngredient.isPending || !name.trim() || !costPerUnit.trim()}
-              data-testid="button-save-ingredient"
-            >
-              {createIngredient.isPending 
-                ? (mode === "edit" ? "Updating..." : "Adding...") 
-                : (mode === "edit" ? "Update Ingredient" : "Add Ingredient")
-              }
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

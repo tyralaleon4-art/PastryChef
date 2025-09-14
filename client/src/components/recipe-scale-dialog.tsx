@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -247,21 +247,20 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" data-testid="button-recipe-scale">
-            <Calculator size={16} className="mr-2" />
-            Scale Recipe
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="dialog-recipe-scale">
-        <DialogHeader>
-          <DialogTitle>Recipe Scale Calculator</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-6">
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={setOpen}
+      title="Recipe Scale Calculator"
+      className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+      testId="dialog-recipe-scale"
+      trigger={trigger || (
+        <Button variant="outline" data-testid="button-recipe-scale">
+          <Calculator size={16} className="mr-2" />
+          Scale Recipe
+        </Button>
+      )}
+    >
+      <div className="space-y-6">
           {/* Recipe Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -450,7 +449,6 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
             />
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }
