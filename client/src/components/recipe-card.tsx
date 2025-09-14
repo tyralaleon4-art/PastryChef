@@ -9,9 +9,24 @@ interface RecipeCardProps {
 }
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
-  // Calculate total cost
+  // Helper function to convert units to kg for cost calculation
+  const convertToKg = (quantity: number, unit: string): number => {
+    switch (unit) {
+      case 'g': return quantity / 1000;
+      case 'kg': return quantity;
+      case 'ml': return quantity / 1000; // Assuming 1ml ≈ 1g for most ingredients
+      case 'l': return quantity;
+      case 'pcs': return quantity * 0.1; // Rough estimate: 1 piece ≈ 100g
+      default: return quantity;
+    }
+  };
+
+  // Calculate total cost with proper unit conversion
   const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
-    return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
+    const quantity = Number(ri.quantity);
+    const weightInKg = convertToKg(quantity, ri.unit);
+    const ingredientCost = Number(ri.ingredient.costPerUnit) * weightInKg;
+    return sum + ingredientCost;
   }, 0);
 
   return (

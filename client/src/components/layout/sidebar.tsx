@@ -8,7 +8,8 @@ import {
   Warehouse, 
   DollarSign, 
   ChartBar,
-  Utensils
+  Utensils,
+  Factory
 } from "lucide-react";
 
 const navigation = [
@@ -16,6 +17,7 @@ const navigation = [
   { name: "Recipes", href: "/recipes", icon: BookOpen },
   { name: "Ingredients", href: "/ingredients", icon: Sprout },
   { name: "Calculator", href: "/calculator", icon: Calculator },
+  { name: "Production", href: "/production", icon: Factory },
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Cost Analysis", href: "/costing", icon: DollarSign },
   { name: "Reports", href: "/reports", icon: ChartBar },

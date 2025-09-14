@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import Recipes from "@/pages/recipes";
 import Ingredients from "@/pages/ingredients";
 import Calculator from "@/pages/calculator";
+import Production from "@/pages/production";
 import Inventory from "@/pages/inventory";
 import NotFound from "@/pages/not-found";
 
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/recipes" component={Recipes} />
       <Route path="/ingredients" component={Ingredients} />
       <Route path="/calculator" component={Calculator} />
+      <Route path="/production" component={Production} />
       <Route path="/inventory" component={Inventory} />
       <Route component={NotFound} />
     </Switch>

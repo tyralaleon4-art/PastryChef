@@ -328,7 +328,7 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
           <div className="section-title">Instrukcja wykonania</div>
           <ol>
             {recipe.instructions.map((instruction, index) => (
-              <li key={index}>{instruction}</li>
+              <li key={index}><strong>{index + 1}.</strong> {instruction}</li>
             ))}
           </ol>
         </div>
