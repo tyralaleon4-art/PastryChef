@@ -35,6 +35,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
   const [isLactoseFree, setIsLactoseFree] = useState(false);
   // Recipe scaling metadata
   const [totalYieldGrams, setTotalYieldGrams] = useState("");
+  const [instructions, setInstructions] = useState<string[]>([]);
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredientItem[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,6 +58,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
       setIsGlutenFree(recipe.isGlutenFree || false);
       setIsLactoseFree(recipe.isLactoseFree || false);
       setTotalYieldGrams(recipe.totalYieldGrams || "");
+      setInstructions(recipe.instructions || []);
       
       // Convert recipe ingredients to the form format
       const recipeIngredientsData = recipe.recipeIngredients.map(ri => ({
@@ -223,6 +225,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
     setIsGlutenFree(false);
     setIsLactoseFree(false);
     setTotalYieldGrams("");
+    setInstructions([]);
     setRecipeIngredients([]);
   };
 
@@ -241,6 +244,21 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
     setRecipeIngredients(recipeIngredients.filter((_, i) => i !== index));
   };
 
+  const addInstruction = () => {
+    setInstructions([...instructions, ""]);
+  };
+
+  const updateInstruction = (index: number, value: string) => {
+    const updated = instructions.map((instruction, i) => 
+      i === index ? value : instruction
+    );
+    setInstructions(updated);
+  };
+
+  const removeInstruction = (index: number) => {
+    setInstructions(instructions.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || recipeIngredients.length === 0) return;
@@ -255,7 +273,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
       isLactoseFree,
       // Recipe scaling metadata
       totalYieldGrams: totalYieldGrams ? totalYieldGrams : undefined,
-      instructions: [],
+      instructions: instructions.filter(instruction => instruction.trim()),
       recipeIngredients: recipeIngredients.filter(ri => ri.ingredientId && ri.quantity)
     });
   };
@@ -339,7 +357,49 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
             </p>
           </div>
 
+          {/* Instructions Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Label>Instructions (optional)</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addInstruction} data-testid="button-add-instruction">
+                <Plus size={16} className="mr-2" />
+                Add Step
+              </Button>
+            </div>
 
+            <div className="space-y-3">
+              {instructions.map((instruction, index) => (
+                <div key={index} className="flex gap-3 items-start">
+                  <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-medium text-primary mt-1">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <Textarea
+                      value={instruction}
+                      onChange={(e) => updateInstruction(index, e.target.value)}
+                      placeholder={`Step ${index + 1} - describe what to do...`}
+                      rows={2}
+                      data-testid={`textarea-instruction-${index}`}
+                    />
+                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => removeInstruction(index)}
+                    data-testid={`button-remove-instruction-${index}`}
+                    className="mt-1"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                </div>
+              ))}
+              
+              {instructions.length === 0 && (
+                <p className="text-muted-foreground text-sm">No instructions added yet.</p>
+              )}
+            </div>
+          </div>
 
           {/* Ingredients Section */}
           <div>
