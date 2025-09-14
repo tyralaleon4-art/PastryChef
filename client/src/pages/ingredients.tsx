@@ -89,10 +89,10 @@ export default function Ingredients() {
           }
         />
         
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {/* Search and Filter */}
-          <div className="flex items-center justify-between mb-6 gap-4">
-            <div className="flex items-center space-x-3 flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-3 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
                 <Input 
@@ -103,7 +103,7 @@ export default function Ingredients() {
                   data-testid="input-search-ingredients"
                 />
               </div>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="ingredient-vegan-filter" 
@@ -165,8 +165,135 @@ export default function Ingredients() {
               />
             </div>
           ) : (
-            <Card>
-              <Table>
+            <>
+              {/* Mobile Card Layout */}
+              <div className="block md:hidden space-y-4">
+                {filteredIngredients.map((ingredient) => (
+                  <Card key={ingredient.id} className="p-4" data-testid={`ingredient-card-${ingredient.id}`}>
+                    <div className="space-y-3">
+                      {/* Ingredient Header */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start space-x-3 flex-1">
+                          <Package size={20} className="text-primary mt-1" />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-base leading-tight">{ingredient.name}</h3>
+                            <div className="flex gap-1 mt-1">
+                              {ingredient.isVegan && <Badge variant="outline" className="text-xs text-green-600">V</Badge>}
+                              {ingredient.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
+                              {ingredient.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">LF</Badge>}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant={getStockBadgeVariant(ingredient.stockStatus)} data-testid={`badge-stock-mobile-${ingredient.id}`}>
+                          {getStockBadgeText(ingredient.stockStatus)}
+                        </Badge>
+                      </div>
+
+                      {/* Ingredient Details */}
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <div className="text-muted-foreground">Category</div>
+                          <div className="mt-1">
+                            {ingredient.category ? (
+                              <Badge variant="secondary" className="text-xs">{ingredient.category.name}</Badge>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Price/kg</div>
+                          <div className="mt-1 font-medium">
+                            {Number(ingredient.costPerUnit).toFixed(2)} PLN
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Current Stock</div>
+                          <div className="mt-1 font-medium">
+                            {Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">Min Stock</div>
+                          <div className="mt-1 font-medium">
+                            {Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Supplier */}
+                      {ingredient.supplier && (
+                        <div>
+                          <div className="text-sm text-muted-foreground">Supplier</div>
+                          <div className="mt-1 text-sm font-medium">{ingredient.supplier}</div>
+                        </div>
+                      )}
+
+                      {/* Allergens */}
+                      {ingredient.allergens && ingredient.allergens.length > 0 && (
+                        <div>
+                          <div className="text-sm text-muted-foreground mb-1">Allergens</div>
+                          <div className="flex flex-wrap gap-1">
+                            {ingredient.allergens.slice(0, 3).map((allergen) => (
+                              <Badge key={allergen} variant="destructive" className="text-xs">
+                                {allergen}
+                              </Badge>
+                            ))}
+                            {ingredient.allergens.length > 3 && (
+                              <Badge variant="destructive" className="text-xs">
+                                +{ingredient.allergens.length - 3}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center space-x-2 pt-2 border-t">
+                        <AddIngredientDialog
+                          ingredient={ingredient}
+                          mode="edit"
+                          trigger={
+                            <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-mobile-${ingredient.id}`}>
+                              <Edit size={14} className="mr-2" />
+                              Edit
+                            </Button>
+                          }
+                        />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button size="sm" variant="outline" data-testid={`button-delete-mobile-${ingredient.id}`}>
+                              <Trash2 size={14} />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Ingredient</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{ingredient.name}"? This action cannot be undone and may affect recipes that use this ingredient.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => deleteIngredient.mutate(ingredient.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                {deleteIngredient.isPending ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block">
+                <Card>
+                  <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
@@ -275,8 +402,10 @@ export default function Ingredients() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </Card>
+                </Table>
+              </Card>
+              </div>
+            </>
           )}
         </div>
       </main>
