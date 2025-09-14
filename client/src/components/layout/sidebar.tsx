@@ -56,16 +56,6 @@ export default function Sidebar() {
                 )} data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
                   <item.icon className="w-5 h-5 mr-3" />
                   {item.name}
-                  {item.name === "Recipes" && (
-                    <span className="ml-auto bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                      847
-                    </span>
-                  )}
-                  {item.name === "Ingredients" && (
-                    <span className="ml-auto bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                      423
-                    </span>
-                  )}
                 </Link>
               </li>
             );
