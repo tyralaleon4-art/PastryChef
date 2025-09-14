@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReactToPrint } from "react-to-print";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -162,11 +164,62 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: selectedRecipe ? `${selectedRecipe.name} - Scaled Recipe` : 'Scaled Recipe',
-    onAfterPrint: () => {
-      toast({
-        title: "Print ready",
-        description: "The scaled recipe has been prepared for printing."
-      });
+    print: async (printIframe) => {
+      // Custom PDF download function instead of print dialog
+      try {
+        if (!printIframe.contentDocument) {
+          throw new Error('Content document not available');
+        }
+        const element = printIframe.contentDocument.body;
+        
+        // Generate canvas from HTML
+        const canvas = await html2canvas(element, {
+          scale: 2, // Higher quality
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+
+        // Create PDF
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        // Calculate dimensions to fit A4 page
+        const imgProperties = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
+        
+        // Add margins
+        const margin = 10;
+        const availableWidth = pdfWidth - (margin * 2);
+        const availableHeight = (imgProperties.height * availableWidth) / imgProperties.width;
+
+        // Add image to PDF with margins
+        pdf.addImage(imgData, 'PNG', margin, margin, availableWidth, availableHeight);
+
+        // Download the PDF
+        const fileName = selectedRecipe 
+          ? `${selectedRecipe.name.replace(/[^a-z0-9]/gi, '_')}_Scaled_Recipe.pdf`
+          : 'Scaled_Recipe.pdf';
+        
+        pdf.save(fileName);
+
+        toast({
+          title: "PDF Downloaded",
+          description: "The scaled recipe has been downloaded as a PDF file."
+        });
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        toast({
+          title: "Download Failed",
+          description: "There was an error generating the PDF. Please try again.",
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -306,7 +359,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                     data-testid="button-print-scaled-recipe"
                   >
                     <FileText size={14} className="mr-1" />
-                    Print PDF
+                    Download PDF
                   </Button>
                 </div>
               </div>

@@ -20,9 +20,9 @@ export default function Header({ title, subtitle, action }: HeaderProps) {
           {action}
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold" data-testid="user-avatar">
-              <span>JD</span>
+              <span>LT</span>
             </div>
-            <span className="text-sm font-medium" data-testid="user-name">John Doe</span>
+            <span className="text-sm font-medium" data-testid="user-name">Leon Tyrała</span>
           </div>
         </div>
       </div>
