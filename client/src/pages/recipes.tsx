@@ -93,10 +93,10 @@ export default function Recipes() {
           }
         />
         
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           {/* Search and Filter */}
-          <div className="flex items-center justify-between mb-6 gap-4">
-            <div className="flex items-center space-x-3 flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
+            <div className="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-3 flex-1">
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
                 <Input 
@@ -120,7 +120,7 @@ export default function Recipes() {
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
                     id="vegan-filter" 
@@ -183,8 +183,144 @@ export default function Recipes() {
             </div>
           ) : (
             <>
-              <Card>
-                <Table>
+              {/* Mobile Card Layout */}
+              <div className="block md:hidden space-y-4">
+                {filteredRecipes.map((recipe) => {
+                  const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
+                    return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
+                  }, 0);
+
+                  return (
+                    <Card key={recipe.id} className="p-4" data-testid={`recipe-card-${recipe.id}`}>
+                      <div className="space-y-3">
+                        {/* Recipe Header */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start space-x-3 flex-1">
+                            <Utensils size={20} className="text-primary mt-1" />
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-base leading-tight">{recipe.name}</h3>
+                              {recipe.description && (
+                                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                                  {recipe.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Recipe Details */}
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <div className="text-muted-foreground">Category</div>
+                            <div className="mt-1">
+                              {recipe.category ? (
+                                <Badge variant="secondary" className="text-xs">{recipe.category.name}</Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Ingredients</div>
+                            <div className="mt-1 font-medium">
+                              {recipe.recipeIngredients.length} ingredients
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Total Cost</div>
+                            <div className="mt-1 flex items-center">
+                              <Calculator size={14} className="mr-1 text-primary" />
+                              <span className="font-bold text-primary">{totalCost.toFixed(2)} PLN</span>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">Dietary</div>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">V</Badge>}
+                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
+                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">LF</Badge>}
+                              {!recipe.isVegan && !recipe.isGlutenFree && !recipe.isLactoseFree && (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Allergens */}
+                        {recipe.allergens && recipe.allergens.length > 0 && (
+                          <div>
+                            <div className="text-sm text-muted-foreground mb-1">Allergens</div>
+                            <div className="flex flex-wrap gap-1">
+                              {recipe.allergens.slice(0, 3).map((allergen) => (
+                                <Badge key={allergen} variant="destructive" className="text-xs">
+                                  {allergen}
+                                </Badge>
+                              ))}
+                              {recipe.allergens.length > 3 && (
+                                <Badge variant="destructive" className="text-xs">
+                                  +{recipe.allergens.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex items-center space-x-2 pt-2 border-t">
+                          <RecipeScaleDialog
+                            recipe={recipe}
+                            trigger={
+                              <Button size="sm" variant="outline" className="flex-1" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
+                                <Calculator size={14} className="mr-2" />
+                                Scale
+                              </Button>
+                            }
+                          />
+                          <AddRecipeDialog
+                            recipe={recipe}
+                            mode="edit"
+                            trigger={
+                              <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
+                                <Edit size={14} className="mr-2" />
+                                Edit
+                              </Button>
+                            }
+                          />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
+                                <Trash2 size={14} />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{recipe.name}"? This action cannot be undone and will permanently remove all recipe data including ingredients and instructions.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  onClick={() => deleteRecipe.mutate(recipe.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {deleteRecipe.isPending ? "Deleting..." : "Delete"}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden md:block">
+                <Card>
+                  <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Recipe Name</TableHead>
@@ -316,26 +452,27 @@ export default function Recipes() {
                 </Table>
               </Card>
 
-              <div className="mt-6 flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Showing {filteredRecipes.length} of {recipes.length} recipes
-                </p>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" data-testid="button-previous-page">
-                    Previous
-                  </Button>
-                  <Button variant="default" size="sm" data-testid="button-page-1">
-                    1
-                  </Button>
-                  <Button variant="outline" size="sm" data-testid="button-page-2">
-                    2
-                  </Button>
-                  <Button variant="outline" size="sm" data-testid="button-page-3">
-                    3
-                  </Button>
-                  <Button variant="outline" size="sm" data-testid="button-next-page">
-                    Next
-                  </Button>
+                <div className="mt-6 flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Showing {filteredRecipes.length} of {recipes.length} recipes
+                  </p>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="outline" size="sm" data-testid="button-previous-page">
+                      Previous
+                    </Button>
+                    <Button variant="default" size="sm" data-testid="button-page-1">
+                      1
+                    </Button>
+                    <Button variant="outline" size="sm" data-testid="button-page-2">
+                      2
+                    </Button>
+                    <Button variant="outline" size="sm" data-testid="button-page-3">
+                      3
+                    </Button>
+                    <Button variant="outline" size="sm" data-testid="button-next-page">
+                      Next
+                    </Button>
+                  </div>
                 </div>
               </div>
             </>
