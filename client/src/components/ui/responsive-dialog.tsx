@@ -33,18 +33,28 @@ interface ResponsiveDialogProps {
 }
 
 function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    // Initialize with matchMedia if available to avoid flicker
+    if (typeof window !== 'undefined') {
+      return !window.matchMedia('(min-width: 768px)').matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768); // md breakpoint
+    const mediaQuery = window.matchMedia('(min-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsMobile(!e.matches);
     };
 
-    checkIsMobile();
-    window.addEventListener("resize", checkIsMobile);
+    // Set initial value
+    setIsMobile(!mediaQuery.matches);
+
+    // Listen for changes
+    mediaQuery.addEventListener('change', handleChange);
 
     return () => {
-      window.removeEventListener("resize", checkIsMobile);
+      mediaQuery.removeEventListener('change', handleChange);
     };
   }, []);
 
@@ -70,18 +80,18 @@ export function ResponsiveDialog({
         <DrawerTrigger asChild>
           {trigger}
         </DrawerTrigger>
-        <DrawerContent className={cn("max-h-[96vh]", className)} data-testid={testId}>
-          <DrawerHeader className="text-left">
+        <DrawerContent className={cn("flex flex-col max-h-[96vh]", className)} data-testid={testId}>
+          <DrawerHeader className="text-left flex-shrink-0">
             <DrawerTitle>{title}</DrawerTitle>
             {description && (
               <DrawerDescription>{description}</DrawerDescription>
             )}
           </DrawerHeader>
-          <div className="flex-1 overflow-y-auto px-4">
+          <div className="flex-1 overflow-y-auto px-4 min-h-0">
             {children}
           </div>
           {footer && (
-            <DrawerFooter>
+            <DrawerFooter className="flex-shrink-0">
               {footer}
             </DrawerFooter>
           )}

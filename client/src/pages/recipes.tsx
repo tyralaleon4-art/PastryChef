@@ -270,8 +270,8 @@ export default function Recipes() {
                           <RecipeScaleDialog
                             recipe={recipe}
                             trigger={
-                              <Button size="sm" variant="outline" className="flex-1" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
-                                <Calculator size={14} className="mr-2" />
+                              <Button size="default" variant="outline" className="flex-1 h-10" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
+                                <Calculator size={16} className="mr-2" />
                                 Scale
                               </Button>
                             }
@@ -280,16 +280,16 @@ export default function Recipes() {
                             recipe={recipe}
                             mode="edit"
                             trigger={
-                              <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
-                                <Edit size={14} className="mr-2" />
+                              <Button size="default" variant="outline" className="flex-1 h-10" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
+                                <Edit size={16} className="mr-2" />
                                 Edit
                               </Button>
                             }
                           />
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
-                                <Trash2 size={14} />
+                              <Button size="default" variant="outline" className="h-10 px-4" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
+                                <Trash2 size={16} />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
