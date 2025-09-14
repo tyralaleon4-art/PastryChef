@@ -35,7 +35,7 @@ export default function Sidebar() {
   const [location] = useLocation();
 
   return (
-    <aside className="sidebar-nav bg-card border-r border-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
+    <aside className="hidden md:flex flex-col sidebar-nav bg-card border-r border-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
       <div className="p-6 border-b border-border">
         <h1 className="text-2xl font-bold text-primary flex items-center" data-testid="app-title">
           <Utensils className="mr-3" size={24} />

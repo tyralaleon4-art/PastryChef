@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import MobileNav from "./mobile-nav";
 
 interface HeaderProps {
   title: string;
@@ -10,11 +11,14 @@ export default function Header({ title, subtitle, action }: HeaderProps) {
   return (
     <header className="bg-card border-b border-border p-6" data-testid="page-header">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-foreground" data-testid="page-title">{title}</h2>
-          {subtitle && (
-            <p className="text-muted-foreground mt-1" data-testid="page-subtitle">{subtitle}</p>
-          )}
+        <div className="flex items-center">
+          <MobileNav />
+          <div className="ml-4 md:ml-0">
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground" data-testid="page-title">{title}</h2>
+            {subtitle && (
+              <p className="text-muted-foreground mt-1" data-testid="page-subtitle">{subtitle}</p>
+            )}
+          </div>
         </div>
         <div className="flex items-center space-x-4">
           {action}
