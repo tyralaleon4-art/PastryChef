@@ -161,6 +161,29 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     return targetGrams / originalWeight;
   }, [canScale, targetWeight, targetUnit, originalWeight]);
 
+  // Calculate ingredient percentages based on total scaled weight
+  const ingredientsWithPercentages = useMemo(() => {
+    if (!canScale || scaledIngredients.length === 0) return [];
+    
+    const totalScaledWeight = scaledIngredients.reduce((sum, si) => {
+      // Convert to grams for percentage calculation
+      const weight = si.scaledUnit === 'kg' ? si.scaledQuantity * 1000 : 
+                     si.scaledUnit === 'l' ? si.scaledQuantity * 1000 : 
+                     si.scaledUnit === 'ml' ? si.scaledQuantity : 
+                     si.scaledQuantity;
+      return sum + weight;
+    }, 0);
+    
+    return scaledIngredients.map(si => {
+      const weight = si.scaledUnit === 'kg' ? si.scaledQuantity * 1000 : 
+                     si.scaledUnit === 'l' ? si.scaledQuantity * 1000 : 
+                     si.scaledUnit === 'ml' ? si.scaledQuantity : 
+                     si.scaledQuantity;
+      const percentage = totalScaledWeight > 0 ? (weight / totalScaledWeight * 100) : 0;
+      return { ...si, percentage };
+    });
+  }, [scaledIngredients, canScale]);
+
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: selectedRecipe ? `${selectedRecipe.name} - Scaled Recipe` : 'Scaled Recipe',
@@ -371,10 +394,11 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                       <th className="text-left p-3">Ingredient</th>
                       <th className="text-right p-3">Original</th>
                       <th className="text-right p-3">Scaled</th>
+                      <th className="text-right p-3">Percentage</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {scaledIngredients.map((si, index) => (
+                    {ingredientsWithPercentages.map((si, index) => (
                       <tr key={si.ingredientId} className={index % 2 === 0 ? "bg-background" : "bg-muted/25"}>
                         <td className="p-3 font-medium">{si.ingredientName}</td>
                         <td className="p-3 text-right text-muted-foreground">
@@ -382,6 +406,9 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                         </td>
                         <td className="p-3 text-right font-medium">
                           {formatQuantity(si.scaledQuantity, si.scaledUnit)} {si.scaledUnit}
+                        </td>
+                        <td className="p-3 text-right font-medium text-primary" data-testid={`percentage-${index}`}>
+                          {si.percentage.toFixed(1)}%
                         </td>
                       </tr>
                     ))}
