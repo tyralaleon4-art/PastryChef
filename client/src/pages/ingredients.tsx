@@ -254,7 +254,7 @@ export default function Ingredients() {
                           ingredient={ingredient}
                           mode="edit"
                           trigger={
-                            <Button size="default" variant="outline" className="flex-1 h-10" data-testid={`button-edit-mobile-${ingredient.id}`}>
+                            <Button size="default" variant="outline" className="flex-1 h-11" data-testid={`button-edit-mobile-${ingredient.id}`}>
                               <Edit size={16} className="mr-2" />
                               Edit
                             </Button>
@@ -262,7 +262,7 @@ export default function Ingredients() {
                         />
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button size="default" variant="outline" className="h-10 px-4" data-testid={`button-delete-mobile-${ingredient.id}`}>
+                            <Button size="default" variant="outline" className="h-11 px-4" data-testid={`button-delete-mobile-${ingredient.id}`}>
                               <Trash2 size={16} />
                             </Button>
                           </AlertDialogTrigger>

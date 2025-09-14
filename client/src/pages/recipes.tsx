@@ -270,7 +270,7 @@ export default function Recipes() {
                           <RecipeScaleDialog
                             recipe={recipe}
                             trigger={
-                              <Button size="default" variant="outline" className="flex-1 h-10" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
+                              <Button size="default" variant="outline" className="flex-1 h-11" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
                                 <Calculator size={16} className="mr-2" />
                                 Scale
                               </Button>
@@ -280,7 +280,7 @@ export default function Recipes() {
                             recipe={recipe}
                             mode="edit"
                             trigger={
-                              <Button size="default" variant="outline" className="flex-1 h-10" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
+                              <Button size="default" variant="outline" className="flex-1 h-11" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
                                 <Edit size={16} className="mr-2" />
                                 Edit
                               </Button>
@@ -288,7 +288,7 @@ export default function Recipes() {
                           />
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button size="default" variant="outline" className="h-10 px-4" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
+                              <Button size="default" variant="outline" className="h-11 px-4" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
                                 <Trash2 size={16} />
                               </Button>
                             </AlertDialogTrigger>
