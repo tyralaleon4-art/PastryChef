@@ -10,6 +10,8 @@ interface ScaledIngredient {
   originalUnit: string;
   scaledQuantity: number;
   scaledUnit: string;
+  cost?: number;
+  pricePerKg?: number;
 }
 
 interface PrintableRecipeProps {
@@ -20,6 +22,7 @@ interface PrintableRecipeProps {
   scaledIngredients: ScaledIngredient[];
   scaleFactor: number;
   totalCost?: number;
+  totalWeight?: number;
 }
 
 const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
@@ -29,9 +32,29 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
   originalWeight,
   scaledIngredients,
   scaleFactor,
-  totalCost
+  totalCost,
+  totalWeight
 }, ref) => {
   const currentDate = new Date().toLocaleDateString();
+  const currentTime = new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'});
+  
+  // Calculate ingredient percentages
+  const finalTotalWeight = totalWeight || scaledIngredients.reduce((sum, ing) => {
+    const weight = ing.scaledUnit === 'kg' ? ing.scaledQuantity * 1000 : 
+                   ing.scaledUnit === 'l' ? ing.scaledQuantity * 1000 : 
+                   ing.scaledUnit === 'ml' ? ing.scaledQuantity : 
+                   ing.scaledQuantity;
+    return sum + weight;
+  }, 0);
+  
+  const ingredientsWithPercentages = scaledIngredients.map(ing => {
+    const weight = ing.scaledUnit === 'kg' ? ing.scaledQuantity * 1000 : 
+                   ing.scaledUnit === 'l' ? ing.scaledQuantity * 1000 : 
+                   ing.scaledUnit === 'ml' ? ing.scaledQuantity : 
+                   ing.scaledQuantity;
+    const percentage = finalTotalWeight > 0 ? (weight / finalTotalWeight * 100) : 0;
+    return { ...ing, weightPercent: percentage, weight };
+  });
   
   return (
     <div 
@@ -49,6 +72,11 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
     >
       {/* Print-specific styles */}
       <style>{`
+        @page {
+          margin: 20mm;
+          size: A4;
+        }
+        
         @media print {
           .print-container {
             font-family: 'Arial', sans-serif !important;
@@ -56,86 +84,151 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
             line-height: 1.4 !important;
             color: #000 !important;
             margin: 0 !important;
-            padding: 20px !important;
+            padding: 0 !important;
             max-width: 100% !important;
             background: white !important;
           }
-          .print-header {
-            border-bottom: 2px solid #333 !important;
-            padding-bottom: 10px !important;
+          
+          .header {
+            display: flex !important;
+            justify-content: space-between !important;
             margin-bottom: 20px !important;
+            font-size: 10px !important;
           }
-          .print-title {
-            font-size: 20px !important;
-            font-weight: bold !important;
-            margin: 0 0 5px 0 !important;
+          
+          .company-info {
+            text-align: center !important;
+            margin-bottom: 30px !important;
           }
-          .print-subtitle {
+          
+          .company-name {
             font-size: 14px !important;
-            color: #666 !important;
-            margin: 0 !important;
+            font-weight: bold !important;
           }
-          .recipe-info {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            gap: 20px !important;
+          
+          .recipe-title {
+            font-size: 16px !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            margin: 30px 0 !important;
+            text-transform: uppercase !important;
+          }
+          
+          .info-sections {
+            display: flex !important;
+            justify-content: space-between !important;
             margin-bottom: 20px !important;
           }
+          
           .info-section {
-            background: #f9f9f9 !important;
-            padding: 10px !important;
-            border-radius: 5px !important;
+            width: 48% !important;
           }
-          .info-title {
+          
+          .section-title {
             font-weight: bold !important;
-            margin-bottom: 5px !important;
             font-size: 13px !important;
+            margin-bottom: 10px !important;
+            text-transform: uppercase !important;
           }
+          
+          .info-row {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-bottom: 5px !important;
+            padding: 2px 0 !important;
+          }
+          
+          .info-label {
+            font-weight: bold !important;
+          }
+          
           .ingredients-table {
             width: 100% !important;
             border-collapse: collapse !important;
-            margin-bottom: 20px !important;
+            margin: 20px 0 !important;
           }
+          
           .ingredients-table th {
-            background: #333 !important;
-            color: white !important;
+            background-color: #f0f0f0 !important;
+            border: 1px solid #000 !important;
             padding: 8px !important;
-            text-align: left !important;
+            text-align: center !important;
             font-weight: bold !important;
-            border: 1px solid #333 !important;
+            font-size: 11px !important;
           }
+          
           .ingredients-table td {
+            border: 1px solid #000 !important;
             padding: 6px 8px !important;
+            text-align: center !important;
+            font-size: 11px !important;
+          }
+          
+          .ingredients-table td:first-child {
+            text-align: left !important;
+          }
+          
+          .total-row {
+            background-color: #f0f0f0 !important;
+            font-weight: bold !important;
+          }
+          
+          .allergens-section,
+          .instructions-section {
+            margin: 20px 0 !important;
+            border: 1px solid #000 !important;
+            padding: 10px !important;
+          }
+          
+          .tags-section {
+            margin: 15px 0 !important;
+            padding: 10px !important;
+            background-color: #f9f9f9 !important;
             border: 1px solid #ddd !important;
           }
-          .ingredients-table tr:nth-child(even) {
-            background: #f9f9f9 !important;
-          }
-          .badges {
-            display: flex !important;
-            gap: 5px !important;
-            margin-top: 5px !important;
-          }
-          .badge {
+          
+          .tag {
             display: inline-block !important;
-            padding: 2px 6px !important;
-            background: #e0e0e0 !important;
+            padding: 3px 8px !important;
+            margin: 2px !important;
+            background-color: #28a745 !important;
+            color: white !important;
             border-radius: 3px !important;
             font-size: 10px !important;
             font-weight: bold !important;
           }
-          .footer {
-            margin-top: 20px !important;
-            padding-top: 10px !important;
-            border-top: 1px solid #ddd !important;
-            font-size: 10px !important;
-            color: #666 !important;
+          
+          .tag.gluten-free {
+            background-color: #007bff !important;
           }
-          .quantity-column {
-            text-align: right !important;
-            font-weight: bold !important;
+          
+          .tag.vegan {
+            background-color: #ffc107 !important;
+            color: #000 !important;
+          }
+          
+          .tag.lactose-free {
+            background-color: #6f42c1 !important;
+          }
+          
+          .instructions-section ol {
+            margin: 10px 0 !important;
+            padding-left: 20px !important;
+          }
+          
+          .instructions-section li {
+            margin-bottom: 5px !important;
+          }
+          
+          .footer {
+            text-align: center !important;
+            font-size: 10px !important;
+            border-top: 1px solid #000 !important;
+            padding-top: 5px !important;
+            margin-top: 30px !important;
           }
         }
+        
         @media screen {
           .print-container {
             max-width: 210mm;
@@ -147,91 +240,127 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
         }
       `}</style>
 
-      {/* Header */}
-      <div className="print-header">
-        <h1 className="print-title">{recipe.name}</h1>
-        <p className="print-subtitle">Scaled Recipe - Professional Kitchen Calculator</p>
+      {/* Professional Header */}
+      <div className="header">
+        <div>{currentDate}, {currentTime}</div>
+        <div>Karta Produktu - {recipe.category?.name || 'przepis'}</div>
       </div>
-
-      {/* Recipe Information Grid */}
-      <div className="recipe-info">
-        <div className="info-section">
-          <div className="info-title">Recipe Details</div>
-          <p><strong>Original Yield:</strong> {Math.round(originalWeight)}g</p>
-          <p><strong>Target Yield:</strong> {targetWeight}{targetUnit}</p>
-          <p><strong>Scale Factor:</strong> {scaleFactor.toFixed(3)}x</p>
-          <p><strong>Date Calculated:</strong> {currentDate}</p>
-          {recipe.description && (
-            <p><strong>Description:</strong> {recipe.description}</p>
-          )}
+      
+      <div className="company-info">
+        <div className="company-name">PASTRERY PRO</div>
+      </div>
+      
+      <div className="recipe-title">{recipe.name}</div>
+      
+      {/* Dietary Tags Section */}
+      {(recipe.isVegan || recipe.isGlutenFree || recipe.isLactoseFree) && (
+        <div className="tags-section">
+          <div className="section-title">Właściwości dietetyczne</div>
+          {recipe.isVegan && <span className="tag vegan">🌱 VEGE</span>}
+          {recipe.isGlutenFree && <span className="tag gluten-free">🌾 BEZGLUTENOWE</span>}
+          {recipe.isLactoseFree && <span className="tag lactose-free">🥛 BEZ LAKTOZY</span>}
         </div>
-
+      )}
+      
+      {/* Information Sections */}
+      <div className="info-sections">
         <div className="info-section">
-          <div className="info-title">Properties</div>
-          <div className="badges">
-            {recipe.isVegan && <span className="badge">VEGAN</span>}
-            {recipe.isGlutenFree && <span className="badge">GLUTEN FREE</span>}
-            {recipe.isLactoseFree && <span className="badge">LACTOSE FREE</span>}
+          <div className="section-title">Informacje podstawowe</div>
+          <div className="info-row">
+            <span className="info-label">Nazwa:</span>
+            <span>{recipe.name}</span>
           </div>
-          {recipe.category && (
-            <p><strong>Category:</strong> {recipe.category.name}</p>
-          )}
-          {totalCost && totalCost > 0 && (
-            <p><strong>Estimated Cost:</strong> {totalCost.toFixed(2)} PLN</p>
-          )}
+          <div className="info-row">
+            <span className="info-label">Kategoria:</span>
+            <span>{recipe.category?.name || 'nie określono'}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Całkowita waga składników:</span>
+            <span>{finalTotalWeight.toFixed(0)} g</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Współczynnik skalowania:</span>
+            <span>{scaleFactor.toFixed(3)}x</span>
+          </div>
+        </div>
+        
+        <div className="info-section">
+          <div className="section-title">Kalkulacja kosztów</div>
+          <div className="info-row">
+            <span className="info-label">Koszt składników:</span>
+            <span>{(totalCost || 0).toFixed(2)} zł</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Waga oryginalna:</span>
+            <span>{Math.round(originalWeight)} g</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Waga skalowana:</span>
+            <span>{targetWeight}{targetUnit}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Data:</span>
+            <span>{currentDate}</span>
+          </div>
         </div>
       </div>
-
-      {/* Scaled Ingredients Table */}
-      <div>
-        <h2 style={{ fontSize: '16px', marginBottom: '10px', fontWeight: 'bold' }}>
-          Scaled Ingredients
-        </h2>
-        <table className="ingredients-table">
-          <thead>
-            <tr>
-              <th style={{ width: '50%' }}>Ingredient</th>
-              <th style={{ width: '25%', textAlign: 'right' }}>Original</th>
-              <th style={{ width: '25%', textAlign: 'right' }}>Scaled</th>
+      
+      {/* Professional Ingredients Table with Percentages */}
+      <table className="ingredients-table">
+        <thead>
+          <tr>
+            <th>SKŁADNIK</th>
+            <th>ILOŚĆ</th>
+            <th>JEDNOSTKA</th>
+            <th>UDZIAŁ WAGOWY</th>
+            <th>KOSZT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ingredientsWithPercentages.map((ing, index) => (
+            <tr key={ing.ingredientId}>
+              <td>{ing.ingredientName}</td>
+              <td>{formatQuantity(ing.scaledQuantity, ing.scaledUnit)}</td>
+              <td>{ing.scaledUnit}</td>
+              <td>{ing.weightPercent.toFixed(1)}%</td>
+              <td>{(ing.cost || 0).toFixed(2)} zł</td>
             </tr>
-          </thead>
-          <tbody>
-            {scaledIngredients.map((ingredient, index) => (
-              <tr key={ingredient.ingredientId}>
-                <td>{ingredient.ingredientName}</td>
-                <td className="quantity-column">
-                  {formatQuantity(ingredient.originalQuantity, ingredient.originalUnit)} {ingredient.originalUnit}
-                </td>
-                <td className="quantity-column">
-                  {formatQuantity(ingredient.scaledQuantity, ingredient.scaledUnit)} {ingredient.scaledUnit}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+          <tr className="total-row">
+            <td><strong>RAZEM</strong></td>
+            <td><strong>{finalTotalWeight.toFixed(0)}</strong></td>
+            <td><strong>g</strong></td>
+            <td><strong>100.0%</strong></td>
+            <td><strong>{(totalCost || 0).toFixed(2)} zł</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      
+      {/* Allergens Section */}
+      <div className="allergens-section">
+        <div className="section-title">Alergeny</div>
+        <div className="info-row">
+          <span className="info-label">Zawiera:</span>
+          <span>{recipe.allergens && recipe.allergens.length > 0 ? recipe.allergens.join(', ') : 'brak'}</span>
+        </div>
       </div>
-
-      {/* Instructions (if available) */}
+      
+      {/* Instructions Section */}
       {recipe.instructions && recipe.instructions.length > 0 && (
-        <div>
-          <h2 style={{ fontSize: '16px', marginBottom: '10px', fontWeight: 'bold' }}>
-            Instructions
-          </h2>
-          <ol style={{ paddingLeft: '20px' }}>
+        <div className="instructions-section">
+          <div className="section-title">Instrukcje produkcji</div>
+          <ol>
             {recipe.instructions.map((instruction, index) => (
-              <li key={index} style={{ marginBottom: '5px' }}>
-                {instruction}
-              </li>
+              <li key={index}>{instruction}</li>
             ))}
           </ol>
         </div>
       )}
-
-      {/* Footer */}
+      
+      {/* Professional Footer */}
       <div className="footer">
-        <p>Generated by PastryPro Recipe Management System</p>
-        <p>Professional Kitchen Calculator - {currentDate}</p>
-        <p>Note: Quantities have been professionally scaled using ingredient density and conversion factors.</p>
+        <div>Karta odpowiedzialnego</div>
+        <div>Wygenerowano: {currentDate}, {currentTime}</div>
       </div>
     </div>
   );
