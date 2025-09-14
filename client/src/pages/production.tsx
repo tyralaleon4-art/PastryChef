@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -176,7 +177,7 @@ export default function Production() {
         <Sidebar />
         <div className="flex-1 flex flex-col min-h-screen">
           <Header title="Production" subtitle="Track your recipe production with interactive checklists" />
-          <main className="flex-1 p-6">
+          <main className="flex-1 p-4 md:p-6">
             <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
@@ -192,7 +193,7 @@ export default function Production() {
 
         {!isProducing ? (
           // Recipe Selection and Setup
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -323,15 +324,15 @@ export default function Production() {
             {/* Production Header */}
             <Card>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 space-y-3 md:space-y-0">
                   <div>
-                    <h2 className="text-2xl font-bold">{selectedRecipe?.name}</h2>
-                    <p className="text-muted-foreground">
+                    <h2 className="text-xl md:text-2xl font-bold">{selectedRecipe?.name}</h2>
+                    <p className="text-muted-foreground text-sm md:text-base">
                       Target: {targetWeight}{targetUnit} 
                       (Scale: {(parseFloat(targetWeight) / (originalWeight / (targetUnit === "kg" ? 1000 : 1))).toFixed(2)}x)
                     </p>
                   </div>
-                  <div className="flex space-x-2">
+                  <div className="hidden md:flex space-x-2">
                     <Button variant="outline" onClick={resetProduction} data-testid="button-reset-production">
                       <RotateCcw className="mr-2" size={16} />
                       Reset
@@ -355,7 +356,113 @@ export default function Production() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Mobile Accordion Layout */}
+            <div className="block md:hidden">
+              <Accordion type="multiple" className="space-y-4">
+                <AccordionItem value="ingredients" className="border border-border rounded-lg">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center justify-between w-full">
+                      <span className="flex items-center">
+                        <Utensils className="mr-2" size={20} />
+                        Ingredients
+                      </span>
+                      <div className="flex items-center space-x-2 mr-4">
+                        <span className="text-sm text-muted-foreground">
+                          {scaledIngredients.filter(ing => ing.completed).length}/{scaledIngredients.length}
+                        </span>
+                        <Progress value={ingredientProgress} className="h-1 w-16" />
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    <div className="space-y-3">
+                      {scaledIngredients.map((ingredient) => (
+                        <div 
+                          key={ingredient.ingredientId}
+                          className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${
+                            ingredient.completed 
+                              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+                              : 'bg-background border-border'
+                          }`}
+                        >
+                          <Checkbox
+                            checked={ingredient.completed}
+                            onCheckedChange={() => toggleIngredientCompletion(ingredient.ingredientId)}
+                            data-testid={`checkbox-ingredient-${ingredient.ingredientId}`}
+                            className="w-5 h-5"
+                          />
+                          <div className="flex-1">
+                            <div className={`font-medium text-base ${
+                              ingredient.completed ? 'line-through text-muted-foreground' : ''
+                            }`}>
+                              {ingredient.ingredientName}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {ingredient.scaledQuantity.toFixed(ingredient.scaledQuantity < 10 ? 1 : 0)} {ingredient.scaledUnit}
+                            </div>
+                          </div>
+                          {ingredient.completed && <CheckCircle className="text-green-600" size={20} />}
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                {instructions.length > 0 && (
+                  <AccordionItem value="instructions" className="border border-border rounded-lg">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex items-center justify-between w-full">
+                        <span className="flex items-center">
+                          <Clock className="mr-2" size={20} />
+                          Instructions
+                        </span>
+                        <div className="flex items-center space-x-2 mr-4">
+                          <span className="text-sm text-muted-foreground">
+                            {instructions.filter(inst => inst.completed).length}/{instructions.length}
+                          </span>
+                          <Progress value={instructionProgress} className="h-1 w-16" />
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-3">
+                        {instructions.map((instruction) => (
+                          <div 
+                            key={instruction.stepNumber}
+                            className={`flex items-start space-x-3 p-4 rounded-lg border transition-colors ${
+                              instruction.completed 
+                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
+                                : 'bg-background border-border'
+                            }`}
+                          >
+                            <Checkbox
+                              checked={instruction.completed}
+                              onCheckedChange={() => toggleInstructionCompletion(instruction.stepNumber)}
+                              data-testid={`checkbox-instruction-${instruction.stepNumber}`}
+                              className="w-5 h-5 mt-1"
+                            />
+                            <div className="flex-1">
+                              <div className={`flex items-start space-x-2 ${
+                                instruction.completed ? 'line-through text-muted-foreground' : ''
+                              }`}>
+                                <span className="font-bold text-primary min-w-[2rem] text-base">
+                                  {instruction.stepNumber}.
+                                </span>
+                                <span className="text-base leading-relaxed">{instruction.instruction}</span>
+                              </div>
+                            </div>
+                            {instruction.completed && <CheckCircle className="text-blue-600" size={20} />}
+                          </div>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+              </Accordion>
+            </div>
+            
+            {/* Desktop Grid Layout */}
+            <div className="hidden md:grid md:grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Ingredients Checklist */}
               <Card>
                 <CardHeader>
@@ -463,6 +570,32 @@ export default function Production() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Mobile Sticky Bottom Actions */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border p-4 z-50">
+              <div className="flex space-x-3">
+                <Button 
+                  variant="outline" 
+                  onClick={resetProduction} 
+                  className="flex-1 h-12"
+                  data-testid="button-reset-production-mobile"
+                >
+                  <RotateCcw className="mr-2" size={16} />
+                  Reset
+                </Button>
+                <Button 
+                  onClick={finishProduction} 
+                  className="flex-1 h-12"
+                  data-testid="button-finish-production-mobile"
+                >
+                  <CheckCircle className="mr-2" size={16} />
+                  Finish
+                </Button>
+              </div>
+            </div>
+
+            {/* Mobile Bottom Padding */}
+            <div className="md:hidden h-20"></div>
           </div>
         )}
             </div>
