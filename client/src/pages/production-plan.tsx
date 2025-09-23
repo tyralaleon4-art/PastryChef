@@ -21,7 +21,8 @@ import {
   ChefHat, 
   Trash2,
   Edit,
-  Calculator
+  Calculator,
+  Archive
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -111,6 +112,22 @@ export default function ProductionPlan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+    }
+  });
+
+  // Archive production plan
+  const archivePlanMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      return apiRequest("PUT", `/api/production-plans/${planId}/archive`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+      setSelectedPlanId("");
+      setSelectedPlan(null);
+      toast({ title: "Plan został zarchiwizowany" });
+    },
+    onError: () => {
+      toast({ title: "Błąd podczas archiwizacji planu", variant: "destructive" });
     }
   });
 
@@ -347,13 +364,23 @@ export default function ProductionPlan() {
                             Ukończone: {selectedPlan.productionPlanRecipes.filter(r => r.completed).length}
                           </p>
                         </div>
-                        <Dialog open={isAddRecipeDialogOpen} onOpenChange={setIsAddRecipeDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button data-testid="button-add-recipe">
-                              <Plus className="mr-2" size={16} />
-                              Dodaj przepis
-                            </Button>
-                          </DialogTrigger>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => archivePlanMutation.mutate(selectedPlan.id)}
+                            disabled={archivePlanMutation.isPending}
+                            data-testid="button-archive-plan"
+                          >
+                            <Archive className="mr-2" size={16} />
+                            {archivePlanMutation.isPending ? "Archiwizowanie..." : "Archiwizuj"}
+                          </Button>
+                          <Dialog open={isAddRecipeDialogOpen} onOpenChange={setIsAddRecipeDialogOpen}>
+                            <DialogTrigger asChild>
+                              <Button data-testid="button-add-recipe">
+                                <Plus className="mr-2" size={16} />
+                                Dodaj przepis
+                              </Button>
+                            </DialogTrigger>
                           <DialogContent>
                             <DialogHeader>
                               <DialogTitle>Dodaj przepis do planu</DialogTitle>
@@ -409,7 +436,8 @@ export default function ProductionPlan() {
                               </div>
                             </div>
                           </DialogContent>
-                        </Dialog>
+                          </Dialog>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
