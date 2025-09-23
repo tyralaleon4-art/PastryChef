@@ -79,6 +79,26 @@ export const inventoryLogs = pgTable("inventory_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const productionPlans = pgTable("production_plans", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("active"), // active, completed, cancelled
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const productionPlanRecipes = pgTable("production_plan_recipes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  planId: varchar("plan_id").references(() => productionPlans.id, { onDelete: "cascade" }).notNull(),
+  recipeId: varchar("recipe_id").references(() => recipes.id).notNull(),
+  targetWeight: decimal("target_weight", { precision: 10, scale: 2 }).notNull(),
+  targetUnit: text("target_unit").notNull().default("g"), // g, kg
+  completed: boolean("completed").default(false),
+  completedIngredients: json("completed_ingredients").$type<string[]>().default([]), // array of ingredient IDs that are completed
+  completedInstructions: json("completed_instructions").$type<number[]>().default([]), // array of instruction indices that are completed
+});
+
 // Relations
 export const categoriesRelations = relations(categories, ({ many }) => ({
   recipes: many(recipes),
@@ -123,6 +143,21 @@ export const inventoryLogsRelations = relations(inventoryLogs, ({ one }) => ({
   }),
 }));
 
+export const productionPlansRelations = relations(productionPlans, ({ many }) => ({
+  productionPlanRecipes: many(productionPlanRecipes),
+}));
+
+export const productionPlanRecipesRelations = relations(productionPlanRecipes, ({ one }) => ({
+  plan: one(productionPlans, {
+    fields: [productionPlanRecipes.planId],
+    references: [productionPlans.id],
+  }),
+  recipe: one(recipes, {
+    fields: [productionPlanRecipes.recipeId],
+    references: [recipes.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -164,6 +199,19 @@ export const insertInventoryLogSchema = createInsertSchema(inventoryLogs).omit({
   createdAt: true,
 });
 
+export const insertProductionPlanSchema = createInsertSchema(productionPlans).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertProductionPlanRecipeSchema = createInsertSchema(productionPlanRecipes, {
+  completedIngredients: z.array(z.string()).default([]),
+  completedInstructions: z.array(z.number()).default([])
+}).omit({
+  id: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -186,6 +234,12 @@ export type InsertRecipeIngredient = z.infer<typeof insertRecipeIngredientSchema
 export type InventoryLog = typeof inventoryLogs.$inferSelect;
 export type InsertInventoryLog = z.infer<typeof insertInventoryLogSchema>;
 
+export type ProductionPlan = typeof productionPlans.$inferSelect;
+export type InsertProductionPlan = z.infer<typeof insertProductionPlanSchema>;
+
+export type ProductionPlanRecipe = typeof productionPlanRecipes.$inferSelect;
+export type InsertProductionPlanRecipe = z.infer<typeof insertProductionPlanRecipeSchema>;
+
 // Complex types for API responses
 export type RecipeWithDetails = Recipe & {
   category: Category | null;
@@ -195,4 +249,10 @@ export type RecipeWithDetails = Recipe & {
 export type IngredientWithStock = Ingredient & {
   category: IngredientCategory | null;
   stockStatus: "low" | "normal" | "expired";
+};
+
+export type ProductionPlanWithDetails = ProductionPlan & {
+  productionPlanRecipes: (ProductionPlanRecipe & { 
+    recipe: RecipeWithDetails;
+  })[];
 };
