@@ -10,6 +10,7 @@ import Calculator from "@/pages/calculator";
 import Production from "@/pages/production";
 import ProductionPlan from "@/pages/production-plan";
 import Inventory from "@/pages/inventory";
+import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/production" component={Production} />
       <Route path="/production-plan" component={ProductionPlan} />
       <Route path="/inventory" component={Inventory} />
+      <Route path="/reports" component={Reports} />
       <Route component={NotFound} />
     </Switch>
   );
