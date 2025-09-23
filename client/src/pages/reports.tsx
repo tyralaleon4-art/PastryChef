@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,8 @@ import {
   ChartBar,
   RotateCcw 
 } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import type { ProductionPlanWithDetails } from "@shared/schema";
@@ -35,9 +37,26 @@ interface ProductionStats {
 }
 
 export default function Reports() {
+  const { toast } = useToast();
+
   // Fetch archived production plans
   const { data: archivedPlans = [] } = useQuery<ProductionPlanWithDetails[]>({
     queryKey: ["/api/production-plans-archived"],
+  });
+
+  // Unarchive production plan
+  const unarchivePlanMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      return apiRequest("PUT", `/api/production-plans/${planId}/unarchive`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans-archived"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+      toast({ title: "Plan został przywrócony z archiwum" });
+    },
+    onError: () => {
+      toast({ title: "Błąd podczas przywracania planu", variant: "destructive" });
+    }
   });
 
   // Fetch all production plans for statistics
@@ -276,11 +295,12 @@ export default function Reports() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                // TODO: Add unarchive functionality
+                                onClick={() => unarchivePlanMutation.mutate(plan.id)}
+                                disabled={unarchivePlanMutation.isPending}
                                 data-testid={`button-unarchive-${plan.id}`}
                               >
                                 <RotateCcw className="mr-2" size={16} />
-                                Przywróć
+                                {unarchivePlanMutation.isPending ? "Przywracanie..." : "Przywróć"}
                               </Button>
                             </div>
                           </div>
