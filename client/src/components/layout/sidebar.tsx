@@ -9,7 +9,8 @@ import {
   DollarSign, 
   ChartBar,
   Utensils,
-  Factory
+  Factory,
+  ClipboardList
 } from "lucide-react";
 
 const navigation = [
@@ -18,6 +19,7 @@ const navigation = [
   { name: "Ingredients", href: "/ingredients", icon: Sprout },
   { name: "Calculator", href: "/calculator", icon: Calculator },
   { name: "Production", href: "/production", icon: Factory },
+  { name: "Plan produkcji", href: "/production-plan", icon: ClipboardList },
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Cost Analysis", href: "/costing", icon: DollarSign },
   { name: "Reports", href: "/reports", icon: ChartBar },
