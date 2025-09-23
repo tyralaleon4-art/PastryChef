@@ -7,7 +7,9 @@ import {
   insertIngredientSchema, 
   insertRecipeSchema,
   insertRecipeIngredientSchema,
-  insertInventoryLogSchema
+  insertInventoryLogSchema,
+  insertProductionPlanSchema,
+  insertProductionPlanRecipeSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -444,6 +446,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to calculate recipe cost" });
+    }
+  });
+
+  // Production Plans
+  app.get("/api/production-plans", async (req, res) => {
+    try {
+      const plans = await storage.getProductionPlans();
+      res.json(plans);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch production plans" });
+    }
+  });
+
+  app.get("/api/production-plans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const plan = await storage.getProductionPlan(id);
+      
+      if (!plan) {
+        return res.status(404).json({ message: "Production plan not found" });
+      }
+      
+      res.json(plan);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch production plan" });
+    }
+  });
+
+  app.post("/api/production-plans", async (req, res) => {
+    try {
+      const plan = insertProductionPlanSchema.parse(req.body);
+      const newPlan = await storage.createProductionPlan(plan);
+      res.status(201).json(newPlan);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid production plan data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create production plan" });
+      }
+    }
+  });
+
+  app.put("/api/production-plans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const plan = insertProductionPlanSchema.partial().parse(req.body);
+      const updated = await storage.updateProductionPlan(id, plan);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Production plan not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid production plan data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update production plan" });
+      }
+    }
+  });
+
+  app.delete("/api/production-plans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteProductionPlan(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Production plan not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete production plan" });
+    }
+  });
+
+  // Production Plan Recipes
+  app.post("/api/production-plans/:planId/recipes", async (req, res) => {
+    try {
+      const { planId } = req.params;
+      const planRecipe = insertProductionPlanRecipeSchema.parse({
+        ...req.body,
+        planId
+      });
+      const newPlanRecipe = await storage.addProductionPlanRecipe(planRecipe);
+      res.status(201).json(newPlanRecipe);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid production plan recipe data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to add recipe to production plan" });
+      }
+    }
+  });
+
+  app.put("/api/production-plan-recipes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const planRecipe = insertProductionPlanRecipeSchema.partial().parse(req.body);
+      const updated = await storage.updateProductionPlanRecipe(id, planRecipe);
+      
+      if (!updated) {
+        return res.status(404).json({ message: "Production plan recipe not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "Invalid production plan recipe data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to update production plan recipe" });
+      }
+    }
+  });
+
+  app.delete("/api/production-plan-recipes/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteProductionPlanRecipe(id);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Production plan recipe not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete production plan recipe" });
     }
   });
 
