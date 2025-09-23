@@ -6,6 +6,8 @@ import {
   recipes, 
   recipeIngredients, 
   inventoryLogs,
+  productionPlans,
+  productionPlanRecipes,
   type User, 
   type InsertUser,
   type Category,
@@ -20,8 +22,13 @@ import {
   type InsertRecipeIngredient,
   type InventoryLog,
   type InsertInventoryLog,
+  type ProductionPlan,
+  type InsertProductionPlan,
+  type ProductionPlanRecipe,
+  type InsertProductionPlanRecipe,
   type RecipeWithDetails,
-  type IngredientWithStock
+  type IngredientWithStock,
+  type ProductionPlanWithDetails
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, ilike, and, lt, desc, asc, sql } from "drizzle-orm";
@@ -69,6 +76,18 @@ export interface IStorage {
   getLowStockIngredients(): Promise<IngredientWithStock[]>;
   getInventoryLogs(ingredientId?: string): Promise<(InventoryLog & { ingredient: Ingredient })[]>;
   addInventoryLog(log: InsertInventoryLog): Promise<InventoryLog>;
+
+  // Production Plans
+  getProductionPlans(): Promise<ProductionPlanWithDetails[]>;
+  getProductionPlan(id: string): Promise<ProductionPlanWithDetails | undefined>;
+  createProductionPlan(plan: InsertProductionPlan): Promise<ProductionPlan>;
+  updateProductionPlan(id: string, plan: Partial<InsertProductionPlan>): Promise<ProductionPlan | undefined>;
+  deleteProductionPlan(id: string): Promise<boolean>;
+
+  // Production Plan Recipes
+  addProductionPlanRecipe(planRecipe: InsertProductionPlanRecipe): Promise<ProductionPlanRecipe>;
+  updateProductionPlanRecipe(id: string, planRecipe: Partial<InsertProductionPlanRecipe>): Promise<ProductionPlanRecipe | undefined>;
+  deleteProductionPlanRecipe(id: string): Promise<boolean>;
 
   // Statistics
   getStats(): Promise<{
@@ -339,6 +358,95 @@ export class DatabaseStorage implements IStorage {
   async addInventoryLog(log: InsertInventoryLog): Promise<InventoryLog> {
     const [newLog] = await db.insert(inventoryLogs).values(log).returning();
     return newLog;
+  }
+
+  async getProductionPlans(): Promise<ProductionPlanWithDetails[]> {
+    const results = await db.query.productionPlans.findMany({
+      with: {
+        productionPlanRecipes: {
+          with: {
+            recipe: {
+              with: {
+                category: true,
+                recipeIngredients: {
+                  with: {
+                    ingredient: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: desc(productionPlans.createdAt)
+    });
+
+    return results;
+  }
+
+  async getProductionPlan(id: string): Promise<ProductionPlanWithDetails | undefined> {
+    const result = await db.query.productionPlans.findFirst({
+      where: eq(productionPlans.id, id),
+      with: {
+        productionPlanRecipes: {
+          with: {
+            recipe: {
+              with: {
+                category: true,
+                recipeIngredients: {
+                  with: {
+                    ingredient: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    return result || undefined;
+  }
+
+  async createProductionPlan(plan: InsertProductionPlan): Promise<ProductionPlan> {
+    const [newPlan] = await db.insert(productionPlans).values(plan).returning();
+    return newPlan;
+  }
+
+  async updateProductionPlan(id: string, plan: Partial<InsertProductionPlan>): Promise<ProductionPlan | undefined> {
+    const updateData: Partial<typeof productionPlans.$inferInsert> = { 
+      ...plan, 
+      updatedAt: new Date() 
+    };
+    const [updated] = await db.update(productionPlans).set(updateData).where(eq(productionPlans.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteProductionPlan(id: string): Promise<boolean> {
+    const result = await db.delete(productionPlans).where(eq(productionPlans.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async addProductionPlanRecipe(planRecipe: InsertProductionPlanRecipe): Promise<ProductionPlanRecipe> {
+    const [newPlanRecipe] = await db.insert(productionPlanRecipes).values({
+      ...planRecipe,
+      completedIngredients: planRecipe.completedIngredients ?? [],
+      completedInstructions: planRecipe.completedInstructions ?? []
+    }).returning();
+    return newPlanRecipe;
+  }
+
+  async updateProductionPlanRecipe(id: string, planRecipe: Partial<InsertProductionPlanRecipe>): Promise<ProductionPlanRecipe | undefined> {
+    const updateData: Partial<typeof productionPlanRecipes.$inferInsert> = { ...planRecipe };
+    if (planRecipe.completedIngredients !== undefined) updateData.completedIngredients = planRecipe.completedIngredients;
+    if (planRecipe.completedInstructions !== undefined) updateData.completedInstructions = planRecipe.completedInstructions;
+    const [updated] = await db.update(productionPlanRecipes).set(updateData).where(eq(productionPlanRecipes.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteProductionPlanRecipe(id: string): Promise<boolean> {
+    const result = await db.delete(productionPlanRecipes).where(eq(productionPlanRecipes.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getStats(): Promise<{
