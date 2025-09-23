@@ -10,13 +10,21 @@ interface RecipeCardProps {
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
   // Helper function to convert units to kg for cost calculation
-  const convertToKg = (quantity: number, unit: string): number => {
+  const convertToKg = (quantity: number, unit: string, ingredient: any): number => {
     switch (unit) {
       case 'g': return quantity / 1000;
       case 'kg': return quantity;
-      case 'ml': return quantity / 1000; // Assuming 1ml ≈ 1g for most ingredients
-      case 'l': return quantity;
-      case 'pcs': return quantity * 0.1; // Rough estimate: 1 piece ≈ 100g
+      case 'ml': 
+        // Use densityGPerMl if available, otherwise assume 1ml ≈ 1g
+        const density = ingredient.densityGPerMl || 1;
+        return (quantity * density) / 1000;
+      case 'l': 
+        const densityL = ingredient.densityGPerMl || 1;
+        return (quantity * 1000 * densityL) / 1000; // 1L = 1000ml
+      case 'pcs': 
+        // Use weightPerPieceG if available, otherwise estimate 100g per piece
+        const weightPerPiece = ingredient.weightPerPieceG || 100;
+        return (quantity * weightPerPiece) / 1000;
       default: return quantity;
     }
   };
@@ -24,7 +32,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   // Calculate total cost with proper unit conversion
   const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
     const quantity = Number(ri.quantity);
-    const weightInKg = convertToKg(quantity, ri.unit);
+    const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
     const ingredientCost = Number(ri.ingredient.costPerUnit) * weightInKg;
     return sum + ingredientCost;
   }, 0);
