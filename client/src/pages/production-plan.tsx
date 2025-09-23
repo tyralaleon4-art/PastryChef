@@ -1,10 +1,232 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { 
+  ClipboardList, 
+  Plus, 
+  Scale, 
+  CheckCircle, 
+  Circle, 
+  ChefHat, 
+  Trash2,
+  Edit,
+  Calculator
+} from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { 
+  ProductionPlanWithDetails, 
+  RecipeWithDetails,
+  InsertProductionPlan,
+  InsertProductionPlanRecipe
+} from "@shared/schema";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
+interface ScaledIngredientRequirement {
+  ingredientId: string;
+  ingredientName: string;
+  totalQuantity: number;
+  unit: string;
+  completed: boolean;
+  recipes: Array<{
+    recipeName: string;
+    quantity: number;
+  }>;
+}
+
 export default function ProductionPlan() {
+  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState<ProductionPlanWithDetails | null>(null);
+  const [newPlanName, setNewPlanName] = useState("");
+  const [newPlanDescription, setNewPlanDescription] = useState("");
+  const [isNewPlanDialogOpen, setIsNewPlanDialogOpen] = useState(false);
+  const [isAddRecipeDialogOpen, setIsAddRecipeDialogOpen] = useState(false);
+  const [selectedRecipeId, setSelectedRecipeId] = useState("");
+  const [targetWeight, setTargetWeight] = useState("");
+  const [targetUnit, setTargetUnit] = useState("g");
+
+  const { toast } = useToast();
+
+  // Fetch production plans
+  const { data: productionPlans = [] } = useQuery<ProductionPlanWithDetails[]>({
+    queryKey: ["/api/production-plans"],
+  });
+
+  // Fetch recipes for adding to plan
+  const { data: recipes = [] } = useQuery<RecipeWithDetails[]>({
+    queryKey: ["/api/recipes"],
+  });
+
+  // Create new production plan
+  const createPlanMutation = useMutation({
+    mutationFn: async (planData: InsertProductionPlan) => {
+      return apiRequest("POST", "/api/production-plans", planData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+      setNewPlanName("");
+      setNewPlanDescription("");
+      setIsNewPlanDialogOpen(false);
+      toast({ title: "Plan utworzony pomyślnie" });
+    },
+    onError: () => {
+      toast({ title: "Błąd podczas tworzenia planu", variant: "destructive" });
+    }
+  });
+
+  // Add recipe to plan
+  const addRecipeMutation = useMutation({
+    mutationFn: async ({ planId, recipeData }: { planId: string, recipeData: InsertProductionPlanRecipe }) => {
+      return apiRequest("POST", `/api/production-plans/${planId}/recipes`, recipeData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+      setSelectedRecipeId("");
+      setTargetWeight("");
+      setTargetUnit("g");
+      setIsAddRecipeDialogOpen(false);
+      toast({ title: "Przepis dodany do planu" });
+    },
+    onError: () => {
+      toast({ title: "Błąd podczas dodawania przepisu", variant: "destructive" });
+    }
+  });
+
+  // Update recipe progress
+  const updateRecipeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string, data: Partial<InsertProductionPlanRecipe> }) => {
+      return apiRequest("PUT", `/api/production-plan-recipes/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+    }
+  });
+
+  // Helper function to convert units for scaling
+  const convertToGrams = (quantity: number, unit: string): number => {
+    switch (unit) {
+      case 'g': return quantity;
+      case 'kg': return quantity * 1000;
+      case 'ml': return quantity; // Assuming 1ml ≈ 1g for most ingredients
+      case 'l': return quantity * 1000;
+      case 'pcs': return quantity * 100; // Rough estimate: 1 piece ≈ 100g
+      default: return quantity;
+    }
+  };
+
+  // Calculate aggregate ingredient requirements
+  const aggregateIngredients = useMemo((): ScaledIngredientRequirement[] => {
+    if (!selectedPlan) return [];
+
+    const ingredientMap = new Map<string, ScaledIngredientRequirement>();
+
+    selectedPlan.productionPlanRecipes.forEach(planRecipe => {
+      const recipe = planRecipe.recipe;
+      const targetGrams = planRecipe.targetUnit === "kg" ? 
+        Number(planRecipe.targetWeight) * 1000 : 
+        Number(planRecipe.targetWeight);
+
+      // Calculate original recipe weight
+      const originalWeight = recipe.recipeIngredients.reduce((sum, ri) => {
+        return sum + convertToGrams(Number(ri.quantity), ri.unit);
+      }, 0);
+
+      if (originalWeight <= 0) return;
+
+      const scaleFactor = targetGrams / originalWeight;
+
+      recipe.recipeIngredients.forEach(ri => {
+        const scaledQty = Number(ri.quantity) * scaleFactor;
+        const key = ri.ingredientId;
+
+        if (ingredientMap.has(key)) {
+          const existing = ingredientMap.get(key)!;
+          existing.totalQuantity += scaledQty;
+          existing.recipes.push({
+            recipeName: recipe.name,
+            quantity: scaledQty
+          });
+        } else {
+          ingredientMap.set(key, {
+            ingredientId: ri.ingredientId,
+            ingredientName: ri.ingredient.name,
+            totalQuantity: scaledQty,
+            unit: ri.unit,
+            completed: false,
+            recipes: [{
+              recipeName: recipe.name,
+              quantity: scaledQty
+            }]
+          });
+        }
+      });
+    });
+
+    return Array.from(ingredientMap.values());
+  }, [selectedPlan]);
+
+  // Update selected plan when planId changes
+  useEffect(() => {
+    if (selectedPlanId) {
+      const plan = productionPlans.find(p => p.id === selectedPlanId);
+      setSelectedPlan(plan || null);
+    } else {
+      setSelectedPlan(null);
+    }
+  }, [selectedPlanId, productionPlans]);
+
+  const handleCreatePlan = () => {
+    if (!newPlanName.trim()) {
+      toast({ title: "Nazwa planu jest wymagana", variant: "destructive" });
+      return;
+    }
+
+    createPlanMutation.mutate({
+      name: newPlanName,
+      description: newPlanDescription,
+      status: "active"
+    });
+  };
+
+  const handleAddRecipe = () => {
+    if (!selectedRecipeId || !targetWeight || !selectedPlanId) {
+      toast({ title: "Wypełnij wszystkie pola", variant: "destructive" });
+      return;
+    }
+
+    addRecipeMutation.mutate({
+      planId: selectedPlanId,
+      recipeData: {
+        planId: selectedPlanId,
+        recipeId: selectedRecipeId,
+        targetWeight: targetWeight,
+        targetUnit,
+        completed: false,
+        completedIngredients: [],
+        completedInstructions: []
+      }
+    });
+  };
+
+  const handleToggleRecipeComplete = (planRecipeId: string, completed: boolean) => {
+    updateRecipeMutation.mutate({
+      id: planRecipeId,
+      data: { completed }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen overflow-hidden">
@@ -18,30 +240,284 @@ export default function ProductionPlan() {
           
           <main className="flex-1 overflow-y-auto">
             <div className="max-w-7xl mx-auto p-6">
-              <div className="mb-8">
-                <div className="flex items-center mb-4">
-                  <ClipboardList className="mr-3" size={32} />
-                  <div>
-                    <h1 className="text-3xl font-bold text-foreground" data-testid="page-title">
-                      Plan produkcji
-                    </h1>
-                    <p className="text-muted-foreground mt-1">
-                      Planowanie wielu przepisów i obliczanie zapotrzebowania na surowce
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Card>
+              {/* Plan Selection and Creation */}
+              <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Plan produkcji</CardTitle>
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <ClipboardList className="mr-2" size={20} />
+                      Zarządzanie planami
+                    </span>
+                    <Dialog open={isNewPlanDialogOpen} onOpenChange={setIsNewPlanDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button data-testid="button-create-plan">
+                          <Plus className="mr-2" size={16} />
+                          Nowy plan
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Nowy plan produkcji</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="plan-name">Nazwa planu</Label>
+                            <Input
+                              id="plan-name"
+                              value={newPlanName}
+                              onChange={(e) => setNewPlanName(e.target.value)}
+                              placeholder="Wprowadź nazwę planu"
+                              data-testid="input-plan-name"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="plan-description">Opis (opcjonalny)</Label>
+                            <Textarea
+                              id="plan-description"
+                              value={newPlanDescription}
+                              onChange={(e) => setNewPlanDescription(e.target.value)}
+                              placeholder="Wprowadź opis planu"
+                              data-testid="input-plan-description"
+                            />
+                          </div>
+                          <div className="flex justify-end space-x-2">
+                            <Button variant="outline" onClick={() => setIsNewPlanDialogOpen(false)}>
+                              Anuluj
+                            </Button>
+                            <Button onClick={handleCreatePlan} disabled={createPlanMutation.isPending} data-testid="button-save-plan">
+                              {createPlanMutation.isPending ? "Tworzenie..." : "Utwórz"}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    Funkcjonalność będzie dostępna wkrótce. Tutaj będziesz mógł planować wiele przepisów jednocześnie i obliczać łączne zapotrzebowanie na surowce.
-                  </p>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="plan-select">Wybierz plan produkcji</Label>
+                      <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                        <SelectTrigger data-testid="select-plan">
+                          <SelectValue placeholder="Wybierz plan..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {productionPlans.map(plan => (
+                            <SelectItem key={plan.id} value={plan.id}>
+                              <div>
+                                <div className="font-medium">{plan.name}</div>
+                                {plan.description && (
+                                  <div className="text-sm text-muted-foreground">{plan.description}</div>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
+
+              {/* Selected Plan Details */}
+              {selectedPlan && (
+                <div className="space-y-6">
+                  {/* Plan Header */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-xl font-bold" data-testid="text-plan-name">{selectedPlan.name}</h2>
+                          {selectedPlan.description && (
+                            <p className="text-muted-foreground mt-1">{selectedPlan.description}</p>
+                          )}
+                        </div>
+                        <Badge variant={selectedPlan.status === "active" ? "default" : "secondary"}>
+                          {selectedPlan.status}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Liczba przepisów: {selectedPlan.productionPlanRecipes.length}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Ukończone: {selectedPlan.productionPlanRecipes.filter(r => r.completed).length}
+                          </p>
+                        </div>
+                        <Dialog open={isAddRecipeDialogOpen} onOpenChange={setIsAddRecipeDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button data-testid="button-add-recipe">
+                              <Plus className="mr-2" size={16} />
+                              Dodaj przepis
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Dodaj przepis do planu</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label htmlFor="recipe-select">Przepis</Label>
+                                <Select value={selectedRecipeId} onValueChange={setSelectedRecipeId}>
+                                  <SelectTrigger data-testid="select-recipe">
+                                    <SelectValue placeholder="Wybierz przepis..." />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {recipes.map(recipe => (
+                                      <SelectItem key={recipe.id} value={recipe.id}>
+                                        {recipe.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="col-span-2">
+                                  <Label htmlFor="target-weight">Docelowa waga</Label>
+                                  <Input
+                                    id="target-weight"
+                                    type="number"
+                                    value={targetWeight}
+                                    onChange={(e) => setTargetWeight(e.target.value)}
+                                    placeholder="0"
+                                    data-testid="input-target-weight"
+                                  />
+                                </div>
+                                <div>
+                                  <Label htmlFor="target-unit">Jednostka</Label>
+                                  <Select value={targetUnit} onValueChange={setTargetUnit}>
+                                    <SelectTrigger data-testid="select-unit">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="g">g</SelectItem>
+                                      <SelectItem value="kg">kg</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <div className="flex justify-end space-x-2">
+                                <Button variant="outline" onClick={() => setIsAddRecipeDialogOpen(false)}>
+                                  Anuluj
+                                </Button>
+                                <Button onClick={handleAddRecipe} disabled={addRecipeMutation.isPending} data-testid="button-save-recipe">
+                                  {addRecipeMutation.isPending ? "Dodawanie..." : "Dodaj"}
+                                </Button>
+                              </div>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Recipes in Plan */}
+                  {selectedPlan.productionPlanRecipes.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <ChefHat className="mr-2" size={20} />
+                          Przepisy w planie
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {selectedPlan.productionPlanRecipes.map((planRecipe) => (
+                            <div key={planRecipe.id} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={Boolean(planRecipe.completed)}
+                                    onCheckedChange={(checked) => 
+                                      handleToggleRecipeComplete(planRecipe.id, Boolean(checked))
+                                    }
+                                    data-testid={`checkbox-recipe-${planRecipe.id}`}
+                                  />
+                                  <div>
+                                    <h4 className="font-medium" data-testid={`text-recipe-name-${planRecipe.id}`}>
+                                      {planRecipe.recipe.name}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Docelowa waga: {planRecipe.targetWeight} {planRecipe.targetUnit}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge variant={planRecipe.completed ? "default" : "secondary"}>
+                                  {planRecipe.completed ? "Ukończone" : "W trakcie"}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Aggregate Ingredient Requirements */}
+                  {aggregateIngredients.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Calculator className="mr-2" size={20} />
+                          Łączne zapotrzebowanie na surowce
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {aggregateIngredients.map((ingredient) => (
+                            <div key={ingredient.ingredientId} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={ingredient.completed}
+                                    onCheckedChange={(checked) => {
+                                      // Update ingredient completion status
+                                      ingredient.completed = Boolean(checked);
+                                    }}
+                                    data-testid={`checkbox-ingredient-${ingredient.ingredientId}`}
+                                  />
+                                  <div>
+                                    <h4 className="font-medium" data-testid={`text-ingredient-name-${ingredient.ingredientId}`}>
+                                      {ingredient.ingredientName}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Łącznie: <strong>{ingredient.totalQuantity.toFixed(2)} {ingredient.unit}</strong>
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="ml-6">
+                                <p className="text-xs text-muted-foreground mb-1">Szczegóły według przepisów:</p>
+                                {ingredient.recipes.map((recipeDetail, index) => (
+                                  <p key={index} className="text-xs text-muted-foreground">
+                                    • {recipeDetail.recipeName}: {recipeDetail.quantity.toFixed(2)} {ingredient.unit}
+                                  </p>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!selectedPlan && (
+                <Card>
+                  <CardContent className="text-center py-8">
+                    <ClipboardList className="mx-auto mb-4 text-muted-foreground" size={48} />
+                    <h3 className="text-lg font-medium mb-2">Brak wybranego planu</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Wybierz istniejący plan produkcji lub utwórz nowy, aby zacząć planowanie.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </main>
         </div>
