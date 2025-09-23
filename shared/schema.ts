@@ -84,6 +84,7 @@ export const productionPlans = pgTable("production_plans", {
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").notNull().default("active"), // active, completed, cancelled
+  archived: boolean("archived").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

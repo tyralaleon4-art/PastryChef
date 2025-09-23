@@ -452,7 +452,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Production Plans
   app.get("/api/production-plans", async (req, res) => {
     try {
-      const plans = await storage.getProductionPlans();
+      const includeArchived = req.query.includeArchived === 'true';
+      const plans = await storage.getProductionPlans(includeArchived);
       res.json(plans);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch production plans" });
@@ -520,6 +521,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete production plan" });
+    }
+  });
+
+  app.get("/api/production-plans-archived", async (req, res) => {
+    try {
+      const plans = await storage.getArchivedProductionPlans();
+      res.json(plans);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch archived production plans" });
+    }
+  });
+
+  app.put("/api/production-plans/:id/archive", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const archived = await storage.archiveProductionPlan(id);
+      
+      if (!archived) {
+        return res.status(404).json({ message: "Production plan not found" });
+      }
+      
+      res.json(archived);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to archive production plan" });
+    }
+  });
+
+  app.put("/api/production-plans/:id/unarchive", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const unarchived = await storage.unarchiveProductionPlan(id);
+      
+      if (!unarchived) {
+        return res.status(404).json({ message: "Production plan not found" });
+      }
+      
+      res.json(unarchived);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unarchive production plan" });
     }
   });
 

@@ -78,10 +78,13 @@ export interface IStorage {
   addInventoryLog(log: InsertInventoryLog): Promise<InventoryLog>;
 
   // Production Plans
-  getProductionPlans(): Promise<ProductionPlanWithDetails[]>;
+  getProductionPlans(includeArchived?: boolean): Promise<ProductionPlanWithDetails[]>;
+  getArchivedProductionPlans(): Promise<ProductionPlanWithDetails[]>;
   getProductionPlan(id: string): Promise<ProductionPlanWithDetails | undefined>;
   createProductionPlan(plan: InsertProductionPlan): Promise<ProductionPlan>;
   updateProductionPlan(id: string, plan: Partial<InsertProductionPlan>): Promise<ProductionPlan | undefined>;
+  archiveProductionPlan(id: string): Promise<ProductionPlan | undefined>;
+  unarchiveProductionPlan(id: string): Promise<ProductionPlan | undefined>;
   deleteProductionPlan(id: string): Promise<boolean>;
 
   // Production Plan Recipes
@@ -360,8 +363,36 @@ export class DatabaseStorage implements IStorage {
     return newLog;
   }
 
-  async getProductionPlans(): Promise<ProductionPlanWithDetails[]> {
+  async getProductionPlans(includeArchived: boolean = false): Promise<ProductionPlanWithDetails[]> {
+    const whereCondition = includeArchived ? undefined : eq(productionPlans.archived, false);
+    
     const results = await db.query.productionPlans.findMany({
+      where: whereCondition,
+      with: {
+        productionPlanRecipes: {
+          with: {
+            recipe: {
+              with: {
+                category: true,
+                recipeIngredients: {
+                  with: {
+                    ingredient: true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      orderBy: desc(productionPlans.createdAt)
+    });
+
+    return results;
+  }
+
+  async getArchivedProductionPlans(): Promise<ProductionPlanWithDetails[]> {
+    const results = await db.query.productionPlans.findMany({
+      where: eq(productionPlans.archived, true),
       with: {
         productionPlanRecipes: {
           with: {
@@ -419,6 +450,22 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date() 
     };
     const [updated] = await db.update(productionPlans).set(updateData).where(eq(productionPlans.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async archiveProductionPlan(id: string): Promise<ProductionPlan | undefined> {
+    const [updated] = await db.update(productionPlans)
+      .set({ archived: true, updatedAt: new Date() })
+      .where(eq(productionPlans.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async unarchiveProductionPlan(id: string): Promise<ProductionPlan | undefined> {
+    const [updated] = await db.update(productionPlans)
+      .set({ archived: false, updatedAt: new Date() })
+      .where(eq(productionPlans.id, id))
+      .returning();
     return updated || undefined;
   }
 
