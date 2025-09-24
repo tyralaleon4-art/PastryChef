@@ -37,6 +37,16 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
     return sum + ingredientCost;
   }, 0);
 
+  // Calculate total weight in kg for the recipe
+  const totalWeightKg = recipe.recipeIngredients.reduce((sum, ri) => {
+    const quantity = Number(ri.quantity);
+    const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
+    return sum + weightInKg;
+  }, 0);
+
+  // Calculate cost per 1kg of product
+  const costPer1Kg = totalWeightKg > 0 ? totalCost / totalWeightKg : 0;
+
   return (
     <Card className="recipe-card bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all" data-testid={`recipe-card-${recipe.id}`}>
       <CardContent className="p-4">
@@ -54,9 +64,9 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           </div>
           <div className="text-right">
             <div className="text-lg font-bold text-primary" data-testid={`recipe-cost-${recipe.id}`}>
-              {totalCost.toFixed(2)} PLN
+              {costPer1Kg.toFixed(2)} PLN/kg
             </div>
-            <div className="text-xs text-muted-foreground">Total Cost</div>
+            <div className="text-xs text-muted-foreground">Cost per 1kg</div>
           </div>
         </div>
 
