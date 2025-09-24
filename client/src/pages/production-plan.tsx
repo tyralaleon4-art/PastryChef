@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -64,8 +64,57 @@ export default function ProductionPlan() {
   const [targetUnit, setTargetUnit] = useState("g");
   const [isRecipeProductionDialogOpen, setIsRecipeProductionDialogOpen] = useState(false);
   const [selectedRecipeForProduction, setSelectedRecipeForProduction] = useState<ProductionPlanRecipeWithDetails | null>(null);
+  const [completedIngredients, setCompletedIngredients] = useState<Set<string>>(new Set());
+  const [completedInstructions, setCompletedInstructions] = useState<Set<number>>(new Set());
 
   const { toast } = useToast();
+
+  // Functions for recipe production mode
+  const toggleIngredientCompletion = (ingredientId: string) => {
+    setCompletedIngredients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ingredientId)) {
+        newSet.delete(ingredientId);
+      } else {
+        newSet.add(ingredientId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleInstructionCompletion = (index: number) => {
+    setCompletedInstructions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  // Calculate production progress for selected recipe
+  const calculateRecipeProgress = () => {
+    if (!selectedRecipeForProduction) return 0;
+    
+    const totalIngredients = selectedRecipeForProduction.recipe.recipeIngredients.length;
+    const totalInstructions = selectedRecipeForProduction.recipe.instructions.length;
+    const totalSteps = totalIngredients + totalInstructions;
+    
+    if (totalSteps === 0) return 100;
+    
+    const completedSteps = completedIngredients.size + completedInstructions.size;
+    return Math.round((completedSteps / totalSteps) * 100);
+  };
+
+  // Reset production state when opening modal
+  const openRecipeProductionModal = (planRecipe: ProductionPlanRecipeWithDetails) => {
+    setSelectedRecipeForProduction(planRecipe);
+    setCompletedIngredients(new Set());
+    setCompletedInstructions(new Set());
+    setIsRecipeProductionDialogOpen(true);
+  };
 
   // Fetch production plans
   const { data: productionPlans = [] } = useQuery<ProductionPlanWithDetails[]>({
@@ -500,10 +549,7 @@ export default function ProductionPlan() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => {
-                                      setSelectedRecipeForProduction(planRecipe);
-                                      setIsRecipeProductionDialogOpen(true);
-                                    }}
+                                    onClick={() => openRecipeProductionModal(planRecipe)}
                                     data-testid={`button-start-recipe-production-${planRecipe.id}`}
                                   >
                                     <Factory className="mr-1" size={14} />
@@ -624,11 +670,10 @@ export default function ProductionPlan() {
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-medium">Postęp produkcji</span>
                   <span className="text-sm text-muted-foreground">
-                    {/* We'll calculate this based on completed steps */}
-                    0%
+                    {calculateRecipeProgress()}%
                   </span>
                 </div>
-                <Progress value={0} className="h-2" />
+                <Progress value={calculateRecipeProgress()} className="h-2" />
               </div>
 
               {/* Scaled Ingredients Section */}
@@ -656,7 +701,8 @@ export default function ProductionPlan() {
                     return (
                       <div key={recipeIngredient.id} className="flex items-center space-x-3 p-3 rounded-lg border">
                         <Checkbox
-                          checked={false} // TODO: Track ingredient completion
+                          checked={completedIngredients.has(recipeIngredient.id)}
+                          onCheckedChange={() => toggleIngredientCompletion(recipeIngredient.id)}
                           data-testid={`checkbox-recipe-ingredient-${recipeIngredient.id}`}
                         />
                         <div className="flex-1">
@@ -685,7 +731,8 @@ export default function ProductionPlan() {
                   {selectedRecipeForProduction.recipe.instructions.map((instruction, index) => (
                     <div key={index} className="flex items-start space-x-3 p-3 rounded-lg border">
                       <Checkbox
-                        checked={false} // TODO: Track instruction completion
+                        checked={completedInstructions.has(index)}
+                        onCheckedChange={() => toggleInstructionCompletion(index)}
                         data-testid={`checkbox-recipe-instruction-${index}`}
                       />
                       <div className="flex-1">
