@@ -51,13 +51,6 @@ interface ScaledIngredientRequirement {
   }>;
 }
 
-interface ProductionRecipeInstruction {
-  recipeId: string;
-  recipeName: string;
-  instruction: string;
-  stepNumber: number;
-  completed: boolean;
-}
 
 export default function ProductionPlan() {
   const [selectedPlanId, setSelectedPlanId] = useState("");
@@ -69,9 +62,6 @@ export default function ProductionPlan() {
   const [selectedRecipeId, setSelectedRecipeId] = useState("");
   const [targetWeight, setTargetWeight] = useState("");
   const [targetUnit, setTargetUnit] = useState("g");
-  const [isProducing, setIsProducing] = useState(false);
-  const [productionInstructions, setProductionInstructions] = useState<ProductionRecipeInstruction[]>([]);
-  const [scaledIngredients, setScaledIngredients] = useState<ScaledIngredientRequirement[]>([]);
 
   const { toast } = useToast();
 
@@ -158,79 +148,6 @@ export default function ProductionPlan() {
     }
   };
 
-  // Initialize production mode data when plan changes
-  useEffect(() => {
-    if (!selectedPlan || !isProducing) {
-      setScaledIngredients([]);
-      setProductionInstructions([]);
-      return;
-    }
-
-    // Calculate scaled ingredients
-    const ingredientMap = new Map<string, ScaledIngredientRequirement>();
-
-    selectedPlan.productionPlanRecipes.forEach(planRecipe => {
-      const recipe = planRecipe.recipe;
-      const targetGrams = planRecipe.targetUnit === "kg" ? 
-        Number(planRecipe.targetWeight) * 1000 : 
-        Number(planRecipe.targetWeight);
-
-      const originalWeight = recipe.recipeIngredients.reduce((sum, ri) => {
-        return sum + convertToGrams(Number(ri.quantity), ri.unit);
-      }, 0);
-
-      if (originalWeight <= 0) return;
-
-      const scaleFactor = targetGrams / originalWeight;
-
-      recipe.recipeIngredients.forEach(ri => {
-        const scaledQty = Number(ri.quantity) * scaleFactor;
-        const key = ri.ingredientId;
-
-        if (ingredientMap.has(key)) {
-          const existing = ingredientMap.get(key)!;
-          existing.totalQuantity += scaledQty;
-          existing.recipes.push({
-            recipeName: recipe.name,
-            quantity: scaledQty
-          });
-        } else {
-          ingredientMap.set(key, {
-            ingredientId: ri.ingredientId,
-            ingredientName: ri.ingredient.name,
-            totalQuantity: scaledQty,
-            unit: ri.unit,
-            completed: false,
-            recipes: [{
-              recipeName: recipe.name,
-              quantity: scaledQty
-            }]
-          });
-        }
-      });
-    });
-
-    setScaledIngredients(Array.from(ingredientMap.values()));
-
-    // Calculate production instructions
-    const instructions: ProductionRecipeInstruction[] = [];
-    selectedPlan.productionPlanRecipes.forEach(planRecipe => {
-      const recipe = planRecipe.recipe;
-      if (recipe.instructions && recipe.instructions.length > 0) {
-        recipe.instructions.forEach((instruction, index) => {
-          instructions.push({
-            recipeId: recipe.id,
-            recipeName: recipe.name,
-            instruction,
-            stepNumber: index + 1,
-            completed: false
-          });
-        });
-      }
-    });
-
-    setProductionInstructions(instructions);
-  }, [selectedPlan, isProducing]);
 
   // Calculate aggregate ingredient requirements for planning mode
   const aggregateIngredients = useMemo((): ScaledIngredientRequirement[] => {
@@ -333,56 +250,6 @@ export default function ProductionPlan() {
     });
   };
 
-  // Production mode functions
-  const startProduction = () => {
-    setIsProducing(true);
-  };
-
-  const resetProduction = () => {
-    setScaledIngredients(prev => prev.map(ing => ({ ...ing, completed: false })));
-    setProductionInstructions(prev => prev.map(inst => ({ ...inst, completed: false })));
-  };
-
-  const finishProduction = () => {
-    setIsProducing(false);
-    setScaledIngredients([]);
-    setProductionInstructions([]);
-  };
-
-  const toggleIngredientCompletion = (ingredientId: string) => {
-    setScaledIngredients(prev => 
-      prev.map(ing => 
-        ing.ingredientId === ingredientId 
-          ? { ...ing, completed: !ing.completed }
-          : ing
-      )
-    );
-  };
-
-  const toggleInstructionCompletion = (recipeId: string, stepNumber: number) => {
-    setProductionInstructions(prev =>
-      prev.map(inst =>
-        inst.recipeId === recipeId && inst.stepNumber === stepNumber
-          ? { ...inst, completed: !inst.completed }
-          : inst
-      )
-    );
-  };
-
-  // Calculate progress for production mode
-  const ingredientProgress = scaledIngredients.length > 0 
-    ? (scaledIngredients.filter(ing => ing.completed).length / scaledIngredients.length) * 100 
-    : 0;
-  
-  const instructionProgress = productionInstructions.length > 0
-    ? (productionInstructions.filter(inst => inst.completed).length / productionInstructions.length) * 100
-    : 0;
-
-  const overallProgress = scaledIngredients.length > 0 && productionInstructions.length > 0
-    ? (ingredientProgress + instructionProgress) / 2
-    : scaledIngredients.length > 0 ? ingredientProgress : instructionProgress;
-
-  const canStartProduction = selectedPlan && selectedPlan.productionPlanRecipes.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -479,53 +346,41 @@ export default function ProductionPlan() {
               {/* Selected Plan Details */}
               {selectedPlan && (
                 <div className="space-y-6">
-                  {!isProducing ? (
-                    /* Planning Mode */
-                    <>
-                      {/* Plan Header */}
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center justify-between">
-                            <div>
-                              <h2 className="text-xl font-bold" data-testid="text-plan-name">{selectedPlan.name}</h2>
-                              {selectedPlan.description && (
-                                <p className="text-muted-foreground mt-1">{selectedPlan.description}</p>
-                              )}
-                            </div>
-                            <Badge variant={selectedPlan.status === "active" ? "default" : "secondary"}>
-                              {selectedPlan.status}
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                Liczba przepisów: {selectedPlan.productionPlanRecipes.length}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                Ukończone: {selectedPlan.productionPlanRecipes.filter(r => r.completed).length}
-                              </p>
-                            </div>
-                            <div className="flex space-x-2">
-                              {canStartProduction && (
-                                <Button 
-                                  onClick={startProduction}
-                                  data-testid="button-start-production-plan"
-                                >
-                                  <Factory className="mr-2" size={16} />
-                                  Rozpocznij produkcję
-                                </Button>
-                              )}
-                              <Button 
-                                variant="outline" 
-                                onClick={() => archivePlanMutation.mutate(selectedPlan.id)}
-                                disabled={archivePlanMutation.isPending}
-                                data-testid="button-archive-plan"
-                              >
-                                <Archive className="mr-2" size={16} />
-                                {archivePlanMutation.isPending ? "Archiwizowanie..." : "Archiwizuj"}
-                              </Button>
+                  {/* Plan Header */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-xl font-bold" data-testid="text-plan-name">{selectedPlan.name}</h2>
+                          {selectedPlan.description && (
+                            <p className="text-muted-foreground mt-1">{selectedPlan.description}</p>
+                          )}
+                        </div>
+                        <Badge variant={selectedPlan.status === "active" ? "default" : "secondary"}>
+                          {selectedPlan.status}
+                        </Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Liczba przepisów: {selectedPlan.productionPlanRecipes.length}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Ukończone: {selectedPlan.productionPlanRecipes.filter(r => r.completed).length}
+                          </p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => archivePlanMutation.mutate(selectedPlan.id)}
+                            disabled={archivePlanMutation.isPending}
+                            data-testid="button-archive-plan"
+                          >
+                            <Archive className="mr-2" size={16} />
+                            {archivePlanMutation.isPending ? "Archiwizowanie..." : "Archiwizuj"}
+                          </Button>
                           <Dialog open={isAddRecipeDialogOpen} onOpenChange={setIsAddRecipeDialogOpen}>
                             <DialogTrigger asChild>
                               <Button data-testid="button-add-recipe">
@@ -594,337 +449,112 @@ export default function ProductionPlan() {
                     </CardContent>
                   </Card>
 
-                      {/* Recipes in Plan */}
-                      {selectedPlan.productionPlanRecipes.length > 0 && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="flex items-center">
-                              <ChefHat className="mr-2" size={20} />
-                              Przepisy w planie
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
-                              {selectedPlan.productionPlanRecipes.map((planRecipe) => (
-                                <div key={planRecipe.id} className="border rounded-lg p-4">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-3">
-                                      <Checkbox
-                                        checked={Boolean(planRecipe.completed)}
-                                        onCheckedChange={(checked) => 
-                                          handleToggleRecipeComplete(planRecipe.id, Boolean(checked))
-                                        }
-                                        data-testid={`checkbox-recipe-${planRecipe.id}`}
-                                      />
-                                      <div>
-                                        <h4 className="font-medium" data-testid={`text-recipe-name-${planRecipe.id}`}>
-                                          {planRecipe.recipe.name}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground">
-                                          Docelowa waga: {planRecipe.targetWeight} {planRecipe.targetUnit}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <Badge variant={planRecipe.completed ? "default" : "secondary"}>
-                                      {planRecipe.completed ? "Ukończone" : "W trakcie"}
-                                    </Badge>
+                  {/* Recipes in Plan */}
+                  {selectedPlan.productionPlanRecipes.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <ChefHat className="mr-2" size={20} />
+                          Przepisy w planie
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {selectedPlan.productionPlanRecipes.map((planRecipe) => (
+                            <div key={planRecipe.id} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={Boolean(planRecipe.completed)}
+                                    onCheckedChange={(checked) => 
+                                      handleToggleRecipeComplete(planRecipe.id, Boolean(checked))
+                                    }
+                                    data-testid={`checkbox-recipe-${planRecipe.id}`}
+                                  />
+                                  <div>
+                                    <h4 className="font-medium" data-testid={`text-recipe-name-${planRecipe.id}`}>
+                                      {planRecipe.recipe.name}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Docelowa waga: {planRecipe.targetWeight} {planRecipe.targetUnit}
+                                    </p>
                                   </div>
                                 </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-
-                      {/* Aggregate Ingredient Requirements */}
-                      {aggregateIngredients.length > 0 && (
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="flex items-center">
-                              <Calculator className="mr-2" size={20} />
-                              Łączne zapotrzebowanie na surowce
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-3">
-                              {aggregateIngredients.map((ingredient) => (
-                                <div key={ingredient.ingredientId} className="border rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center space-x-3">
-                                      <Checkbox
-                                        checked={ingredient.completed}
-                                        onCheckedChange={(checked) => {
-                                          // Update ingredient completion status
-                                          ingredient.completed = Boolean(checked);
-                                        }}
-                                        data-testid={`checkbox-ingredient-${ingredient.ingredientId}`}
-                                      />
-                                      <div>
-                                        <h4 className="font-medium" data-testid={`text-ingredient-name-${ingredient.ingredientId}`}>
-                                          {ingredient.ingredientName}
-                                        </h4>
-                                        <p className="text-sm text-muted-foreground">
-                                          Łącznie: <strong>{ingredient.totalQuantity.toFixed(2)} {ingredient.unit}</strong>
-                                        </p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="ml-6">
-                                    <p className="text-xs text-muted-foreground mb-1">Szczegóły według przepisów:</p>
-                                    {ingredient.recipes.map((recipeDetail, index) => (
-                                      <p key={index} className="text-xs text-muted-foreground">
-                                        • {recipeDetail.recipeName}: {recipeDetail.quantity.toFixed(2)} {ingredient.unit}
-                                      </p>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </>
-                  ) : (
-                    /* Production Mode */
-                    <div className="space-y-6">
-                      {/* Production Header */}
-                      <Card>
-                        <CardContent className="p-6">
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4 space-y-3 md:space-y-0">
-                            <div>
-                              <h2 className="text-xl md:text-2xl font-bold">{selectedPlan.name}</h2>
-                              <p className="text-muted-foreground text-sm md:text-base">
-                                Produkcja: {selectedPlan.productionPlanRecipes.length} przepisów
-                              </p>
-                            </div>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" onClick={resetProduction} data-testid="button-reset-production-plan">
-                                <RotateCcw className="mr-2" size={16} />
-                                Reset
-                              </Button>
-                              <Button onClick={finishProduction} data-testid="button-finish-production-plan">
-                                <CheckCircle className="mr-2" size={16} />
-                                Zakończ
-                              </Button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4">
-                            <div>
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-medium">Ogólny postęp</span>
-                                <span className="text-sm text-muted-foreground">{overallProgress.toFixed(0)}%</span>
-                              </div>
-                              <Progress value={overallProgress} className="h-2" />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      {/* Mobile Accordion Layout */}
-                      <div className="block md:hidden">
-                        <Accordion type="multiple" className="space-y-4">
-                          <AccordionItem value="ingredients" className="border border-border rounded-lg">
-                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                              <div className="flex items-center justify-between w-full">
-                                <span className="flex items-center">
-                                  <Utensils className="mr-2" size={20} />
-                                  Składniki
-                                </span>
-                                <div className="flex items-center space-x-2 mr-4">
-                                  <span className="text-sm text-muted-foreground">
-                                    {scaledIngredients.filter(ing => ing.completed).length}/{scaledIngredients.length}
-                                  </span>
-                                  <Progress value={ingredientProgress} className="h-1 w-16" />
-                                </div>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent className="px-4 pb-4">
-                              <div className="space-y-3">
-                                {scaledIngredients.map((ingredient) => (
-                                  <div 
-                                    key={ingredient.ingredientId}
-                                    className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors ${
-                                      ingredient.completed 
-                                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
-                                        : 'bg-background border-border'
-                                    }`}
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-testid={`button-start-recipe-production-${planRecipe.id}`}
                                   >
-                                    <Checkbox
-                                      checked={ingredient.completed}
-                                      onCheckedChange={() => toggleIngredientCompletion(ingredient.ingredientId)}
-                                      data-testid={`checkbox-production-ingredient-${ingredient.ingredientId}`}
-                                      className="w-5 h-5"
-                                    />
-                                    <div className="flex-1">
-                                      <div className={`font-medium text-base ${
-                                        ingredient.completed ? 'line-through text-muted-foreground' : ''
-                                      }`}>
-                                        {ingredient.ingredientName}
-                                      </div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {ingredient.totalQuantity.toFixed(2)} {ingredient.unit}
-                                      </div>
-                                    </div>
-                                    {ingredient.completed && <CheckCircle className="text-green-600" size={20} />}
+                                    <Factory className="mr-1" size={14} />
+                                    Rozpocznij
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    data-testid={`button-remove-recipe-${planRecipe.id}`}
+                                  >
+                                    <Trash2 className="mr-1" size={14} />
+                                    Usuń
+                                  </Button>
+                                  <Badge variant={planRecipe.completed ? "default" : "secondary"}>
+                                    {planRecipe.completed ? "Ukończone" : "W trakcie"}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Aggregate Ingredient Requirements */}
+                  {aggregateIngredients.length > 0 && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <Calculator className="mr-2" size={20} />
+                          Łączne zapotrzebowanie na surowce
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {aggregateIngredients.map((ingredient) => (
+                            <div key={ingredient.ingredientId} className="border rounded-lg p-4">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={ingredient.completed}
+                                    onCheckedChange={(checked) => {
+                                      // Update ingredient completion status
+                                      ingredient.completed = Boolean(checked);
+                                    }}
+                                    data-testid={`checkbox-ingredient-${ingredient.ingredientId}`}
+                                  />
+                                  <div>
+                                    <h4 className="font-medium" data-testid={`text-ingredient-name-${ingredient.ingredientId}`}>
+                                      {ingredient.ingredientName}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      Łącznie: <strong>{ingredient.totalQuantity.toFixed(2)} {ingredient.unit}</strong>
+                                    </p>
                                   </div>
+                                </div>
+                              </div>
+                              <div className="ml-6">
+                                <p className="text-xs text-muted-foreground mb-1">Szczegóły według przepisów:</p>
+                                {ingredient.recipes.map((recipeDetail, index) => (
+                                  <p key={index} className="text-xs text-muted-foreground">
+                                    • {recipeDetail.recipeName}: {recipeDetail.quantity.toFixed(2)} {ingredient.unit}
+                                  </p>
                                 ))}
                               </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                          
-                          {productionInstructions.length > 0 && (
-                            <AccordionItem value="instructions" className="border border-border rounded-lg">
-                              <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                                <div className="flex items-center justify-between w-full">
-                                  <span className="flex items-center">
-                                    <Clock className="mr-2" size={20} />
-                                    Instrukcje
-                                  </span>
-                                  <div className="flex items-center space-x-2 mr-4">
-                                    <span className="text-sm text-muted-foreground">
-                                      {productionInstructions.filter(inst => inst.completed).length}/{productionInstructions.length}
-                                    </span>
-                                    <Progress value={instructionProgress} className="h-1 w-16" />
-                                  </div>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="px-4 pb-4">
-                                <div className="space-y-3">
-                                  {productionInstructions.map((instruction) => (
-                                    <div 
-                                      key={`${instruction.recipeId}-${instruction.stepNumber}`}
-                                      className={`flex items-start space-x-3 p-4 rounded-lg border transition-colors ${
-                                        instruction.completed 
-                                          ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
-                                          : 'bg-background border-border'
-                                      }`}
-                                    >
-                                      <Checkbox
-                                        checked={instruction.completed}
-                                        onCheckedChange={() => toggleInstructionCompletion(instruction.recipeId, instruction.stepNumber)}
-                                        data-testid={`checkbox-production-instruction-${instruction.recipeId}-${instruction.stepNumber}`}
-                                        className="w-5 h-5 mt-1"
-                                      />
-                                      <div className="flex-1">
-                                        <div className={`flex items-start space-x-2 ${
-                                          instruction.completed ? 'line-through text-muted-foreground' : ''
-                                        }`}>
-                                          <span className="font-bold text-primary min-w-[2rem] text-base">
-                                            {instruction.stepNumber}.
-                                          </span>
-                                          <div>
-                                            <div className="text-xs text-muted-foreground mb-1">{instruction.recipeName}</div>
-                                            <span className="text-base leading-relaxed">{instruction.instruction}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                      {instruction.completed && <CheckCircle className="text-blue-600" size={20} />}
-                                    </div>
-                                  ))}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          )}
-                        </Accordion>
-                      </div>
-                      
-                      {/* Desktop Grid Layout */}
-                      <div className="hidden md:grid md:grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Ingredients Checklist */}
-                        <Card>
-                          <CardHeader>
-                            <CardTitle className="flex items-center justify-between">
-                              <span className="flex items-center">
-                                <Utensils className="mr-2" size={20} />
-                                Składniki
-                              </span>
-                              <span className="text-sm text-muted-foreground">
-                                {scaledIngredients.filter(ing => ing.completed).length}/{scaledIngredients.length}
-                              </span>
-                            </CardTitle>
-                            <Progress value={ingredientProgress} className="h-1" />
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            {scaledIngredients.map((ingredient) => (
-                              <div 
-                                key={ingredient.ingredientId}
-                                className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
-                                  ingredient.completed 
-                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
-                                    : 'bg-background border-border'
-                                }`}
-                              >
-                                <Checkbox
-                                  checked={ingredient.completed}
-                                  onCheckedChange={() => toggleIngredientCompletion(ingredient.ingredientId)}
-                                  data-testid={`checkbox-production-ingredient-${ingredient.ingredientId}`}
-                                />
-                                <div className="flex-1">
-                                  <div className={`font-medium ${ingredient.completed ? 'line-through text-muted-foreground' : ''}`}>
-                                    {ingredient.ingredientName}
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {ingredient.totalQuantity.toFixed(2)} {ingredient.unit}
-                                  </div>
-                                </div>
-                                {ingredient.completed && <CheckCircle className="text-green-600" size={20} />}
-                              </div>
-                            ))}
-                          </CardContent>
-                        </Card>
-
-                        {/* Instructions Checklist */}
-                        {productionInstructions.length > 0 && (
-                          <Card>
-                            <CardHeader>
-                              <CardTitle className="flex items-center justify-between">
-                                <span className="flex items-center">
-                                  <Clock className="mr-2" size={20} />
-                                  Instrukcje
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                  {productionInstructions.filter(inst => inst.completed).length}/{productionInstructions.length}
-                                </span>
-                              </CardTitle>
-                              <Progress value={instructionProgress} className="h-1" />
-                            </CardHeader>
-                            <CardContent className="space-y-3">
-                              {productionInstructions.map((instruction) => (
-                                <div 
-                                  key={`${instruction.recipeId}-${instruction.stepNumber}`}
-                                  className={`flex items-start space-x-3 p-3 rounded-lg border transition-colors ${
-                                    instruction.completed 
-                                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' 
-                                      : 'bg-background border-border'
-                                  }`}
-                                >
-                                  <Checkbox
-                                    checked={instruction.completed}
-                                    onCheckedChange={() => toggleInstructionCompletion(instruction.recipeId, instruction.stepNumber)}
-                                    data-testid={`checkbox-production-instruction-${instruction.recipeId}-${instruction.stepNumber}`}
-                                  />
-                                  <div className="flex-1">
-                                    <div className={`flex items-start space-x-2 ${
-                                      instruction.completed ? 'line-through text-muted-foreground' : ''
-                                    }`}>
-                                      <span className="font-bold text-primary min-w-[2rem]">
-                                        {instruction.stepNumber}.
-                                      </span>
-                                      <div>
-                                        <div className="text-xs text-muted-foreground mb-1">{instruction.recipeName}</div>
-                                        <span className="leading-relaxed">{instruction.instruction}</span>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {instruction.completed && <CheckCircle className="text-blue-600" size={20} />}
-                                </div>
-                              ))}
-                            </CardContent>
-                          </Card>
-                        )}
-                      </div>
-                    </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}
