@@ -186,9 +186,43 @@ export default function Recipes() {
               {/* Mobile Card Layout */}
               <div className="block md:hidden space-y-4">
                 {filteredRecipes.map((recipe) => {
+                  // Helper function to convert units to kg for cost calculation
+                  const convertToKg = (quantity: number, unit: string, ingredient: any): number => {
+                    switch (unit) {
+                      case 'g': return quantity / 1000;
+                      case 'kg': return quantity;
+                      case 'ml': 
+                        // Use densityGPerMl if available, otherwise assume 1ml ≈ 1g
+                        const density = ingredient.densityGPerMl || 1;
+                        return (quantity * density) / 1000;
+                      case 'l': 
+                        const densityL = ingredient.densityGPerMl || 1;
+                        return (quantity * 1000 * densityL) / 1000; // 1L = 1000ml
+                      case 'pcs': 
+                        // Use weightPerPieceG if available, otherwise estimate 100g per piece
+                        const weightPerPiece = ingredient.weightPerPieceG || 100;
+                        return (quantity * weightPerPiece) / 1000;
+                      default: return quantity;
+                    }
+                  };
+
+                  // Calculate total cost with proper unit conversion
                   const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
-                    return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
+                    const quantity = Number(ri.quantity);
+                    const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
+                    const ingredientCost = Number(ri.ingredient.costPerUnit) * weightInKg;
+                    return sum + ingredientCost;
                   }, 0);
+
+                  // Calculate total weight in kg for the recipe
+                  const totalWeightKg = recipe.recipeIngredients.reduce((sum, ri) => {
+                    const quantity = Number(ri.quantity);
+                    const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
+                    return sum + weightInKg;
+                  }, 0);
+
+                  // Calculate cost per 1kg of product
+                  const costPer1Kg = totalWeightKg > 0 ? totalCost / totalWeightKg : 0;
 
                   return (
                     <Card key={recipe.id} className="p-4" data-testid={`recipe-card-${recipe.id}`}>
@@ -227,10 +261,10 @@ export default function Recipes() {
                             </div>
                           </div>
                           <div>
-                            <div className="text-muted-foreground">Total Cost</div>
+                            <div className="text-muted-foreground">Cost per 1kg</div>
                             <div className="mt-1 flex items-center">
                               <Calculator size={14} className="mr-1 text-primary" />
-                              <span className="font-bold text-primary">{totalCost.toFixed(2)} PLN</span>
+                              <span className="font-bold text-primary">{costPer1Kg.toFixed(2)} PLN/kg</span>
                             </div>
                           </div>
                           <div>
@@ -326,7 +360,7 @@ export default function Recipes() {
                       <TableHead>Recipe Name</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Ingredients</TableHead>
-                      <TableHead>Total Cost</TableHead>
+                      <TableHead>Cost per 1kg</TableHead>
                       <TableHead>Dietary</TableHead>
                       <TableHead>Allergens</TableHead>
                       <TableHead>Actions</TableHead>
@@ -334,9 +368,43 @@ export default function Recipes() {
                   </TableHeader>
                   <TableBody>
                     {filteredRecipes.map((recipe) => {
+                      // Helper function to convert units to kg for cost calculation
+                      const convertToKg = (quantity: number, unit: string, ingredient: any): number => {
+                        switch (unit) {
+                          case 'g': return quantity / 1000;
+                          case 'kg': return quantity;
+                          case 'ml': 
+                            // Use densityGPerMl if available, otherwise assume 1ml ≈ 1g
+                            const density = ingredient.densityGPerMl || 1;
+                            return (quantity * density) / 1000;
+                          case 'l': 
+                            const densityL = ingredient.densityGPerMl || 1;
+                            return (quantity * 1000 * densityL) / 1000; // 1L = 1000ml
+                          case 'pcs': 
+                            // Use weightPerPieceG if available, otherwise estimate 100g per piece
+                            const weightPerPiece = ingredient.weightPerPieceG || 100;
+                            return (quantity * weightPerPiece) / 1000;
+                          default: return quantity;
+                        }
+                      };
+
+                      // Calculate total cost with proper unit conversion
                       const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
-                        return sum + (Number(ri.ingredient.costPerUnit) * Number(ri.quantity));
+                        const quantity = Number(ri.quantity);
+                        const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
+                        const ingredientCost = Number(ri.ingredient.costPerUnit) * weightInKg;
+                        return sum + ingredientCost;
                       }, 0);
+
+                      // Calculate total weight in kg for the recipe
+                      const totalWeightKg = recipe.recipeIngredients.reduce((sum, ri) => {
+                        const quantity = Number(ri.quantity);
+                        const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
+                        return sum + weightInKg;
+                      }, 0);
+
+                      // Calculate cost per 1kg of product
+                      const costPer1Kg = totalWeightKg > 0 ? totalCost / totalWeightKg : 0;
 
                       return (
                         <TableRow key={recipe.id} data-testid={`recipe-row-${recipe.id}`}>
@@ -369,7 +437,7 @@ export default function Recipes() {
                           <TableCell>
                             <div className="flex items-center">
                               <Calculator size={14} className="mr-1 text-primary" />
-                              <span className="font-bold text-primary">{totalCost.toFixed(2)} PLN</span>
+                              <span className="font-bold text-primary">{costPer1Kg.toFixed(2)} PLN/kg</span>
                             </div>
                           </TableCell>
                           <TableCell>
