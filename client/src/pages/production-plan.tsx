@@ -136,6 +136,20 @@ export default function ProductionPlan() {
     }
   });
 
+  // Remove recipe from production plan
+  const removeRecipeMutation = useMutation({
+    mutationFn: async (recipeId: string) => {
+      return apiRequest("DELETE", `/api/production-plan-recipes/${recipeId}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
+      toast({ title: "Przepis usunięty", description: "Przepis został pomyślnie usunięty z planu." });
+    },
+    onError: () => {
+      toast({ title: "Błąd", description: "Nie udało się usunąć przepisu z planu.", variant: "destructive" });
+    }
+  });
+
   // Helper function to convert units for scaling
   const convertToGrams = (quantity: number, unit: string): number => {
     switch (unit) {
@@ -492,10 +506,12 @@ export default function ProductionPlan() {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    onClick={() => removeRecipeMutation.mutate(planRecipe.id)}
+                                    disabled={removeRecipeMutation.isPending}
                                     data-testid={`button-remove-recipe-${planRecipe.id}`}
                                   >
                                     <Trash2 className="mr-1" size={14} />
-                                    Usuń
+                                    {removeRecipeMutation.isPending ? "Usuwanie..." : "Usuń"}
                                   </Button>
                                   <Badge variant={planRecipe.completed ? "default" : "secondary"}>
                                     {planRecipe.completed ? "Ukończone" : "W trakcie"}
