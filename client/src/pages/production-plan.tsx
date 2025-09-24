@@ -62,6 +62,8 @@ export default function ProductionPlan() {
   const [selectedRecipeId, setSelectedRecipeId] = useState("");
   const [targetWeight, setTargetWeight] = useState("");
   const [targetUnit, setTargetUnit] = useState("g");
+  const [isRecipeProductionDialogOpen, setIsRecipeProductionDialogOpen] = useState(false);
+  const [selectedRecipeForProduction, setSelectedRecipeForProduction] = useState<ProductionPlanRecipeWithDetails | null>(null);
 
   const { toast } = useToast();
 
@@ -498,6 +500,10 @@ export default function ProductionPlan() {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    onClick={() => {
+                                      setSelectedRecipeForProduction(planRecipe);
+                                      setIsRecipeProductionDialogOpen(true);
+                                    }}
                                     data-testid={`button-start-recipe-production-${planRecipe.id}`}
                                   >
                                     <Factory className="mr-1" size={14} />
@@ -591,6 +597,136 @@ export default function ProductionPlan() {
           </main>
         </div>
       </div>
+      
+      {/* Individual Recipe Production Dialog */}
+      <Dialog open={isRecipeProductionDialogOpen} onOpenChange={setIsRecipeProductionDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">
+              {selectedRecipeForProduction && (
+                <>
+                  <Factory className="inline mr-2" size={20} />
+                  Produkcja: {selectedRecipeForProduction.recipe.name}
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedRecipeForProduction && (
+                `Docelowa waga: ${selectedRecipeForProduction.targetWeight} ${selectedRecipeForProduction.targetUnit}`
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedRecipeForProduction && (
+            <div className="space-y-6 py-4">
+              {/* Production Progress */}
+              <div className="border-b pb-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Postęp produkcji</span>
+                  <span className="text-sm text-muted-foreground">
+                    {/* We'll calculate this based on completed steps */}
+                    0%
+                  </span>
+                </div>
+                <Progress value={0} className="h-2" />
+              </div>
+
+              {/* Scaled Ingredients Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Utensils className="mr-2" size={18} />
+                    Składniki
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {selectedRecipeForProduction.recipe.recipeIngredients.map((recipeIngredient) => {
+                    const targetGrams = selectedRecipeForProduction.targetUnit === "kg" ? 
+                      Number(selectedRecipeForProduction.targetWeight) * 1000 : 
+                      Number(selectedRecipeForProduction.targetWeight);
+                    
+                    // Calculate original recipe weight
+                    const originalWeight = selectedRecipeForProduction.recipe.recipeIngredients.reduce((sum, ri) => {
+                      return sum + convertToGrams(Number(ri.quantity), ri.unit);
+                    }, 0);
+                    
+                    const scaleFactor = originalWeight > 0 ? targetGrams / originalWeight : 1;
+                    const scaledQuantity = Number(recipeIngredient.quantity) * scaleFactor;
+                    
+                    return (
+                      <div key={recipeIngredient.id} className="flex items-center space-x-3 p-3 rounded-lg border">
+                        <Checkbox
+                          checked={false} // TODO: Track ingredient completion
+                          data-testid={`checkbox-recipe-ingredient-${recipeIngredient.id}`}
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium">
+                            {recipeIngredient.ingredient.name}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {scaledQuantity.toFixed(2)} {recipeIngredient.unit}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              {/* Instructions Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Clock className="mr-2" size={18} />
+                    Instrukcje
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {selectedRecipeForProduction.recipe.instructions.map((instruction, index) => (
+                    <div key={index} className="flex items-start space-x-3 p-3 rounded-lg border">
+                      <Checkbox
+                        checked={false} // TODO: Track instruction completion
+                        data-testid={`checkbox-recipe-instruction-${index}`}
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-start space-x-2">
+                          <span className="font-bold text-primary min-w-[2rem]">
+                            {index + 1}.
+                          </span>
+                          <span className="leading-relaxed">{instruction}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsRecipeProductionDialogOpen(false)}
+                  data-testid="button-cancel-production"
+                >
+                  Zamknij
+                </Button>
+                <Button
+                  onClick={() => {
+                    // TODO: Mark recipe as completed and close dialog
+                    handleToggleRecipeComplete(selectedRecipeForProduction.id, true);
+                    setIsRecipeProductionDialogOpen(false);
+                    toast({ title: "Produkcja ukończona", description: "Przepis został oznaczony jako ukończony." });
+                  }}
+                  data-testid="button-complete-production"
+                >
+                  <CheckCircle className="mr-2" size={16} />
+                  Ukończ produkcję
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
