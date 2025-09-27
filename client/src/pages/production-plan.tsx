@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -34,8 +35,14 @@ import type {
   ProductionPlanWithDetails, 
   RecipeWithDetails,
   InsertProductionPlan,
-  InsertProductionPlanRecipe
+  InsertProductionPlanRecipe,
+  ProductionPlanRecipe
 } from "@shared/schema";
+
+// Type for individual production plan recipe with details
+type ProductionPlanRecipeWithDetails = ProductionPlanRecipe & { 
+  recipe: RecipeWithDetails;
+};
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 
@@ -99,7 +106,7 @@ export default function ProductionPlan() {
     if (!selectedRecipeForProduction) return 0;
     
     const totalIngredients = selectedRecipeForProduction.recipe.recipeIngredients.length;
-    const totalInstructions = selectedRecipeForProduction.recipe.instructions.length;
+    const totalInstructions = selectedRecipeForProduction.recipe.instructions?.length || 0;
     const totalSteps = totalIngredients + totalInstructions;
     
     if (totalSteps === 0) return 100;
@@ -318,17 +325,19 @@ export default function ProductionPlan() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
+      <div className="flex min-h-screen md:h-screen flex-col md:flex-row md:overflow-hidden">
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
         
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0">
           <Header 
             title="Plan produkcji" 
             subtitle="Planowanie wielu przepisów i obliczanie zapotrzebowania na surowce"
           />
           
-          <main className="flex-1 overflow-y-auto">
-            <div className="max-w-7xl mx-auto p-6">
+          <main className="flex-1 overflow-y-auto px-4 md:px-6">
+            <div className="max-w-7xl mx-auto py-4 md:py-6">
               {/* Plan Selection and Creation */}
               <Card className="mb-6">
                 <CardHeader>
@@ -337,49 +346,51 @@ export default function ProductionPlan() {
                       <ClipboardList className="mr-2" size={20} />
                       Zarządzanie planami
                     </span>
-                    <Dialog open={isNewPlanDialogOpen} onOpenChange={setIsNewPlanDialogOpen}>
-                      <DialogTrigger asChild>
+                    <ResponsiveDialog 
+                      open={isNewPlanDialogOpen} 
+                      onOpenChange={setIsNewPlanDialogOpen}
+                      title="Nowy plan produkcji"
+                      trigger={
                         <Button data-testid="button-create-plan">
                           <Plus className="mr-2" size={16} />
                           Nowy plan
                         </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Nowy plan produkcji</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="plan-name">Nazwa planu</Label>
-                            <Input
-                              id="plan-name"
-                              value={newPlanName}
-                              onChange={(e) => setNewPlanName(e.target.value)}
-                              placeholder="Wprowadź nazwę planu"
-                              data-testid="input-plan-name"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="plan-description">Opis (opcjonalny)</Label>
-                            <Textarea
-                              id="plan-description"
-                              value={newPlanDescription}
-                              onChange={(e) => setNewPlanDescription(e.target.value)}
-                              placeholder="Wprowadź opis planu"
-                              data-testid="input-plan-description"
-                            />
-                          </div>
-                          <div className="flex justify-end space-x-2">
-                            <Button variant="outline" onClick={() => setIsNewPlanDialogOpen(false)}>
-                              Anuluj
-                            </Button>
-                            <Button onClick={handleCreatePlan} disabled={createPlanMutation.isPending} data-testid="button-save-plan">
-                              {createPlanMutation.isPending ? "Tworzenie..." : "Utwórz"}
-                            </Button>
-                          </div>
+                      }
+                      footer={
+                        <div className="flex justify-end space-x-2">
+                          <Button variant="outline" onClick={() => setIsNewPlanDialogOpen(false)}>
+                            Anuluj
+                          </Button>
+                          <Button onClick={handleCreatePlan} disabled={createPlanMutation.isPending} data-testid="button-save-plan">
+                            {createPlanMutation.isPending ? "Tworzenie..." : "Utwórz"}
+                          </Button>
                         </div>
-                      </DialogContent>
-                    </Dialog>
+                      }
+                      className="max-w-lg"
+                    >
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="plan-name">Nazwa planu</Label>
+                          <Input
+                            id="plan-name"
+                            value={newPlanName}
+                            onChange={(e) => setNewPlanName(e.target.value)}
+                            placeholder="Wprowadź nazwę planu"
+                            data-testid="input-plan-name"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="plan-description">Opis (opcjonalny)</Label>
+                          <Textarea
+                            id="plan-description"
+                            value={newPlanDescription}
+                            onChange={(e) => setNewPlanDescription(e.target.value)}
+                            placeholder="Wprowadź opis planu"
+                            data-testid="input-plan-description"
+                          />
+                        </div>
+                      </div>
+                    </ResponsiveDialog>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -446,17 +457,28 @@ export default function ProductionPlan() {
                             <Archive className="mr-2" size={16} />
                             {archivePlanMutation.isPending ? "Archiwizowanie..." : "Archiwizuj"}
                           </Button>
-                          <Dialog open={isAddRecipeDialogOpen} onOpenChange={setIsAddRecipeDialogOpen}>
-                            <DialogTrigger asChild>
+                          <ResponsiveDialog 
+                            open={isAddRecipeDialogOpen} 
+                            onOpenChange={setIsAddRecipeDialogOpen}
+                            title="Dodaj przepis do planu"
+                            trigger={
                               <Button data-testid="button-add-recipe">
                                 <Plus className="mr-2" size={16} />
                                 Dodaj przepis
                               </Button>
-                            </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Dodaj przepis do planu</DialogTitle>
-                            </DialogHeader>
+                            }
+                            footer={
+                              <div className="flex justify-end space-x-2">
+                                <Button variant="outline" onClick={() => setIsAddRecipeDialogOpen(false)}>
+                                  Anuluj
+                                </Button>
+                                <Button onClick={handleAddRecipe} disabled={addRecipeMutation.isPending} data-testid="button-save-recipe">
+                                  {addRecipeMutation.isPending ? "Dodawanie..." : "Dodaj"}
+                                </Button>
+                              </div>
+                            }
+                            className="max-w-lg"
+                          >
                             <div className="space-y-4">
                               <div>
                                 <Label htmlFor="recipe-select">Przepis</Label>
@@ -464,7 +486,7 @@ export default function ProductionPlan() {
                                   <SelectTrigger data-testid="select-recipe">
                                     <SelectValue placeholder="Wybierz przepis..." />
                                   </SelectTrigger>
-                                  <SelectContent>
+                                  <SelectContent className="z-50">
                                     {recipes.map(recipe => (
                                       <SelectItem key={recipe.id} value={recipe.id}>
                                         {recipe.name}
@@ -473,8 +495,8 @@ export default function ProductionPlan() {
                                   </SelectContent>
                                 </Select>
                               </div>
-                              <div className="grid grid-cols-3 gap-2">
-                                <div className="col-span-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                <div className="sm:col-span-2">
                                   <Label htmlFor="target-weight">Docelowa waga</Label>
                                   <Input
                                     id="target-weight"
@@ -491,24 +513,15 @@ export default function ProductionPlan() {
                                     <SelectTrigger data-testid="select-unit">
                                       <SelectValue />
                                     </SelectTrigger>
-                                    <SelectContent>
+                                    <SelectContent className="z-50">
                                       <SelectItem value="g">g</SelectItem>
                                       <SelectItem value="kg">kg</SelectItem>
                                     </SelectContent>
                                   </Select>
                                 </div>
                               </div>
-                              <div className="flex justify-end space-x-2">
-                                <Button variant="outline" onClick={() => setIsAddRecipeDialogOpen(false)}>
-                                  Anuluj
-                                </Button>
-                                <Button onClick={handleAddRecipe} disabled={addRecipeMutation.isPending} data-testid="button-save-recipe">
-                                  {addRecipeMutation.isPending ? "Dodawanie..." : "Dodaj"}
-                                </Button>
-                              </div>
                             </div>
-                          </DialogContent>
-                          </Dialog>
+                          </ResponsiveDialog>
                         </div>
                       </div>
                     </CardContent>
@@ -645,23 +658,46 @@ export default function ProductionPlan() {
       </div>
       
       {/* Individual Recipe Production Dialog */}
-      <Dialog open={isRecipeProductionDialogOpen} onOpenChange={setIsRecipeProductionDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl">
-              {selectedRecipeForProduction && (
-                <>
-                  <Factory className="inline mr-2" size={20} />
-                  Produkcja: {selectedRecipeForProduction.recipe.name}
-                </>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              {selectedRecipeForProduction && (
-                `Docelowa waga: ${selectedRecipeForProduction.targetWeight} ${selectedRecipeForProduction.targetUnit}`
-              )}
-            </DialogDescription>
-          </DialogHeader>
+      <ResponsiveDialog 
+        open={isRecipeProductionDialogOpen} 
+        onOpenChange={setIsRecipeProductionDialogOpen}
+        title={selectedRecipeForProduction ? 
+          `Produkcja: ${selectedRecipeForProduction.recipe.name}` : 
+          "Produkcja"
+        }
+        description={selectedRecipeForProduction ? 
+          `Docelowa waga: ${selectedRecipeForProduction.targetWeight} ${selectedRecipeForProduction.targetUnit}` : 
+          undefined
+        }
+        trigger={<></>}
+        footer={
+          selectedRecipeForProduction && (
+            <div className="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsRecipeProductionDialogOpen(false)}
+                data-testid="button-cancel-production"
+                className="w-full sm:w-auto"
+              >
+                Zamknij
+              </Button>
+              <Button
+                onClick={() => {
+                  handleToggleRecipeComplete(selectedRecipeForProduction.id, true);
+                  setIsRecipeProductionDialogOpen(false);
+                  toast({ title: "Produkcja ukończona", description: "Przepis został oznaczony jako ukończony." });
+                }}
+                data-testid="button-complete-production"
+                className="w-full sm:w-auto"
+              >
+                <CheckCircle className="mr-2" size={16} />
+                Ukończ produkcję
+              </Button>
+            </div>
+          )
+        }
+        className="max-w-4xl"
+      >
           
           {selectedRecipeForProduction && (
             <div className="space-y-6 py-4">
@@ -685,13 +721,13 @@ export default function ProductionPlan() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {selectedRecipeForProduction.recipe.recipeIngredients.map((recipeIngredient) => {
+                  {selectedRecipeForProduction.recipe.recipeIngredients.map((recipeIngredient: any) => {
                     const targetGrams = selectedRecipeForProduction.targetUnit === "kg" ? 
                       Number(selectedRecipeForProduction.targetWeight) * 1000 : 
                       Number(selectedRecipeForProduction.targetWeight);
                     
                     // Calculate original recipe weight
-                    const originalWeight = selectedRecipeForProduction.recipe.recipeIngredients.reduce((sum, ri) => {
+                    const originalWeight = selectedRecipeForProduction.recipe.recipeIngredients.reduce((sum: number, ri: any) => {
                       return sum + convertToGrams(Number(ri.quantity), ri.unit);
                     }, 0);
                     
@@ -728,7 +764,7 @@ export default function ProductionPlan() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {selectedRecipeForProduction.recipe.instructions.map((instruction, index) => (
+                  {(selectedRecipeForProduction.recipe.instructions || []).map((instruction: string, index: number) => (
                     <div key={index} className="flex items-start space-x-3 p-3 rounded-lg border">
                       <Checkbox
                         checked={completedInstructions.has(index)}
@@ -772,8 +808,7 @@ export default function ProductionPlan() {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+      </ResponsiveDialog>
     </div>
   );
 }
