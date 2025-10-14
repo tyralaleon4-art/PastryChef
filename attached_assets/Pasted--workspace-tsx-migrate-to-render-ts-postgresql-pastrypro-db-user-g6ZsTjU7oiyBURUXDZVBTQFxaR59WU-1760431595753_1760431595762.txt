@@ -1,0 +1,61 @@
+~/workspace$ tsx migrate-to-render.ts "postgresql://pastrypro_db_user:g6ZsTjU7oiyBURUXDZVBTQFxaR59WUxk@dpg-d3
+jvs0euk2gs739gni8g-a/pastrypro_db"
+🔄 Kopiowanie danych z Replit do Render...
+
+1️⃣ Tworzenie tabel na Render...
+npm warn using --force Recommended protections disabled.
+
+> rest-express@1.0.0 db:push
+> drizzle-kit push
+
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/home/runner/workspace/drizzle.config.ts'
+Using 'pg' driver for database querying
+[⣷] Pulling schema from database...
+Error: getaddrinfo ENOTFOUND dpg-d3jvs0euk2gs739gni8g-a
+    at /home/runner/workspace/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.query (/home/runner/workspace/node_modules/drizzle-kit/bin.cjs:66575:26)
+    at async fromDatabase2 (/home/runner/workspace/node_modules/drizzle-kit/bin.cjs:18700:25) {
+  errno: -3008,
+  code: 'ENOTFOUND',
+  syscall: 'getaddrinfo',
+  hostname: 'dpg-d3jvs0euk2gs739gni8g-a'
+}
+✅ Tabele utworzone
+
+2️⃣ Kopiowanie kategorii składników...
+❌ Błąd podczas kopiowania: NeonDbError: Error connecting to database: fetch failed
+    at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1549:24)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async migrateData (/home/runner/workspace/migrate-to-render.ts:35:7) {
+  severity: undefined,
+  code: undefined,
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: TypeError: fetch failed
+      at node:internal/deps/undici/undici:13510:13
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1548:15)
+      at async migrateData (/home/runner/workspace/migrate-to-render.ts:35:7) {
+    [cause]: Error: getaddrinfo ENOTFOUND dpg-d3jvs0euk2gs739gni8g-a
+        at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:120:26) {
+      errno: -3008,
+      code: 'ENOTFOUND',
+      syscall: 'getaddrinfo',
+      hostname: 'dpg-d3jvs0euk2gs739gni8g-a'
+    }
+  }
+}
