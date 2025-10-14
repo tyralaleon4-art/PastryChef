@@ -1,0 +1,48 @@
+t"}
+     ==> Detected service running on port 10000
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+7:12:38 AM [express] GET /api/ingredient-categories 500 in 3ms :: {"message":"Failed to fetch ingred…
+7:12:38 AM [express] GET /api/ingredients 500 in 3ms :: {"message":"Failed to fetch ingredients"}
+7:12:39 AM [express] GET /api/ingredient-categories 500 in 3ms :: {"message":"Failed to fetch ingred…
+7:12:46 AM [express] POST /api/ingredient-categories 500 in 4ms :: {"message":"Failed to create ingr…
+7:12:46 AM [express] POST /api/ingredients 500 in 3ms :: {"message":"Failed to create ingredient"}
+     ==> Deploying...
+> NODE_ENV=production node dist/index.js
+7:15:58 AM [express] serving on port 10000
+     ==> Your service is live 🎉
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://pastry-app-by-leon-tyrala.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+7:16:08 AM [express] GET /api/recipes 500 in 6ms :: {"message":"Failed to fetch recipes"}
+7:16:08 AM [express] GET /api/inventory/low-stock 500 in 3ms :: {"message":"Failed to fetch low stoc…
+7:16:08 AM [express] GET /api/categories 500 in 3ms :: {"message":"Failed to fetch categories"}
+7:16:08 AM [express] GET /api/stats 500 in 35ms :: {"message":"Failed to fetch statistics"}
+7:16:11 AM [express] GET /api/categories 500 in 10ms :: {"message":"Failed to fetch categories"}
+7:16:11 AM [express] GET /api/ingredients 500 in 5ms :: {"message":"Failed to fetch ingredients"}
+7:16:11 AM [express] GET /api/recipes 500 in 7ms :: {"message":"Failed to fetch recipes"}
+7:16:11 AM [express] GET /api/categories 500 in 5ms :: {"message":"Failed to fetch categories"}
+7:16:13 AM [express] GET /api/ingredient-categories 500 in 4ms :: {"message":"Failed to fetch ingred…
+7:16:13 AM [express] GET /api/ingredients 500 in 6ms :: {"message":"Failed to fetch ingredients"}
+7:16:14 AM [express] GET /api/ingredient-categories 500 in 3ms :: {"message":"Failed to fetch ingred…
+7:16:19 AM [express] POST /api/ingredient-categories 500 in 11ms :: {"message":"Failed to create ing…
+7:16:19 AM [express] POST /api/ingredients 500 in 5ms :: {"message":"Failed to create ingredient"}
+7:16:21 AM [express] POST /api/ingredients 500 in 5ms :: {"message":"Failed to create ingredient"}
+7:16:21 AM [express] POST /api/ingredient-categories 500 in 4ms :: {"message":"Failed to create ingr…
+7:16:23 AM [express] POST /api/ingredient-categories 500 in 3ms :: {"message":"Failed to create ingr…
+7:16:23 AM [express] POST /api/ingredients 500 in 4ms :: {"message":"Failed to create ingredient"}
+7:16:24 AM [express] POST /api/ingredient-categories 500 in 5ms :: {"message":"Failed to create ingr…
+7:16:24 AM [express] POST /api/ingredients 500 in 4ms :: {"message":"Failed to create ingredient"}
+7:16:41 AM [express] GET /api/recipes 500 in 6ms :: {"message":"Failed to fetch recipes"}
+7:16:41 AM [express] GET /api/inventory/low-stock 500 in 4ms :: {"message":"Failed to fetch low stoc…
+7:16:41 AM [express] GET /api/stats 500 in 2ms :: {"message":"Failed to fetch statistics"}
+7:16:41 AM [express] GET /api/categories 500 in 2ms :: {"message":"Failed to fetch categories"}
+7:16:43 AM [express] GET /api/ingredient-categories 500 in 3ms :: {"message":"Failed to fetch ingred…
+7:16:43 AM [express] GET /api/ingredients 500 in 3ms :: {"message":"Failed to fetch ingredients"}
+7:16:43 AM [express] GET /api/ingredient-categories 500 in 2ms :: {"message":"Failed to fetch ingred…
+7:16:53 AM [express] POST /api/ingredient-categories 500 in 4ms :: {"message":"Failed to create ingr…
+7:16:53 AM [express] POST /api/ingredients 500 in 4ms :: {"message":"Failed to create ingredient"}
+7:17:10 AM [express] POST /api/ingredient-categories 500 in 4ms :: {"message":"Failed to create ingr…
+7:17:10 AM [express] POST /api/ingredients 500 in 3ms :: {"message":"Failed to create ingredient"}
