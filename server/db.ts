@@ -1,9 +1,9 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
+import { Pool as NeonPool, neonConfig } from '@neondatabase/serverless';
+import { Pool as PgPool } from 'pg';
+import { drizzle as drizzleNeon } from 'drizzle-orm/neon-serverless';
+import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import ws from "ws";
 import * as schema from "@shared/schema";
-
-neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,17 +11,45 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure connection pool for better reliability
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  max: 10, // Maximum number of connections
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 5000, // Connection timeout
-});
+// Check if we're using an external database (Render) or Neon (Replit)
+const isExternalDatabase = process.env.DATABASE_URL.includes('render.com') || 
+                           process.env.DATABASE_URL.includes('railway.app') ||
+                           !process.env.DATABASE_URL.includes('neon.tech');
 
-// Add error handling for pool
-pool.on('error', (err, client) => {
-  console.error('Unexpected database pool error:', err);
-});
+let db;
+let pool;
 
-export const db = drizzle({ client: pool, schema });
+if (isExternalDatabase) {
+  // Use standard PostgreSQL driver for external databases (Render, Railway, etc.)
+  pool = new PgPool({ 
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }, // Required for Render
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+  });
+  
+  pool.on('error', (err) => {
+    console.error('Unexpected database pool error:', err);
+  });
+  
+  db = drizzlePg({ client: pool, schema });
+} else {
+  // Use Neon serverless driver for Replit
+  neonConfig.webSocketConstructor = ws;
+  
+  pool = new NeonPool({ 
+    connectionString: process.env.DATABASE_URL,
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
+  
+  pool.on('error', (err) => {
+    console.error('Unexpected database pool error:', err);
+  });
+  
+  db = drizzleNeon({ client: pool, schema });
+}
+
+export { db, pool };
