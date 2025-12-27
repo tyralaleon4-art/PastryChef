@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { registerChatRoutes } from "./replit_integrations/chat";
+import { registerImageRoutes } from "./replit_integrations/image";
 import { 
   insertCategorySchema, 
   insertIngredientCategorySchema,
@@ -616,6 +618,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete production plan recipe" });
     }
   });
+
+  // Register AI chat routes
+  registerChatRoutes(app);
+  registerImageRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
