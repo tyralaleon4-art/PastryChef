@@ -11,6 +11,7 @@ import Production from "@/pages/production";
 import ProductionPlan from "@/pages/production-plan";
 import Inventory from "@/pages/inventory";
 import Reports from "@/pages/reports";
+import AIChat from "@/pages/ai-chat";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/production-plan" component={ProductionPlan} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/reports" component={Reports} />
+      <Route path="/ai-chat" component={AIChat} />
       <Route component={NotFound} />
     </Switch>
   );

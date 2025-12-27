@@ -10,7 +10,8 @@ import {
   ChartBar,
   Utensils,
   Factory,
-  ClipboardList
+  ClipboardList,
+  Sparkles
 } from "lucide-react";
 
 const navigation = [
@@ -23,6 +24,7 @@ const navigation = [
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Cost Analysis", href: "/costing", icon: DollarSign },
   { name: "Reports", href: "/reports", icon: ChartBar },
+  { name: "AI Assistant", href: "/ai-chat", icon: Sparkles },
 ];
 
 const categories = [
