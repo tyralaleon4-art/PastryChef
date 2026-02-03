@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus } from "lucide-react";
+import { Plus, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import IngredientCategoryDialog from "./ingredient-category-dialog";
 import type { InsertIngredient, IngredientCategory, IngredientWithStock } from "@shared/schema";
@@ -58,6 +58,63 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
   const { data: categories = [] } = useQuery<IngredientCategory[]>({
     queryKey: ["/api/ingredient-categories"],
   });
+
+  const [isAILoading, setIsAILoading] = useState(false);
+
+  const handleAIFill = async () => {
+    if (!name.trim()) {
+      toast({
+        title: "Wprowadź nazwę",
+        description: "Wpisz nazwę składnika, aby AI mogło go wyszukać.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAILoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/ai/ingredient-info", { name: name.trim() });
+      const data = await response.json();
+      
+      if (data.pricePerKg) {
+        setCostPerUnit(String(data.pricePerKg));
+      }
+      if (data.allergens && Array.isArray(data.allergens)) {
+        setAllergens(data.allergens);
+      }
+      if (typeof data.isVegan === 'boolean') {
+        setIsVegan(data.isVegan);
+      }
+      if (typeof data.isGlutenFree === 'boolean') {
+        setIsGlutenFree(data.isGlutenFree);
+      }
+      if (typeof data.isLactoseFree === 'boolean') {
+        setIsLactoseFree(data.isLactoseFree);
+      }
+      if (data.densityGPerMl) {
+        setDensityGPerMl(String(data.densityGPerMl));
+      }
+      if (data.supplier) {
+        setSupplier(data.supplier);
+      }
+      if (data.name && data.name !== name) {
+        setName(data.name);
+      }
+
+      toast({
+        title: "AI uzupełniło dane!",
+        description: `Znaleziono informacje o: ${data.name || name}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Błąd AI",
+        description: "Nie udało się pobrać danych z AI. Spróbuj ponownie.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAILoading(false);
+    }
+  };
 
   // Initialize form with ingredient data when editing
   useEffect(() => {
@@ -194,14 +251,32 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="name">Ingredient Name</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Mąka pszenna typ 500"
-                required
-                data-testid="input-ingredient-name"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Mąka pszenna typ 500"
+                  required
+                  data-testid="input-ingredient-name"
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAIFill}
+                  disabled={isAILoading || !name.trim()}
+                  title="Wypełnij dane za pomocą AI"
+                  data-testid="button-ai-fill"
+                >
+                  {isAILoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
             </div>
             <div>
               <Label htmlFor="costPerUnit">Price per Kg (PLN)</Label>

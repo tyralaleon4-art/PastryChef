@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
+import { registerAIRoutes } from "./ai-routes";
 import { 
   insertCategorySchema, 
   insertIngredientCategorySchema,
@@ -622,6 +623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register AI chat routes
   registerChatRoutes(app);
   registerImageRoutes(app);
+  registerAIRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

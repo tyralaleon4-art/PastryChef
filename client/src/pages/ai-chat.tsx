@@ -83,16 +83,27 @@ export default function AIChatPage() {
     setNewMessage("");
 
     try {
-      const response = await fetch(
-        `/api/conversations/${selectedConversationId}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: userMessage }),
-        }
-      );
+      // Use recipe-aware AI chat endpoint
+      const response = await fetch("/api/ai/recipe-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          message: userMessage,
+          conversationHistory: messages.map((m: Message) => ({
+            role: m.role,
+            content: m.content
+          }))
+        }),
+      });
 
       if (!response.ok) throw new Error("Failed to send message");
+      
+      // Also save to conversation storage
+      await fetch(`/api/conversations/${selectedConversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: userMessage }),
+      }).catch(() => {});  // Silent fail for storage
 
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");

@@ -27,7 +27,9 @@ import {
   Clock,
   Utensils,
   RotateCcw,
-  Factory
+  Factory,
+  Download,
+  FileText
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -322,6 +324,77 @@ export default function ProductionPlan() {
     });
   };
 
+  const handleExportPlan = async (planId: string) => {
+    try {
+      const response = await fetch(`/api/production-plans/${planId}/export`);
+      if (!response.ok) throw new Error("Export failed");
+      
+      const data = await response.json();
+      
+      // Generate text content
+      let content = `PLAN PRODUKCJI: ${data.planName}\n`;
+      content += `${"=".repeat(50)}\n`;
+      if (data.planDescription) {
+        content += `Opis: ${data.planDescription}\n`;
+      }
+      content += `\n`;
+      
+      // Recipes section
+      content += `\nPRZEPISY (${data.recipes.length}):\n`;
+      content += `${"=".repeat(50)}\n`;
+      
+      data.recipes.forEach((recipe: any, index: number) => {
+        content += `\n${index + 1}. ${recipe.recipeName}\n`;
+        content += `   Docelowa gramatura: ${recipe.targetWeight} ${recipe.targetUnit}\n`;
+        content += `   Współczynnik skalowania: ${recipe.scaleFactor}x\n`;
+        content += `\n   SKŁADNIKI:\n`;
+        
+        recipe.ingredients.forEach((ing: any) => {
+          content += `   - ${ing.name}: ${ing.scaledQuantity} ${ing.unit}\n`;
+        });
+        
+        if (recipe.instructions && recipe.instructions.length > 0) {
+          content += `\n   INSTRUKCJE:\n`;
+          recipe.instructions.forEach((instr: string, i: number) => {
+            content += `   ${i + 1}. ${instr}\n`;
+          });
+        }
+        content += `\n${"─".repeat(40)}\n`;
+      });
+      
+      // Aggregated ingredients section
+      content += `\nLISTA SKŁADNIKÓW (suma):\n`;
+      content += `${"=".repeat(50)}\n`;
+      
+      data.ingredientList.forEach((ing: any) => {
+        const qty = Math.round(ing.totalQuantity * 100) / 100;
+        content += `- ${ing.name}: ${qty} ${ing.unit} (używane w: ${ing.recipes.join(", ")})\n`;
+      });
+      
+      // Download as file
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `plan-produkcji-${data.planName.replace(/\s+/g, "-")}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({ 
+        title: "Eksport zakończony!", 
+        description: "Plik z planem produkcji został pobrany." 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Błąd eksportu", 
+        description: "Nie udało się wyeksportować planu.", 
+        variant: "destructive" 
+      });
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -447,7 +520,15 @@ export default function ProductionPlan() {
                             Ukończone: {selectedPlan.productionPlanRecipes.filter(r => r.completed).length}
                           </p>
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-2 flex-wrap gap-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => handleExportPlan(selectedPlan.id)}
+                            data-testid="button-export-plan"
+                          >
+                            <Download className="mr-2" size={16} />
+                            Eksportuj
+                          </Button>
                           <Button 
                             variant="outline" 
                             onClick={() => archivePlanMutation.mutate(selectedPlan.id)}
