@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Copy, Calculator, Utensils } from "lucide-react";
 import type { RecipeWithDetails } from "@shared/schema";
+import RecipeNutrition from "./recipe-nutrition";
 
 interface RecipeCardProps {
   recipe: RecipeWithDetails;
@@ -93,6 +94,10 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             </div>
           </div>
         )}
+
+        <div className="mb-3">
+          <RecipeNutrition recipeId={recipe.id} compact />
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">

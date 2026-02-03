@@ -42,7 +42,12 @@ Zwróć JSON:
   "isLactoseFree": boolean,
   "densityGPerMl": liczba lub null (gęstość g/ml dla płynów),
   "suggestedCategory": "sugerowana kategoria",
-  "supplier": "przykładowy dostawca w Polsce"
+  "supplier": "przykładowy dostawca w Polsce",
+  "caloriesPer100g": liczba (kcal na 100g),
+  "proteinPer100g": liczba (g białka na 100g),
+  "fatPer100g": liczba (g tłuszczu na 100g),
+  "carbsPer100g": liczba (g węglowodanów na 100g),
+  "fiberPer100g": liczba (g błonnika na 100g)
 }`
           }
         ],
@@ -259,6 +264,78 @@ Odpowiadaj po polsku, konkretnie i pomocnie. Jeśli tworzysz nowy przepis, podaj
     } catch (error) {
       console.error("Error exporting production plan:", error);
       res.status(500).json({ error: "Failed to export production plan" });
+    }
+  });
+
+  // Calculate nutritional values for a recipe
+  app.get("/api/recipes/:id/nutrition", async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const recipes: RecipeWithDetails[] = await storage.getRecipes();
+      const recipe = recipes.find(r => r.id === id);
+      
+      if (!recipe) {
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+
+      const ingredients = await storage.getIngredients();
+      
+      let totalCalories = 0;
+      let totalProtein = 0;
+      let totalFat = 0;
+      let totalCarbs = 0;
+      let totalFiber = 0;
+      let totalWeight = 0;
+
+      recipe.recipeIngredients.forEach((ri: RecipeIngredient & { ingredient: Ingredient }) => {
+        const ing = ingredients.find(i => i.id === ri.ingredientId);
+        if (!ing) return;
+
+        // Convert quantity to grams
+        let weightInG = parseFloat(ri.quantity);
+        if (ri.unit === "kg") weightInG *= 1000;
+        else if (ri.unit === "ml" || ri.unit === "l") {
+          const density = ing.densityGPerMl ? parseFloat(ing.densityGPerMl) : 1;
+          if (ri.unit === "l") weightInG *= 1000;
+          weightInG *= density;
+        }
+
+        totalWeight += weightInG;
+
+        // Calculate nutrition based on weight
+        const factor = weightInG / 100; // per 100g values
+        if (ing.caloriesPer100g) totalCalories += parseFloat(ing.caloriesPer100g) * factor;
+        if (ing.proteinPer100g) totalProtein += parseFloat(ing.proteinPer100g) * factor;
+        if (ing.fatPer100g) totalFat += parseFloat(ing.fatPer100g) * factor;
+        if (ing.carbsPer100g) totalCarbs += parseFloat(ing.carbsPer100g) * factor;
+        if (ing.fiberPer100g) totalFiber += parseFloat(ing.fiberPer100g) * factor;
+      });
+
+      // Also calculate per 100g of final product
+      const per100g = totalWeight > 0 ? {
+        calories: Math.round((totalCalories / totalWeight) * 100 * 10) / 10,
+        protein: Math.round((totalProtein / totalWeight) * 100 * 10) / 10,
+        fat: Math.round((totalFat / totalWeight) * 100 * 10) / 10,
+        carbs: Math.round((totalCarbs / totalWeight) * 100 * 10) / 10,
+        fiber: Math.round((totalFiber / totalWeight) * 100 * 10) / 10,
+      } : null;
+
+      res.json({
+        recipeName: recipe.name,
+        totalWeight: Math.round(totalWeight),
+        total: {
+          calories: Math.round(totalCalories),
+          protein: Math.round(totalProtein * 10) / 10,
+          fat: Math.round(totalFat * 10) / 10,
+          carbs: Math.round(totalCarbs * 10) / 10,
+          fiber: Math.round(totalFiber * 10) / 10,
+        },
+        per100g,
+        ingredientCount: recipe.recipeIngredients.length,
+      });
+    } catch (error) {
+      console.error("Error calculating nutrition:", error);
+      res.status(500).json({ error: "Failed to calculate nutrition" });
     }
   });
 }

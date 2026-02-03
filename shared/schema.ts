@@ -39,6 +39,12 @@ export const ingredients = pgTable("ingredients", {
   // Recipe scaling metadata
   densityGPerMl: decimal("density_g_per_ml", { precision: 6, scale: 3 }), // For ml/l conversions (optional)
   weightPerPieceG: decimal("weight_per_piece_g", { precision: 10, scale: 3 }), // For pcs conversions (optional)
+  // Nutritional values per 100g
+  caloriesPer100g: decimal("calories_per_100g", { precision: 10, scale: 2 }),
+  proteinPer100g: decimal("protein_per_100g", { precision: 10, scale: 2 }),
+  fatPer100g: decimal("fat_per_100g", { precision: 10, scale: 2 }),
+  carbsPer100g: decimal("carbs_per_100g", { precision: 10, scale: 2 }),
+  fiberPer100g: decimal("fiber_per_100g", { precision: 10, scale: 2 }),
   expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").defaultNow(),
 });

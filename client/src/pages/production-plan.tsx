@@ -1,5 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useReactToPrint } from "react-to-print";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +36,7 @@ import {
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import PrintableProductionPlan from "@/components/printable-production-plan";
 import type { 
   ProductionPlanWithDetails, 
   RecipeWithDetails,
@@ -75,6 +79,13 @@ export default function ProductionPlan() {
   const [selectedRecipeForProduction, setSelectedRecipeForProduction] = useState<ProductionPlanRecipeWithDetails | null>(null);
   const [completedIngredients, setCompletedIngredients] = useState<Set<string>>(new Set());
   const [completedInstructions, setCompletedInstructions] = useState<Set<number>>(new Set());
+  const [exportData, setExportData] = useState<{
+    planName: string;
+    planDescription?: string;
+    recipes: any[];
+    ingredientList: any[];
+  } | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
 
@@ -330,62 +341,12 @@ export default function ProductionPlan() {
       if (!response.ok) throw new Error("Export failed");
       
       const data = await response.json();
+      setExportData(data);
       
-      // Generate text content
-      let content = `PLAN PRODUKCJI: ${data.planName}\n`;
-      content += `${"=".repeat(50)}\n`;
-      if (data.planDescription) {
-        content += `Opis: ${data.planDescription}\n`;
-      }
-      content += `\n`;
-      
-      // Recipes section
-      content += `\nPRZEPISY (${data.recipes.length}):\n`;
-      content += `${"=".repeat(50)}\n`;
-      
-      data.recipes.forEach((recipe: any, index: number) => {
-        content += `\n${index + 1}. ${recipe.recipeName}\n`;
-        content += `   Docelowa gramatura: ${recipe.targetWeight} ${recipe.targetUnit}\n`;
-        content += `   Współczynnik skalowania: ${recipe.scaleFactor}x\n`;
-        content += `\n   SKŁADNIKI:\n`;
-        
-        recipe.ingredients.forEach((ing: any) => {
-          content += `   - ${ing.name}: ${ing.scaledQuantity} ${ing.unit}\n`;
-        });
-        
-        if (recipe.instructions && recipe.instructions.length > 0) {
-          content += `\n   INSTRUKCJE:\n`;
-          recipe.instructions.forEach((instr: string, i: number) => {
-            content += `   ${i + 1}. ${instr}\n`;
-          });
-        }
-        content += `\n${"─".repeat(40)}\n`;
-      });
-      
-      // Aggregated ingredients section
-      content += `\nLISTA SKŁADNIKÓW (suma):\n`;
-      content += `${"=".repeat(50)}\n`;
-      
-      data.ingredientList.forEach((ing: any) => {
-        const qty = Math.round(ing.totalQuantity * 100) / 100;
-        content += `- ${ing.name}: ${qty} ${ing.unit} (używane w: ${ing.recipes.join(", ")})\n`;
-      });
-      
-      // Download as file
-      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `plan-produkcji-${data.planName.replace(/\s+/g, "-")}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({ 
-        title: "Eksport zakończony!", 
-        description: "Plik z planem produkcji został pobrany." 
-      });
+      // Wait for render then generate PDF
+      setTimeout(() => {
+        handlePrint();
+      }, 100);
     } catch (error) {
       toast({ 
         title: "Błąd eksportu", 
@@ -394,6 +355,74 @@ export default function ProductionPlan() {
       });
     }
   };
+
+  const handlePrint = useReactToPrint({
+    contentRef: printRef,
+    documentTitle: exportData ? `Plan_Produkcji_${exportData.planName}` : 'Plan_Produkcji',
+    print: async (printIframe) => {
+      try {
+        if (!printIframe.contentDocument) {
+          throw new Error('Content document not available');
+        }
+        const element = printIframe.contentDocument.body;
+        
+        const canvas = await html2canvas(element, {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: '#ffffff'
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        const imgProperties = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+        const margin = 10;
+        const availableWidth = pdfWidth - (margin * 2);
+        const imgHeight = (imgProperties.height * availableWidth) / imgProperties.width;
+
+        // Handle multi-page PDF if content is long
+        let heightLeft = imgHeight;
+        let position = margin;
+
+        pdf.addImage(imgData, 'PNG', margin, position, availableWidth, imgHeight);
+        heightLeft -= (pdfHeight - margin * 2);
+
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeight + margin;
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', margin, position, availableWidth, imgHeight);
+          heightLeft -= (pdfHeight - margin * 2);
+        }
+
+        const fileName = exportData 
+          ? `Plan_Produkcji_${exportData.planName.replace(/[^a-z0-9]/gi, '_')}.pdf`
+          : 'Plan_Produkcji.pdf';
+        
+        pdf.save(fileName);
+        setExportData(null);
+
+        toast({
+          title: "PDF pobrany!",
+          description: "Plan produkcji został wyeksportowany jako PDF."
+        });
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+        toast({
+          title: "Błąd generowania PDF",
+          description: "Spróbuj ponownie.",
+          variant: "destructive"
+        });
+      }
+    }
+  });
 
 
   return (
@@ -890,6 +919,19 @@ export default function ProductionPlan() {
             </div>
           )}
       </ResponsiveDialog>
+
+      {/* Hidden printable component for PDF export */}
+      {exportData && (
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <PrintableProductionPlan
+            ref={printRef}
+            planName={exportData.planName}
+            planDescription={exportData.planDescription}
+            recipes={exportData.recipes}
+            ingredientList={exportData.ingredientList}
+          />
+        </div>
+      )}
     </div>
   );
 }

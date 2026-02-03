@@ -52,6 +52,12 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
   // Recipe scaling metadata (optional)
   const [densityGPerMl, setDensityGPerMl] = useState("");
   const [weightPerPieceG, setWeightPerPieceG] = useState("");
+  // Nutritional values per 100g
+  const [caloriesPer100g, setCaloriesPer100g] = useState("");
+  const [proteinPer100g, setProteinPer100g] = useState("");
+  const [fatPer100g, setFatPer100g] = useState("");
+  const [carbsPer100g, setCarbsPer100g] = useState("");
+  const [fiberPer100g, setFiberPer100g] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -100,6 +106,22 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       if (data.name && data.name !== name) {
         setName(data.name);
       }
+      // Nutritional values
+      if (data.caloriesPer100g) {
+        setCaloriesPer100g(String(data.caloriesPer100g));
+      }
+      if (data.proteinPer100g) {
+        setProteinPer100g(String(data.proteinPer100g));
+      }
+      if (data.fatPer100g) {
+        setFatPer100g(String(data.fatPer100g));
+      }
+      if (data.carbsPer100g) {
+        setCarbsPer100g(String(data.carbsPer100g));
+      }
+      if (data.fiberPer100g) {
+        setFiberPer100g(String(data.fiberPer100g));
+      }
 
       toast({
         title: "AI uzupełniło dane!",
@@ -132,6 +154,11 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       setIsLactoseFree(ingredient.isLactoseFree || false);
       setDensityGPerMl(ingredient.densityGPerMl || "");
       setWeightPerPieceG(ingredient.weightPerPieceG || "");
+      setCaloriesPer100g(ingredient.caloriesPer100g || "");
+      setProteinPer100g(ingredient.proteinPer100g || "");
+      setFatPer100g(ingredient.fatPer100g || "");
+      setCarbsPer100g(ingredient.carbsPer100g || "");
+      setFiberPer100g(ingredient.fiberPer100g || "");
     } else if (mode === "add") {
       resetForm();
     }
@@ -182,6 +209,11 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
     setIsLactoseFree(false);
     setDensityGPerMl("");
     setWeightPerPieceG("");
+    setCaloriesPer100g("");
+    setProteinPer100g("");
+    setFatPer100g("");
+    setCarbsPer100g("");
+    setFiberPer100g("");
   };
 
   const toggleAllergen = (allergen: string) => {
@@ -211,6 +243,12 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       // Recipe scaling metadata (optional)
       densityGPerMl: densityGPerMl ? densityGPerMl : undefined,
       weightPerPieceG: weightPerPieceG ? weightPerPieceG : undefined,
+      // Nutritional values per 100g
+      caloriesPer100g: caloriesPer100g ? caloriesPer100g : undefined,
+      proteinPer100g: proteinPer100g ? proteinPer100g : undefined,
+      fatPer100g: fatPer100g ? fatPer100g : undefined,
+      carbsPer100g: carbsPer100g ? carbsPer100g : undefined,
+      fiberPer100g: fiberPer100g ? fiberPer100g : undefined,
       expiryDate: expiryDate ? new Date(expiryDate) : undefined,
     });
   };
@@ -418,6 +456,73 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                 <p className="text-xs text-muted-foreground mt-1">
                   Used to convert piece measurements to grams for recipe scaling
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Nutritional Values per 100g */}
+          <div className="border-t pt-4">
+            <Label className="text-sm font-medium mb-3 block">Wartości odżywcze (na 100g)</Label>
+            <div className="grid grid-cols-5 gap-2">
+              <div>
+                <Label htmlFor="caloriesPer100g" className="text-xs">Kalorie (kcal)</Label>
+                <Input
+                  id="caloriesPer100g"
+                  type="number"
+                  step="0.1"
+                  value={caloriesPer100g}
+                  onChange={(e) => setCaloriesPer100g(e.target.value)}
+                  placeholder="0"
+                  data-testid="input-calories"
+                />
+              </div>
+              <div>
+                <Label htmlFor="proteinPer100g" className="text-xs">Białko (g)</Label>
+                <Input
+                  id="proteinPer100g"
+                  type="number"
+                  step="0.1"
+                  value={proteinPer100g}
+                  onChange={(e) => setProteinPer100g(e.target.value)}
+                  placeholder="0"
+                  data-testid="input-protein"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fatPer100g" className="text-xs">Tłuszcz (g)</Label>
+                <Input
+                  id="fatPer100g"
+                  type="number"
+                  step="0.1"
+                  value={fatPer100g}
+                  onChange={(e) => setFatPer100g(e.target.value)}
+                  placeholder="0"
+                  data-testid="input-fat"
+                />
+              </div>
+              <div>
+                <Label htmlFor="carbsPer100g" className="text-xs">Węglowodany (g)</Label>
+                <Input
+                  id="carbsPer100g"
+                  type="number"
+                  step="0.1"
+                  value={carbsPer100g}
+                  onChange={(e) => setCarbsPer100g(e.target.value)}
+                  placeholder="0"
+                  data-testid="input-carbs"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fiberPer100g" className="text-xs">Błonnik (g)</Label>
+                <Input
+                  id="fiberPer100g"
+                  type="number"
+                  step="0.1"
+                  value={fiberPer100g}
+                  onChange={(e) => setFiberPer100g(e.target.value)}
+                  placeholder="0"
+                  data-testid="input-fiber"
+                />
               </div>
             </div>
           </div>
