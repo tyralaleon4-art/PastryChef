@@ -3,9 +3,10 @@ import OpenAI from "openai";
 import { storage } from "./storage";
 import type { RecipeWithDetails, ProductionPlanWithDetails, RecipeIngredient, Ingredient } from "@shared/schema";
 
+// Support both Replit AI integrations and standard OpenAI API key
 const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  ...(process.env.AI_INTEGRATIONS_OPENAI_BASE_URL && { baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL }),
 });
 
 export function registerAIRoutes(app: Express): void {
