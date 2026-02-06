@@ -79,43 +79,26 @@ Zwróć JSON:
       const recipes: RecipeWithDetails[] = await storage.getRecipes();
       const ingredients = await storage.getIngredients();
       
-      // Build context from recipes
-      const recipeContext = recipes.map((r: RecipeWithDetails) => ({
-        name: r.name,
-        category: r.category?.name || "Bez kategorii",
-        ingredients: r.recipeIngredients.map((ri: RecipeIngredient & { ingredient: Ingredient }) => ({
-          name: ri.ingredient.name,
-          quantity: ri.quantity,
-          unit: ri.unit
-        })),
-        instructions: r.instructions || []
-      }));
+      // Build compact context from recipes (minimize tokens)
+      const recipeContext = recipes.map((r: RecipeWithDetails) => {
+        const ings = r.recipeIngredients.map((ri: RecipeIngredient & { ingredient: Ingredient }) => 
+          `${ri.ingredient.name} ${ri.quantity}${ri.unit}`
+        ).join(", ");
+        return `${r.name} (${r.category?.name || "Bez kategorii"}): ${ings}`;
+      }).join("\n");
 
-      const ingredientContext = ingredients.map((i) => ({
-        name: i.name,
-        pricePerKg: i.costPerUnit,
-        allergens: i.allergens || [],
-        isVegan: i.isVegan,
-        isGlutenFree: i.isGlutenFree
-      }));
+      const ingredientNames = ingredients.map((i) => i.name).join(", ");
 
-      // Build system message with recipe knowledge
+      // Build system message with compact recipe knowledge
       const systemMessage = `Jesteś ekspertem cukierniczym i piekarzem. Masz dostęp do bazy przepisów i składników użytkownika.
 
-BAZA PRZEPISÓW (${recipes.length} przepisów):
-${JSON.stringify(recipeContext, null, 2)}
+PRZEPISY (${recipes.length}):
+${recipeContext}
 
-BAZA SKŁADNIKÓW (${ingredients.length} składników):
-${JSON.stringify(ingredientContext, null, 2)}
+DOSTĘPNE SKŁADNIKI: ${ingredientNames}
 
-Używaj tej wiedzy do:
-1. Sugerowania nowych przepisów na podstawie istniejących wzorców
-2. Proponowania zamienników składników
-3. Obliczania kosztów i proporcji
-4. Tworzenia wariantów istniejących przepisów
-5. Odpowiadania na pytania o techniki cukiernicze
-
-Odpowiadaj po polsku, konkretnie i pomocnie. Jeśli tworzysz nowy przepis, podaj dokładne ilości składników.`;
+Używaj tej wiedzy do sugerowania przepisów, zamienników, kosztów i technik cukierniczych.
+Odpowiadaj po polsku, konkretnie. Przy nowych przepisach podaj dokładne ilości.`;
 
       // Set up SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -132,7 +115,7 @@ Odpowiadaj po polsku, konkretnie i pomocnie. Jeśli tworzysz nowy przepis, podaj
       ];
 
       const stream = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4o-mini",
         messages,
         stream: true,
         max_tokens: 2048,
