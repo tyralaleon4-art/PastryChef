@@ -160,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUser(id);
       if (!user) return res.status(404).json({ message: "User not found" });
       const recipes = await storage.getRecipes(id);
-      const ingredientsList = await storage.getIngredients(id);
+      const ingredientsList = await storage.getIngredients();
       const categoriesList = await storage.getCategories(id);
       res.json({ user: { ...user, password: undefined }, recipes, ingredients: ingredientsList, categories: categoriesList });
     } catch (error) {
@@ -226,8 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== INGREDIENT CATEGORIES ====================
   app.get("/api/ingredient-categories", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
-      const cats = await storage.getIngredientCategories(userId);
+      const cats = await storage.getIngredientCategories();
       res.json(cats);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch ingredient categories" });
@@ -236,9 +235,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ingredient-categories", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
       const category = insertIngredientCategorySchema.parse(req.body);
-      const newCategory = await storage.createIngredientCategory(category, userId);
+      const newCategory = await storage.createIngredientCategory(category);
       res.status(201).json(newCategory);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -251,10 +249,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/ingredient-categories/:id", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
       const { id } = req.params;
       const category = insertIngredientCategorySchema.partial().parse(req.body);
-      const updated = await storage.updateIngredientCategory(id, category, userId);
+      const updated = await storage.updateIngredientCategory(id, category);
       if (!updated) return res.status(404).json({ message: "Ingredient category not found" });
       res.json(updated);
     } catch (error) {
@@ -268,9 +265,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/ingredient-categories/:id", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
       const { id } = req.params;
-      const deleted = await storage.deleteIngredientCategory(id, userId);
+      const deleted = await storage.deleteIngredientCategory(id);
       if (!deleted) return res.status(404).json({ message: "Ingredient category not found" });
       res.status(204).send();
     } catch (error) {
@@ -281,9 +277,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== INGREDIENTS ====================
   app.get("/api/ingredients", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
       const { search } = req.query;
-      const ingredientsList = await storage.getIngredients(userId, search as string);
+      const ingredientsList = await storage.getIngredients(search as string | undefined);
       res.json(ingredientsList);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch ingredients" });
@@ -303,9 +298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ingredients", requireAuth, async (req, res) => {
     try {
-      const userId = req.session.userId!;
       const ingredient = insertIngredientSchema.parse(req.body);
-      const newIngredient = await storage.createIngredient(ingredient, userId);
+      const newIngredient = await storage.createIngredient(ingredient);
       res.status(201).json(newIngredient);
     } catch (error) {
       if (error instanceof z.ZodError) {

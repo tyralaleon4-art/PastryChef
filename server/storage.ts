@@ -48,16 +48,16 @@ export interface IStorage {
   updateCategory(id: string, category: Partial<InsertCategory>, userId: string): Promise<Category | undefined>;
   deleteCategory(id: string, userId: string): Promise<boolean>;
 
-  // Ingredient Categories
-  getIngredientCategories(userId: string): Promise<IngredientCategory[]>;
-  createIngredientCategory(category: InsertIngredientCategory, userId: string): Promise<IngredientCategory>;
-  updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, userId: string): Promise<IngredientCategory | undefined>;
-  deleteIngredientCategory(id: string, userId: string): Promise<boolean>;
+  // Ingredient Categories (shared across all users)
+  getIngredientCategories(): Promise<IngredientCategory[]>;
+  createIngredientCategory(category: InsertIngredientCategory): Promise<IngredientCategory>;
+  updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>): Promise<IngredientCategory | undefined>;
+  deleteIngredientCategory(id: string): Promise<boolean>;
 
-  // Ingredients
-  getIngredients(userId: string, search?: string): Promise<IngredientWithStock[]>;
+  // Ingredients (shared across all users)
+  getIngredients(search?: string): Promise<IngredientWithStock[]>;
   getIngredient(id: string): Promise<Ingredient | undefined>;
-  createIngredient(ingredient: InsertIngredient, userId: string): Promise<Ingredient>;
+  createIngredient(ingredient: InsertIngredient): Promise<Ingredient>;
   updateIngredient(id: string, ingredient: Partial<InsertIngredient>): Promise<Ingredient | undefined>;
   deleteIngredient(id: string): Promise<boolean>;
 
@@ -158,39 +158,32 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getIngredientCategories(userId: string): Promise<IngredientCategory[]> {
+  async getIngredientCategories(): Promise<IngredientCategory[]> {
     return await db.select().from(ingredientCategories)
-      .where(eq(ingredientCategories.userId, userId))
       .orderBy(asc(ingredientCategories.name));
   }
 
-  async createIngredientCategory(category: InsertIngredientCategory, userId: string): Promise<IngredientCategory> {
-    const [newCategory] = await db.insert(ingredientCategories).values({ ...category, userId }).returning();
+  async createIngredientCategory(category: InsertIngredientCategory): Promise<IngredientCategory> {
+    const [newCategory] = await db.insert(ingredientCategories).values({ ...category }).returning();
     return newCategory;
   }
 
-  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, userId: string): Promise<IngredientCategory | undefined> {
+  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>): Promise<IngredientCategory | undefined> {
     const [updated] = await db.update(ingredientCategories).set(category)
-      .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)))
+      .where(eq(ingredientCategories.id, id))
       .returning();
     return updated || undefined;
   }
 
-  async deleteIngredientCategory(id: string, userId: string): Promise<boolean> {
+  async deleteIngredientCategory(id: string): Promise<boolean> {
     const result = await db.delete(ingredientCategories)
-      .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)));
+      .where(eq(ingredientCategories.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getIngredients(userId: string, search?: string): Promise<IngredientWithStock[]> {
-    let whereCondition: any = eq(ingredients.userId, userId);
-    
-    if (search) {
-      whereCondition = and(eq(ingredients.userId, userId), ilike(ingredients.name, `%${search}%`));
-    }
-    
+  async getIngredients(search?: string): Promise<IngredientWithStock[]> {
     const results = await db.query.ingredients.findMany({
-      where: whereCondition,
+      where: search ? ilike(ingredients.name, `%${search}%`) : undefined,
       with: {
         category: true
       },
@@ -218,10 +211,9 @@ export class DatabaseStorage implements IStorage {
     return ingredient || undefined;
   }
 
-  async createIngredient(ingredient: InsertIngredient, userId: string): Promise<Ingredient> {
+  async createIngredient(ingredient: InsertIngredient): Promise<Ingredient> {
     const [newIngredient] = await db.insert(ingredients).values({
       ...ingredient,
-      userId,
       allergens: ingredient.allergens ?? []
     }).returning();
     return newIngredient;

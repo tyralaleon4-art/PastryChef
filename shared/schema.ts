@@ -22,7 +22,7 @@ export const categories = pgTable("categories", {
 
 export const ingredientCategories = pgTable("ingredient_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -30,7 +30,7 @@ export const ingredientCategories = pgTable("ingredient_categories", {
 
 export const ingredients = pgTable("ingredients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   categoryId: varchar("category_id").references(() => ingredientCategories.id),
   unit: text("unit").notNull(), // g, ml, cups, etc.
