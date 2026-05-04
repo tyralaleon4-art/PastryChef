@@ -38,30 +38,33 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
+  getAllUsers(): Promise<User[]>;
 
   // Categories
-  getCategories(): Promise<Category[]>;
-  createCategory(category: InsertCategory): Promise<Category>;
-  updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined>;
-  deleteCategory(id: string): Promise<boolean>;
+  getCategories(userId: string): Promise<Category[]>;
+  createCategory(category: InsertCategory, userId: string): Promise<Category>;
+  updateCategory(id: string, category: Partial<InsertCategory>, userId: string): Promise<Category | undefined>;
+  deleteCategory(id: string, userId: string): Promise<boolean>;
 
   // Ingredient Categories
-  getIngredientCategories(): Promise<IngredientCategory[]>;
-  createIngredientCategory(category: InsertIngredientCategory): Promise<IngredientCategory>;
-  updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>): Promise<IngredientCategory | undefined>;
-  deleteIngredientCategory(id: string): Promise<boolean>;
+  getIngredientCategories(userId: string): Promise<IngredientCategory[]>;
+  createIngredientCategory(category: InsertIngredientCategory, userId: string): Promise<IngredientCategory>;
+  updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, userId: string): Promise<IngredientCategory | undefined>;
+  deleteIngredientCategory(id: string, userId: string): Promise<boolean>;
 
   // Ingredients
-  getIngredients(search?: string): Promise<IngredientWithStock[]>;
+  getIngredients(userId: string, search?: string): Promise<IngredientWithStock[]>;
   getIngredient(id: string): Promise<Ingredient | undefined>;
-  createIngredient(ingredient: InsertIngredient): Promise<Ingredient>;
+  createIngredient(ingredient: InsertIngredient, userId: string): Promise<Ingredient>;
   updateIngredient(id: string, ingredient: Partial<InsertIngredient>): Promise<Ingredient | undefined>;
   deleteIngredient(id: string): Promise<boolean>;
 
   // Recipes
-  getRecipes(search?: string, categoryId?: string): Promise<RecipeWithDetails[]>;
+  getRecipes(userId: string, search?: string, categoryId?: string): Promise<RecipeWithDetails[]>;
   getRecipe(id: string): Promise<RecipeWithDetails | undefined>;
-  createRecipe(recipe: InsertRecipe): Promise<Recipe>;
+  createRecipe(recipe: InsertRecipe, userId: string): Promise<Recipe>;
   updateRecipe(id: string, recipe: Partial<InsertRecipe>): Promise<Recipe | undefined>;
   deleteRecipe(id: string): Promise<boolean>;
 
@@ -73,15 +76,15 @@ export interface IStorage {
   replaceRecipeIngredients(recipeId: string, ingredients: InsertRecipeIngredient[]): Promise<RecipeIngredient[]>;
 
   // Inventory
-  getLowStockIngredients(): Promise<IngredientWithStock[]>;
-  getInventoryLogs(ingredientId?: string): Promise<(InventoryLog & { ingredient: Ingredient })[]>;
-  addInventoryLog(log: InsertInventoryLog): Promise<InventoryLog>;
+  getLowStockIngredients(userId: string): Promise<IngredientWithStock[]>;
+  getInventoryLogs(userId: string, ingredientId?: string): Promise<(InventoryLog & { ingredient: Ingredient })[]>;
+  addInventoryLog(log: InsertInventoryLog, userId: string): Promise<InventoryLog>;
 
   // Production Plans
-  getProductionPlans(includeArchived?: boolean): Promise<ProductionPlanWithDetails[]>;
-  getArchivedProductionPlans(): Promise<ProductionPlanWithDetails[]>;
+  getProductionPlans(userId: string, includeArchived?: boolean): Promise<ProductionPlanWithDetails[]>;
+  getArchivedProductionPlans(userId: string): Promise<ProductionPlanWithDetails[]>;
   getProductionPlan(id: string): Promise<ProductionPlanWithDetails | undefined>;
-  createProductionPlan(plan: InsertProductionPlan): Promise<ProductionPlan>;
+  createProductionPlan(plan: InsertProductionPlan, userId: string): Promise<ProductionPlan>;
   updateProductionPlan(id: string, plan: Partial<InsertProductionPlan>): Promise<ProductionPlan | undefined>;
   archiveProductionPlan(id: string): Promise<ProductionPlan | undefined>;
   unarchiveProductionPlan(id: string): Promise<ProductionPlan | undefined>;
@@ -93,7 +96,7 @@ export interface IStorage {
   deleteProductionPlanRecipe(id: string): Promise<boolean>;
 
   // Statistics
-  getStats(): Promise<{
+  getStats(userId: string): Promise<{
     totalRecipes: number;
     activeIngredients: number;
     lowStockItems: number;
@@ -117,49 +120,73 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getCategories(): Promise<Category[]> {
-    return await db.select().from(categories).orderBy(asc(categories.name));
-  }
-
-  async createCategory(category: InsertCategory): Promise<Category> {
-    const [newCategory] = await db.insert(categories).values(category).returning();
-    return newCategory;
-  }
-
-  async updateCategory(id: string, category: Partial<InsertCategory>): Promise<Category | undefined> {
-    const [updated] = await db.update(categories).set(category).where(eq(categories.id, id)).returning();
+  async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [updated] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return updated || undefined;
   }
 
-  async deleteCategory(id: string): Promise<boolean> {
-    const result = await db.delete(categories).where(eq(categories.id, id));
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getIngredientCategories(): Promise<IngredientCategory[]> {
-    return await db.select().from(ingredientCategories).orderBy(asc(ingredientCategories.name));
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.createdAt));
   }
 
-  async createIngredientCategory(category: InsertIngredientCategory): Promise<IngredientCategory> {
-    const [newCategory] = await db.insert(ingredientCategories).values(category).returning();
+  async getCategories(userId: string): Promise<Category[]> {
+    return await db.select().from(categories)
+      .where(eq(categories.userId, userId))
+      .orderBy(asc(categories.name));
+  }
+
+  async createCategory(category: InsertCategory, userId: string): Promise<Category> {
+    const [newCategory] = await db.insert(categories).values({ ...category, userId }).returning();
     return newCategory;
   }
 
-  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>): Promise<IngredientCategory | undefined> {
-    const [updated] = await db.update(ingredientCategories).set(category).where(eq(ingredientCategories.id, id)).returning();
+  async updateCategory(id: string, category: Partial<InsertCategory>, userId: string): Promise<Category | undefined> {
+    const [updated] = await db.update(categories).set(category)
+      .where(and(eq(categories.id, id), eq(categories.userId, userId)))
+      .returning();
     return updated || undefined;
   }
 
-  async deleteIngredientCategory(id: string): Promise<boolean> {
-    const result = await db.delete(ingredientCategories).where(eq(ingredientCategories.id, id));
+  async deleteCategory(id: string, userId: string): Promise<boolean> {
+    const result = await db.delete(categories)
+      .where(and(eq(categories.id, id), eq(categories.userId, userId)));
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getIngredients(search?: string): Promise<IngredientWithStock[]> {
-    let whereCondition = undefined;
+  async getIngredientCategories(userId: string): Promise<IngredientCategory[]> {
+    return await db.select().from(ingredientCategories)
+      .where(eq(ingredientCategories.userId, userId))
+      .orderBy(asc(ingredientCategories.name));
+  }
+
+  async createIngredientCategory(category: InsertIngredientCategory, userId: string): Promise<IngredientCategory> {
+    const [newCategory] = await db.insert(ingredientCategories).values({ ...category, userId }).returning();
+    return newCategory;
+  }
+
+  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, userId: string): Promise<IngredientCategory | undefined> {
+    const [updated] = await db.update(ingredientCategories).set(category)
+      .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteIngredientCategory(id: string, userId: string): Promise<boolean> {
+    const result = await db.delete(ingredientCategories)
+      .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getIngredients(userId: string, search?: string): Promise<IngredientWithStock[]> {
+    let whereCondition: any = eq(ingredients.userId, userId);
     
     if (search) {
-      whereCondition = ilike(ingredients.name, `%${search}%`);
+      whereCondition = and(eq(ingredients.userId, userId), ilike(ingredients.name, `%${search}%`));
     }
     
     const results = await db.query.ingredients.findMany({
@@ -191,9 +218,10 @@ export class DatabaseStorage implements IStorage {
     return ingredient || undefined;
   }
 
-  async createIngredient(ingredient: InsertIngredient): Promise<Ingredient> {
+  async createIngredient(ingredient: InsertIngredient, userId: string): Promise<Ingredient> {
     const [newIngredient] = await db.insert(ingredients).values({
       ...ingredient,
+      userId,
       allergens: ingredient.allergens ?? []
     }).returning();
     return newIngredient;
@@ -211,8 +239,8 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getRecipes(search?: string, categoryId?: string): Promise<RecipeWithDetails[]> {
-    let whereConditions = [eq(recipes.isActive, true)];
+  async getRecipes(userId: string, search?: string, categoryId?: string): Promise<RecipeWithDetails[]> {
+    let whereConditions: any[] = [eq(recipes.isActive, true), eq(recipes.userId, userId)];
     
     if (search) {
       whereConditions.push(ilike(recipes.name, `%${search}%`));
@@ -254,9 +282,10 @@ export class DatabaseStorage implements IStorage {
     return result || undefined;
   }
 
-  async createRecipe(recipe: InsertRecipe): Promise<Recipe> {
+  async createRecipe(recipe: InsertRecipe, userId: string): Promise<Recipe> {
     const [newRecipe] = await db.insert(recipes).values({
       ...recipe,
+      userId,
       allergens: recipe.allergens ?? [],
       instructions: recipe.instructions ?? []
     }).returning();
@@ -302,22 +331,18 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async replaceRecipeIngredients(recipeId: string, ingredients: InsertRecipeIngredient[]): Promise<RecipeIngredient[]> {
-    // Use transaction to ensure atomicity of delete + insert operations
+  async replaceRecipeIngredients(recipeId: string, ingredientsList: InsertRecipeIngredient[]): Promise<RecipeIngredient[]> {
     return await db.transaction(async (tx) => {
-      // Delete all existing recipe ingredients for this recipe
       await tx.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
       
-      // If no new ingredients, return empty array
-      if (ingredients.length === 0) {
+      if (ingredientsList.length === 0) {
         return [];
       }
       
-      // Insert all new recipe ingredients
       const newRecipeIngredients = await tx.insert(recipeIngredients)
-        .values(ingredients.map(ingredient => ({
+        .values(ingredientsList.map(ingredient => ({
           ...ingredient,
-          recipeId // Ensure the recipeId is set correctly
+          recipeId
         })))
         .returning();
       
@@ -325,8 +350,9 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getLowStockIngredients(): Promise<IngredientWithStock[]> {
+  async getLowStockIngredients(userId: string): Promise<IngredientWithStock[]> {
     const results = await db.query.ingredients.findMany({
+      where: eq(ingredients.userId, userId),
       with: {
         category: true
       },
@@ -341,10 +367,10 @@ export class DatabaseStorage implements IStorage {
       .filter(ingredient => ingredient.stockStatus === "low" || ingredient.stockStatus === "expired");
   }
 
-  async getInventoryLogs(ingredientId?: string): Promise<(InventoryLog & { ingredient: Ingredient })[]> {
-    let whereCondition = undefined;
+  async getInventoryLogs(userId: string, ingredientId?: string): Promise<(InventoryLog & { ingredient: Ingredient })[]> {
+    let whereCondition: any = eq(inventoryLogs.userId, userId);
     if (ingredientId) {
-      whereCondition = eq(inventoryLogs.ingredientId, ingredientId);
+      whereCondition = and(eq(inventoryLogs.userId, userId), eq(inventoryLogs.ingredientId, ingredientId));
     }
 
     const results = await db.query.inventoryLogs.findMany({
@@ -358,16 +384,17 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async addInventoryLog(log: InsertInventoryLog): Promise<InventoryLog> {
-    const [newLog] = await db.insert(inventoryLogs).values(log).returning();
+  async addInventoryLog(log: InsertInventoryLog, userId: string): Promise<InventoryLog> {
+    const [newLog] = await db.insert(inventoryLogs).values({ ...log, userId }).returning();
     return newLog;
   }
 
-  async getProductionPlans(includeArchived: boolean = false): Promise<ProductionPlanWithDetails[]> {
-    const whereCondition = includeArchived ? undefined : eq(productionPlans.archived, false);
+  async getProductionPlans(userId: string, includeArchived: boolean = false): Promise<ProductionPlanWithDetails[]> {
+    const whereConditions: any[] = [eq(productionPlans.userId, userId)];
+    if (!includeArchived) whereConditions.push(eq(productionPlans.archived, false));
     
     const results = await db.query.productionPlans.findMany({
-      where: whereCondition,
+      where: and(...whereConditions),
       with: {
         productionPlanRecipes: {
           with: {
@@ -390,9 +417,9 @@ export class DatabaseStorage implements IStorage {
     return results;
   }
 
-  async getArchivedProductionPlans(): Promise<ProductionPlanWithDetails[]> {
+  async getArchivedProductionPlans(userId: string): Promise<ProductionPlanWithDetails[]> {
     const results = await db.query.productionPlans.findMany({
-      where: eq(productionPlans.archived, true),
+      where: and(eq(productionPlans.userId, userId), eq(productionPlans.archived, true)),
       with: {
         productionPlanRecipes: {
           with: {
@@ -439,8 +466,8 @@ export class DatabaseStorage implements IStorage {
     return result || undefined;
   }
 
-  async createProductionPlan(plan: InsertProductionPlan): Promise<ProductionPlan> {
-    const [newPlan] = await db.insert(productionPlans).values(plan).returning();
+  async createProductionPlan(plan: InsertProductionPlan, userId: string): Promise<ProductionPlan> {
+    const [newPlan] = await db.insert(productionPlans).values({ ...plan, userId }).returning();
     return newPlan;
   }
 
@@ -496,17 +523,23 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getStats(): Promise<{
+  async getStats(userId: string): Promise<{
     totalRecipes: number;
     activeIngredients: number;
     lowStockItems: number;
     totalCategories: number;
   }> {
-    const [recipesCount] = await db.select({ count: sql<number>`count(*)` }).from(recipes).where(eq(recipes.isActive, true));
-    const [ingredientsCount] = await db.select({ count: sql<number>`count(*)` }).from(ingredients);
-    const [categoriesCount] = await db.select({ count: sql<number>`count(*)` }).from(categories);
+    const [recipesCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(recipes)
+      .where(and(eq(recipes.isActive, true), eq(recipes.userId, userId)));
+    const [ingredientsCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(ingredients)
+      .where(eq(ingredients.userId, userId));
+    const [categoriesCount] = await db.select({ count: sql<number>`count(*)` })
+      .from(categories)
+      .where(eq(categories.userId, userId));
     
-    const lowStockIngredients = await this.getLowStockIngredients();
+    const lowStockIngredients = await this.getLowStockIngredients(userId);
 
     return {
       totalRecipes: Number(recipesCount?.count || 0),

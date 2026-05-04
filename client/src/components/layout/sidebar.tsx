@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   ChartLine, 
   BookOpen, 
@@ -11,8 +12,13 @@ import {
   Utensils,
   Factory,
   ClipboardList,
-  Sparkles
+  Sparkles,
+  Shield,
+  LogOut,
+  User
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: ChartLine },
@@ -22,21 +28,17 @@ const navigation = [
   { name: "Production", href: "/production", icon: Factory },
   { name: "Plan produkcji", href: "/production-plan", icon: ClipboardList },
   { name: "Inventory", href: "/inventory", icon: Warehouse },
-  { name: "Cost Analysis", href: "/costing", icon: DollarSign },
   { name: "Reports", href: "/reports", icon: ChartBar },
   { name: "AI Assistant", href: "/ai-chat", icon: Sparkles },
 ];
 
-const categories = [
-  { name: "Cakes", href: "/recipes?category=cakes" },
-  { name: "Pastries", href: "/recipes?category=pastries" },
-  { name: "Breads", href: "/recipes?category=breads" },
-  { name: "Desserts", href: "/recipes?category=desserts" },
-  { name: "Cookies", href: "/recipes?category=cookies" },
-];
-
 export default function Sidebar() {
   const [location] = useLocation();
+  const { user, isAdmin, logout } = useAuth();
+
+  const initials = user?.displayName
+    ? user.displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+    : user?.username?.slice(0, 2).toUpperCase() || "?";
 
   return (
     <aside className="hidden md:flex flex-col sidebar-nav bg-card border-r border-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
@@ -48,7 +50,7 @@ export default function Sidebar() {
         <p className="text-sm text-muted-foreground mt-1">Professional Recipe Management</p>
       </div>
       
-      <nav className="p-4">
+      <nav className="p-4 flex-1">
         <ul className="space-y-2">
           {navigation.map((item) => {
             const isActive = location === item.href;
@@ -66,23 +68,49 @@ export default function Sidebar() {
               </li>
             );
           })}
+          {isAdmin && (
+            <li>
+              <Link href="/admin" className={cn(
+                "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                location === "/admin"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+              )} data-testid="nav-admin">
+                <Shield className="w-5 h-5 mr-3" />
+                User Management
+              </Link>
+            </li>
+          )}
         </ul>
-        
-        <div className="mt-8 pt-4 border-t border-border">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-            Categories
-          </h3>
-          <ul className="space-y-1">
-            {categories.map((category) => (
-              <li key={category.name}>
-                <Link href={category.href} className="block px-4 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors" data-testid={`category-${category.name.toLowerCase()}`}>
-                  {category.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
       </nav>
+
+      {/* User info at bottom */}
+      {user && (
+        <div className="p-4 border-t border-border">
+          <div className="flex items-center gap-3 mb-3">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user.displayName || user.username}</p>
+              <p className="text-xs text-muted-foreground truncate">
+                {isAdmin ? "Admin" : "Employee"} · @{user.username}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start text-muted-foreground hover:text-destructive"
+            onClick={logout}
+          >
+            <LogOut size={16} className="mr-2" />
+            Sign out
+          </Button>
+        </div>
+      )}
     </aside>
   );
 }

@@ -7,24 +7,30 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").notNull().default("user"), // "user" | "admin"
+  displayName: text("display_name"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const categories = pgTable("categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const ingredientCategories = pgTable("ingredient_categories", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull().unique(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const ingredients = pgTable("ingredients", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   name: text("name").notNull(),
   categoryId: varchar("category_id").references(() => ingredientCategories.id),
   unit: text("unit").notNull(), // g, ml, cups, etc.
@@ -51,6 +57,7 @@ export const ingredients = pgTable("ingredients", {
 
 export const recipes = pgTable("recipes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   categoryId: varchar("category_id").references(() => categories.id),
@@ -78,6 +85,7 @@ export const recipeIngredients = pgTable("recipe_ingredients", {
 
 export const inventoryLogs = pgTable("inventory_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   ingredientId: varchar("ingredient_id").references(() => ingredients.id).notNull(),
   type: text("type").notNull(), // restock, usage, adjustment, expired
   quantity: decimal("quantity", { precision: 10, scale: 3 }).notNull(),
@@ -87,6 +95,7 @@ export const inventoryLogs = pgTable("inventory_logs", {
 
 export const productionPlans = pgTable("production_plans", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   status: text("status").notNull().default("active"), // active, completed, cancelled
@@ -107,15 +116,27 @@ export const productionPlanRecipes = pgTable("production_plan_recipes", {
 });
 
 // Relations
-export const categoriesRelations = relations(categories, ({ many }) => ({
+export const usersRelations = relations(users, ({ many }) => ({
+  categories: many(categories),
+  ingredientCategories: many(ingredientCategories),
+  ingredients: many(ingredients),
+  recipes: many(recipes),
+  inventoryLogs: many(inventoryLogs),
+  productionPlans: many(productionPlans),
+}));
+
+export const categoriesRelations = relations(categories, ({ one, many }) => ({
+  user: one(users, { fields: [categories.userId], references: [users.id] }),
   recipes: many(recipes),
 }));
 
-export const ingredientCategoriesRelations = relations(ingredientCategories, ({ many }) => ({
+export const ingredientCategoriesRelations = relations(ingredientCategories, ({ one, many }) => ({
+  user: one(users, { fields: [ingredientCategories.userId], references: [users.id] }),
   ingredients: many(ingredients),
 }));
 
 export const ingredientsRelations = relations(ingredients, ({ one, many }) => ({
+  user: one(users, { fields: [ingredients.userId], references: [users.id] }),
   category: one(ingredientCategories, {
     fields: [ingredients.categoryId],
     references: [ingredientCategories.id],
@@ -125,6 +146,7 @@ export const ingredientsRelations = relations(ingredients, ({ one, many }) => ({
 }));
 
 export const recipesRelations = relations(recipes, ({ one, many }) => ({
+  user: one(users, { fields: [recipes.userId], references: [users.id] }),
   category: one(categories, {
     fields: [recipes.categoryId],
     references: [categories.id],
@@ -144,13 +166,15 @@ export const recipeIngredientsRelations = relations(recipeIngredients, ({ one })
 }));
 
 export const inventoryLogsRelations = relations(inventoryLogs, ({ one }) => ({
+  user: one(users, { fields: [inventoryLogs.userId], references: [users.id] }),
   ingredient: one(ingredients, {
     fields: [inventoryLogs.ingredientId],
     references: [ingredients.id],
   }),
 }));
 
-export const productionPlansRelations = relations(productionPlans, ({ many }) => ({
+export const productionPlansRelations = relations(productionPlans, ({ one, many }) => ({
+  user: one(users, { fields: [productionPlans.userId], references: [users.id] }),
   productionPlanRecipes: many(productionPlanRecipes),
 }));
 
@@ -194,16 +218,20 @@ export const messagesRelations = relations(messages, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  role: true,
+  displayName: true,
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({
   id: true,
   createdAt: true,
+  userId: true,
 });
 
 export const insertIngredientCategorySchema = createInsertSchema(ingredientCategories).omit({
   id: true,
   createdAt: true,
+  userId: true,
 });
 
 export const insertIngredientSchema = createInsertSchema(ingredients, {
@@ -211,6 +239,7 @@ export const insertIngredientSchema = createInsertSchema(ingredients, {
 }).omit({
   id: true,
   createdAt: true,
+  userId: true,
 });
 
 export const insertRecipeSchema = createInsertSchema(recipes, {
@@ -220,6 +249,7 @@ export const insertRecipeSchema = createInsertSchema(recipes, {
   id: true,
   createdAt: true,
   updatedAt: true,
+  userId: true,
 });
 
 export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients).omit({
@@ -229,12 +259,14 @@ export const insertRecipeIngredientSchema = createInsertSchema(recipeIngredients
 export const insertInventoryLogSchema = createInsertSchema(inventoryLogs).omit({
   id: true,
   createdAt: true,
+  userId: true,
 });
 
 export const insertProductionPlanSchema = createInsertSchema(productionPlans).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  userId: true,
 });
 
 export const insertProductionPlanRecipeSchema = createInsertSchema(productionPlanRecipes, {
