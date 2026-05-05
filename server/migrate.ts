@@ -1,147 +1,151 @@
 import { db, pool } from "./db";
-import { users } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 async function migrate() {
-  console.log("Running migrations...");
+  console.log("Running PastryPro migration...");
 
   try {
-    // Add role, display_name, created_at to users if they don't exist
+    // ── 1. Sesje (connect-pg-simple wymaga tej tabeli) ─────────────────────
     await db.execute(sql`
-      ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'user',
-      ADD COLUMN IF NOT EXISTS display_name text,
-      ADD COLUMN IF NOT EXISTS created_at timestamp DEFAULT now()
+      CREATE TABLE IF NOT EXISTS "session" (
+        "sid"    varchar   NOT NULL COLLATE "default",
+        "sess"   json      NOT NULL,
+        "expire" timestamp(6) NOT NULL,
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+      )
     `);
-    console.log("✓ users table updated");
+    await db.execute(sql`
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire")
+    `);
+    console.log("✓ Tabela session gotowa");
 
-    // Add user_id to categories
-    await db.execute(sql`ALTER TABLE categories ADD COLUMN IF NOT EXISTS user_id varchar`);
-    console.log("✓ categories.user_id added");
+    // ── 2. Kolumny auth w tabeli users ────────────────────────────────────
+    await db.execute(sql`
+      ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS role         text      NOT NULL DEFAULT 'user',
+        ADD COLUMN IF NOT EXISTS display_name text,
+        ADD COLUMN IF NOT EXISTS created_at   timestamp DEFAULT now()
+    `);
+    console.log("✓ Kolumny auth w users dodane");
 
-    // Add user_id to ingredient_categories
+    // ── 3. user_id w tabelach danych ─────────────────────────────────────
+    await db.execute(sql`ALTER TABLE categories         ADD COLUMN IF NOT EXISTS user_id varchar`);
     await db.execute(sql`ALTER TABLE ingredient_categories ADD COLUMN IF NOT EXISTS user_id varchar`);
-    console.log("✓ ingredient_categories.user_id added");
+    await db.execute(sql`ALTER TABLE ingredients         ADD COLUMN IF NOT EXISTS user_id varchar`);
+    await db.execute(sql`ALTER TABLE recipes             ADD COLUMN IF NOT EXISTS user_id varchar`);
+    await db.execute(sql`ALTER TABLE inventory_logs      ADD COLUMN IF NOT EXISTS user_id varchar`);
+    await db.execute(sql`ALTER TABLE production_plans    ADD COLUMN IF NOT EXISTS user_id varchar`);
+    console.log("✓ Kolumny user_id dodane");
 
-    // Add user_id to ingredients
-    await db.execute(sql`ALTER TABLE ingredients ADD COLUMN IF NOT EXISTS user_id varchar`);
-    console.log("✓ ingredients.user_id added");
-
-    // Add user_id to recipes
-    await db.execute(sql`ALTER TABLE recipes ADD COLUMN IF NOT EXISTS user_id varchar`);
-    console.log("✓ recipes.user_id added");
-
-    // Add user_id to inventory_logs
-    await db.execute(sql`ALTER TABLE inventory_logs ADD COLUMN IF NOT EXISTS user_id varchar`);
-    console.log("✓ inventory_logs.user_id added");
-
-    // Add user_id to production_plans
-    await db.execute(sql`ALTER TABLE production_plans ADD COLUMN IF NOT EXISTS user_id varchar`);
-    console.log("✓ production_plans.user_id added");
-
-    // Check if admin user already exists
-    const existingAdmin = await db.execute(sql`SELECT id FROM users WHERE username = 'admin' LIMIT 1`);
-    
+    // ── 4. Konto admina ───────────────────────────────────────────────────
+    const existing = await db.execute(sql`SELECT id FROM users WHERE username = 'admin' LIMIT 1`);
     let adminId: string;
-    if (existingAdmin.rows.length === 0) {
-      // Create default admin user
-      const hashedPassword = await bcrypt.hash("admin123", 12);
+
+    if (existing.rows.length === 0) {
+      const hashed = await bcrypt.hash("admin123", 12);
       const result = await db.execute(sql`
         INSERT INTO users (username, password, role, display_name)
-        VALUES ('admin', ${hashedPassword}, 'admin', 'Administrator')
-        ON CONFLICT (username) DO UPDATE SET role = 'admin'
+        VALUES ('admin', ${hashed}, 'admin', 'Administrator')
         RETURNING id
       `);
       adminId = result.rows[0].id;
-      console.log("✓ Default admin user created (username: admin, password: admin123)");
+      console.log("✓ Konto admina utworzone (login: admin, hasło: admin123)");
     } else {
-      // Update existing admin user to have admin role
       await db.execute(sql`UPDATE users SET role = 'admin' WHERE username = 'admin'`);
-      adminId = existingAdmin.rows[0].id;
-      console.log("✓ Existing admin user updated");
+      adminId = existing.rows[0].id;
+      console.log("✓ Konto admina zaktualizowane (rola: admin)");
     }
 
-    // Assign all existing data without user_id to the admin user
-    await db.execute(sql`UPDATE categories SET user_id = ${adminId} WHERE user_id IS NULL`);
-    await db.execute(sql`UPDATE ingredient_categories SET user_id = ${adminId} WHERE user_id IS NULL`);
-    await db.execute(sql`UPDATE ingredients SET user_id = ${adminId} WHERE user_id IS NULL`);
-    await db.execute(sql`UPDATE recipes SET user_id = ${adminId} WHERE user_id IS NULL`);
-    await db.execute(sql`UPDATE inventory_logs SET user_id = ${adminId} WHERE user_id IS NULL`);
-    await db.execute(sql`UPDATE production_plans SET user_id = ${adminId} WHERE user_id IS NULL`);
-    console.log("✓ Existing data assigned to admin user");
+    // ── 5. Przypisz istniejące dane do admina ────────────────────────────
+    // (dane bez user_id — czyli te które już były w bazie przed migracją)
+    await db.execute(sql`UPDATE categories           SET user_id = ${adminId} WHERE user_id IS NULL`);
+    await db.execute(sql`UPDATE recipes              SET user_id = ${adminId} WHERE user_id IS NULL`);
+    await db.execute(sql`UPDATE inventory_logs       SET user_id = ${adminId} WHERE user_id IS NULL`);
+    await db.execute(sql`UPDATE production_plans     SET user_id = ${adminId} WHERE user_id IS NULL`);
+    console.log("✓ Istniejące dane przypisane do admina");
 
-    // Now add NOT NULL constraints and foreign keys
-    await db.execute(sql`ALTER TABLE categories ALTER COLUMN user_id SET NOT NULL`);
-    await db.execute(sql`ALTER TABLE ingredient_categories ALTER COLUMN user_id SET NOT NULL`);
-    await db.execute(sql`ALTER TABLE ingredients ALTER COLUMN user_id SET NOT NULL`);
-    await db.execute(sql`ALTER TABLE recipes ALTER COLUMN user_id SET NOT NULL`);
-    await db.execute(sql`ALTER TABLE inventory_logs ALTER COLUMN user_id SET NOT NULL`);
-    await db.execute(sql`ALTER TABLE production_plans ALTER COLUMN user_id SET NOT NULL`);
-    console.log("✓ NOT NULL constraints applied");
+    // Składniki i ich kategorie są WSPÓLNE — user_id zostaje nullable (bez NOT NULL)
+    // Nie przypisujemy ich do żadnego konkretnego użytkownika
+    console.log("✓ Składniki pozostają wspólne (bez przypisania do użytkownika)");
 
-    // Add foreign key constraints (only if they don't exist)
+    // ── 6. NOT NULL tylko tam gdzie trzeba ───────────────────────────────
+    await db.execute(sql`ALTER TABLE categories        ALTER COLUMN user_id SET NOT NULL`);
+    await db.execute(sql`ALTER TABLE recipes           ALTER COLUMN user_id SET NOT NULL`);
+    // inventory_logs i production_plans — tylko jeśli wszystkie wiersze mają user_id
     await db.execute(sql`
       DO $$ BEGIN
-        ALTER TABLE categories ADD CONSTRAINT categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$;
+        IF NOT EXISTS (SELECT 1 FROM inventory_logs WHERE user_id IS NULL) THEN
+          ALTER TABLE inventory_logs ALTER COLUMN user_id SET NOT NULL;
+        END IF;
+      END $$
     `);
     await db.execute(sql`
       DO $$ BEGIN
-        ALTER TABLE ingredient_categories ADD CONSTRAINT ingredient_categories_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$;
+        IF NOT EXISTS (SELECT 1 FROM production_plans WHERE user_id IS NULL) THEN
+          ALTER TABLE production_plans ALTER COLUMN user_id SET NOT NULL;
+        END IF;
+      END $$
     `);
-    await db.execute(sql`
-      DO $$ BEGIN
-        ALTER TABLE ingredients ADD CONSTRAINT ingredients_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$;
-    `);
-    await db.execute(sql`
-      DO $$ BEGIN
-        ALTER TABLE recipes ADD CONSTRAINT recipes_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$;
-    `);
-    await db.execute(sql`
-      DO $$ BEGIN
-        ALTER TABLE inventory_logs ADD CONSTRAINT inventory_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$;
-    `);
-    await db.execute(sql`
-      DO $$ BEGIN
-        ALTER TABLE production_plans ADD CONSTRAINT production_plans_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-      EXCEPTION WHEN duplicate_object THEN NULL;
-      END $$;
-    `);
-    console.log("✓ Foreign key constraints added");
+    // ingredients i ingredient_categories — NULLABLE (wspólna baza)
+    await db.execute(sql`ALTER TABLE ingredients            ALTER COLUMN user_id DROP NOT NULL`);
+    await db.execute(sql`ALTER TABLE ingredient_categories  ALTER COLUMN user_id DROP NOT NULL`);
+    console.log("✓ Ograniczenia NOT NULL ustawione");
 
-    // Remove unique constraint on categories.name so different users can have same category name
+    // ── 7. Klucze obce ───────────────────────────────────────────────────
+    const fks = [
+      { table: "categories",          name: "categories_user_id_fkey" },
+      { table: "recipes",             name: "recipes_user_id_fkey" },
+      { table: "inventory_logs",      name: "inventory_logs_user_id_fkey" },
+      { table: "production_plans",    name: "production_plans_user_id_fkey" },
+    ];
+    for (const { table, name } of fks) {
+      await db.execute(sql.raw(`
+        DO $$ BEGIN
+          ALTER TABLE ${table} ADD CONSTRAINT ${name}
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+        EXCEPTION WHEN duplicate_object THEN NULL;
+        END $$
+      `));
+    }
+    // Składniki — ON DELETE SET NULL (nie kasujemy wspólnych składników gdy user usunięty)
+    await db.execute(sql`
+      DO $$ BEGIN
+        ALTER TABLE ingredients ADD CONSTRAINT ingredients_user_id_fkey
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
+    await db.execute(sql`
+      DO $$ BEGIN
+        ALTER TABLE ingredient_categories ADD CONSTRAINT ingredient_categories_user_id_fkey
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL;
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
+    `);
+    console.log("✓ Klucze obce dodane");
+
+    // ── 8. Usuń ograniczenia unikalności nazw (multi-user) ───────────────
     await db.execute(sql`
       DO $$ BEGIN
         ALTER TABLE categories DROP CONSTRAINT IF EXISTS categories_name_unique;
-      EXCEPTION WHEN undefined_object THEN NULL;
-      END $$;
+      EXCEPTION WHEN undefined_object THEN NULL; END $$
     `);
     await db.execute(sql`
       DO $$ BEGIN
         ALTER TABLE ingredient_categories DROP CONSTRAINT IF EXISTS ingredient_categories_name_unique;
-      EXCEPTION WHEN undefined_object THEN NULL;
-      END $$;
+      EXCEPTION WHEN undefined_object THEN NULL; END $$
     `);
-    console.log("✓ Unique name constraints removed for multi-user support");
+    console.log("✓ Ograniczenia unikalności nazw usunięte");
 
-    console.log("\n✅ Migration completed successfully!");
-    console.log("\nDefault admin credentials:");
-    console.log("  Username: admin");
-    console.log("  Password: admin123");
-    console.log("\nIMPORTANT: Please change the admin password after first login!");
+    console.log("\n✅ Migracja zakończona pomyślnie!");
+    console.log("\nDane logowania admina:");
+    console.log("  Login: admin");
+    console.log("  Hasło: admin123");
+    console.log("\nZmień hasło admina po pierwszym logowaniu!");
 
   } catch (error) {
-    console.error("Migration failed:", error);
+    console.error("Migracja nie powiodła się:", error);
     throw error;
   } finally {
     await (pool as any).end?.();
