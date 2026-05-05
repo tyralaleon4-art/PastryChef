@@ -181,6 +181,24 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
+  // ── Normalize null JSON arrays from legacy DB rows ─────────────────────────
+  private normalizeIngredient<T extends Ingredient>(ing: T): T {
+    return { ...ing, allergens: ing.allergens ?? [] };
+  }
+
+  private normalizeRecipe<T extends Recipe>(r: T): T {
+    return { ...r, allergens: r.allergens ?? [], instructions: r.instructions ?? [] };
+  }
+
+  private normalizePlanRecipe<T extends { completedIngredients: string[] | null; completedInstructions: number[] | null }>(pr: T): T {
+    return {
+      ...pr,
+      completedIngredients: pr.completedIngredients ?? [],
+      completedInstructions: pr.completedInstructions ?? [],
+    };
+  }
+  // ───────────────────────────────────────────────────────────────────────────
+
   async getIngredients(search?: string): Promise<IngredientWithStock[]> {
     const results = await db.query.ingredients.findMany({
       where: search ? ilike(ingredients.name, `%${search}%`) : undefined,
@@ -191,7 +209,7 @@ export class DatabaseStorage implements IStorage {
     });
     
     return results.map(ingredient => ({
-      ...ingredient,
+      ...this.normalizeIngredient(ingredient),
       stockStatus: this.determineStockStatus(ingredient)
     }));
   }
@@ -208,7 +226,7 @@ export class DatabaseStorage implements IStorage {
 
   async getIngredient(id: string): Promise<Ingredient | undefined> {
     const [ingredient] = await db.select().from(ingredients).where(eq(ingredients.id, id));
-    return ingredient || undefined;
+    return ingredient ? this.normalizeIngredient(ingredient) : undefined;
   }
 
   async createIngredient(ingredient: InsertIngredient): Promise<Ingredient> {
@@ -255,7 +273,13 @@ export class DatabaseStorage implements IStorage {
       orderBy: desc(recipes.updatedAt)
     });
 
-    return results;
+    return results.map(r => ({
+      ...this.normalizeRecipe(r),
+      recipeIngredients: r.recipeIngredients.map(ri => ({
+        ...ri,
+        ingredient: this.normalizeIngredient(ri.ingredient)
+      }))
+    }));
   }
 
   async getRecipe(id: string): Promise<RecipeWithDetails | undefined> {
@@ -271,7 +295,14 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    return result || undefined;
+    if (!result) return undefined;
+    return {
+      ...this.normalizeRecipe(result),
+      recipeIngredients: result.recipeIngredients.map(ri => ({
+        ...ri,
+        ingredient: this.normalizeIngredient(ri.ingredient)
+      }))
+    };
   }
 
   async createRecipe(recipe: InsertRecipe, userId: string): Promise<Recipe> {
@@ -342,18 +373,15 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getLowStockIngredients(userId: string): Promise<IngredientWithStock[]> {
+  async getLowStockIngredients(_userId: string): Promise<IngredientWithStock[]> {
     const results = await db.query.ingredients.findMany({
-      where: eq(ingredients.userId, userId),
-      with: {
-        category: true
-      },
+      with: { category: true },
       orderBy: asc(ingredients.name)
     });
     
     return results
       .map(ingredient => ({
-        ...ingredient,
+        ...this.normalizeIngredient(ingredient),
         stockStatus: this.determineStockStatus(ingredient)
       }))
       .filter(ingredient => ingredient.stockStatus === "low" || ingredient.stockStatus === "expired");
@@ -393,11 +421,7 @@ export class DatabaseStorage implements IStorage {
             recipe: {
               with: {
                 category: true,
-                recipeIngredients: {
-                  with: {
-                    ingredient: true
-                  }
-                }
+                recipeIngredients: { with: { ingredient: true } }
               }
             }
           }
@@ -406,7 +430,7 @@ export class DatabaseStorage implements IStorage {
       orderBy: desc(productionPlans.createdAt)
     });
 
-    return results;
+    return results.map(plan => this.normalizePlan(plan));
   }
 
   async getArchivedProductionPlans(userId: string): Promise<ProductionPlanWithDetails[]> {
@@ -418,11 +442,7 @@ export class DatabaseStorage implements IStorage {
             recipe: {
               with: {
                 category: true,
-                recipeIngredients: {
-                  with: {
-                    ingredient: true
-                  }
-                }
+                recipeIngredients: { with: { ingredient: true } }
               }
             }
           }
@@ -431,7 +451,7 @@ export class DatabaseStorage implements IStorage {
       orderBy: desc(productionPlans.createdAt)
     });
 
-    return results;
+    return results.map(plan => this.normalizePlan(plan));
   }
 
   async getProductionPlan(id: string): Promise<ProductionPlanWithDetails | undefined> {
@@ -443,11 +463,7 @@ export class DatabaseStorage implements IStorage {
             recipe: {
               with: {
                 category: true,
-                recipeIngredients: {
-                  with: {
-                    ingredient: true
-                  }
-                }
+                recipeIngredients: { with: { ingredient: true } }
               }
             }
           }
@@ -455,7 +471,23 @@ export class DatabaseStorage implements IStorage {
       }
     });
 
-    return result || undefined;
+    return result ? this.normalizePlan(result) : undefined;
+  }
+
+  private normalizePlan(plan: any): ProductionPlanWithDetails {
+    return {
+      ...plan,
+      productionPlanRecipes: plan.productionPlanRecipes.map((pr: any) => ({
+        ...this.normalizePlanRecipe(pr),
+        recipe: {
+          ...this.normalizeRecipe(pr.recipe),
+          recipeIngredients: pr.recipe.recipeIngredients.map((ri: any) => ({
+            ...ri,
+            ingredient: this.normalizeIngredient(ri.ingredient)
+          }))
+        }
+      }))
+    };
   }
 
   async createProductionPlan(plan: InsertProductionPlan, userId: string): Promise<ProductionPlan> {
@@ -525,8 +557,7 @@ export class DatabaseStorage implements IStorage {
       .from(recipes)
       .where(and(eq(recipes.isActive, true), eq(recipes.userId, userId)));
     const [ingredientsCount] = await db.select({ count: sql<number>`count(*)` })
-      .from(ingredients)
-      .where(eq(ingredients.userId, userId));
+      .from(ingredients);
     const [categoriesCount] = await db.select({ count: sql<number>`count(*)` })
       .from(categories)
       .where(eq(categories.userId, userId));
