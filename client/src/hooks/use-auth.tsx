@@ -37,7 +37,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/me"], data);
-      queryClient.invalidateQueries();
+      // Invalidate everything EXCEPT /api/auth/me to avoid a race condition where
+      // the refetch arrives before the session is fully persisted in the DB
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== "/api/auth/me",
+      });
     },
   });
 
@@ -48,7 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/auth/me"], data);
-      queryClient.invalidateQueries();
+      queryClient.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== "/api/auth/me",
+      });
     },
   });
 

@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+app.set("trust proxy", 1); // Required for Render/Heroku reverse proxy (secure cookies)
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
