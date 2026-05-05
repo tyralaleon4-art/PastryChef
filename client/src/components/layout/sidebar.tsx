@@ -15,7 +15,8 @@ import {
   Sparkles,
   Shield,
   LogOut,
-  User
+  User,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -87,19 +88,27 @@ export default function Sidebar() {
       {/* User info at bottom */}
       {user && (
         <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 mb-3">
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.displayName || user.username}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {isAdmin ? "Admin" : "Employee"} · @{user.username}
-              </p>
+          <Link href="/settings">
+            <div className={cn(
+              "flex items-center gap-3 mb-2 p-2 rounded-lg cursor-pointer transition-colors",
+              location === "/settings"
+                ? "bg-primary/10"
+                : "hover:bg-accent"
+            )}>
+              <Avatar className="h-9 w-9 flex-shrink-0">
+                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{user.displayName || user.username}</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {isAdmin ? "Administrator" : "Pracownik"}
+                </p>
+              </div>
+              <Settings size={15} className="text-muted-foreground flex-shrink-0" />
             </div>
-          </div>
+          </Link>
           <Button
             variant="ghost"
             size="sm"
@@ -107,7 +116,7 @@ export default function Sidebar() {
             onClick={logout}
           >
             <LogOut size={16} className="mr-2" />
-            Sign out
+            Wyloguj się
           </Button>
         </div>
       )}

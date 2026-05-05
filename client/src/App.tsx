@@ -15,6 +15,7 @@ import Reports from "@/pages/reports";
 import AIChat from "@/pages/ai-chat";
 import Login from "@/pages/login";
 import Admin from "@/pages/admin";
+import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import { Loader2 } from "lucide-react";
 
@@ -46,6 +47,7 @@ function ProtectedRouter() {
       <Route path="/reports" component={Reports} />
       <Route path="/ai-chat" component={AIChat} />
       <Route path="/admin" component={Admin} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

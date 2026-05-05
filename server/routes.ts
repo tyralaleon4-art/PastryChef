@@ -90,6 +90,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update own profile (displayName, password)
+  app.put("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { displayName, currentPassword, newPassword } = req.body;
+
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const updates: any = {};
+
+      if (displayName !== undefined) {
+        updates.displayName = displayName || null;
+      }
+
+      if (newPassword) {
+        if (!currentPassword) {
+          return res.status(400).json({ message: "Podaj aktualne hasło" });
+        }
+        const { comparePasswords, hashPassword } = await import("./auth");
+        const valid = await comparePasswords(currentPassword, user.password);
+        if (!valid) {
+          return res.status(400).json({ message: "Aktualne hasło jest nieprawidłowe" });
+        }
+        if (newPassword.length < 6) {
+          return res.status(400).json({ message: "Nowe hasło musi mieć min. 6 znaków" });
+        }
+        updates.password = await hashPassword(newPassword);
+      }
+
+      const updated = await storage.updateUser(userId, updates);
+      if (!updated) return res.status(404).json({ message: "User not found" });
+      const { password: _, ...safeUser } = updated;
+      res.json(safeUser);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
   // ==================== ADMIN ROUTES ====================
   app.get("/api/admin/users", requireAuth, requireAdmin, async (req, res) => {
     try {
