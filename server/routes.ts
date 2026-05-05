@@ -198,6 +198,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin: import all recipes from a user to the calling admin's account
+  app.post("/api/admin/users/:id/import-recipes", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const { id: sourceUserId } = req.params;
+      const adminUserId = req.session.userId!;
+
+      if (sourceUserId === adminUserId) {
+        return res.status(400).json({ message: "Cannot import from your own account" });
+      }
+
+      const sourceUser = await storage.getUser(sourceUserId);
+      if (!sourceUser) return res.status(404).json({ message: "User not found" });
+
+      const sourceRecipes = await storage.getRecipes(sourceUserId);
+      const adminRecipes = await storage.getRecipes(adminUserId);
+      const adminRecipeNames = new Set(adminRecipes.map(r => r.name));
+
+      let imported = 0;
+      let skipped = 0;
+
+      for (const recipe of sourceRecipes) {
+        let targetName = recipe.name;
+        if (adminRecipeNames.has(targetName)) {
+          targetName = `${targetName} (${sourceUser.displayName || sourceUser.username})`;
+        }
+        // If still clashes, skip
+        if (adminRecipeNames.has(targetName)) {
+          skipped++;
+          continue;
+        }
+
+        const newRecipe = await storage.createRecipe({
+          name: targetName,
+          description: recipe.description,
+          categoryId: null, // Categories are user-scoped, don't copy
+          servings: recipe.servings,
+          prepTimeMinutes: recipe.prepTimeMinutes,
+          difficulty: recipe.difficulty,
+          instructions: recipe.instructions,
+          allergens: recipe.allergens,
+          isVegan: recipe.isVegan,
+          isGlutenFree: recipe.isGlutenFree,
+          isLactoseFree: recipe.isLactoseFree,
+          targetWeight: recipe.targetWeight,
+          targetUnit: recipe.targetUnit,
+          isActive: true,
+        }, adminUserId);
+
+        // Copy recipe ingredients (ingredients are global/shared)
+        for (const ri of recipe.recipeIngredients) {
+          await storage.addRecipeIngredient({
+            recipeId: newRecipe.id,
+            ingredientId: ri.ingredientId,
+            quantity: ri.quantity,
+            unit: ri.unit,
+            notes: ri.notes,
+          });
+        }
+
+        adminRecipeNames.add(targetName);
+        imported++;
+      }
+
+      res.json({ imported, skipped, total: sourceRecipes.length });
+    } catch (error) {
+      console.error("Error importing recipes:", error);
+      res.status(500).json({ message: "Failed to import recipes" });
+    }
+  });
+
   // Admin: impersonate / view user data
   app.get("/api/admin/users/:id/data", requireAuth, requireAdmin, async (req, res) => {
     try {

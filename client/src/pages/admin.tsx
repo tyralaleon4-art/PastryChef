@@ -15,7 +15,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit, Shield, User, ChefHat, Loader2, BookOpen, Utensils, Tag } from "lucide-react";
+import { Plus, Trash2, Edit, Shield, User, ChefHat, Loader2, BookOpen, Utensils, Tag, Download, CheckCircle2 } from "lucide-react";
 
 interface AdminUser {
   id: string;
@@ -141,6 +141,9 @@ function UserFormDialog({ user, onClose }: { user?: AdminUser; onClose: () => vo
 }
 
 function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: boolean; onClose: () => void }) {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data, isLoading } = useQuery<UserData>({
     queryKey: ["/api/admin/users", user.id, "data"],
     queryFn: async () => {
@@ -149,6 +152,26 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
       return res.json();
     },
     enabled: open,
+  });
+
+  const importAll = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/admin/users/${user.id}/import-recipes`);
+      return res.json() as Promise<{ imported: number; skipped: number; total: number }>;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      if (result.imported === 0) {
+        toast({ title: "Nic do zaimportowania", description: "Wszystkie przepisy już istnieją na Twoim koncie." });
+      } else {
+        toast({
+          title: `Zaimportowano ${result.imported} przepis${result.imported === 1 ? "" : result.imported < 5 ? "y" : "ów"}`,
+          description: result.skipped > 0 ? `Pominięto ${result.skipped} (duplikaty)` : undefined,
+        });
+      }
+    },
+    onError: () => toast({ title: "Błąd importu", variant: "destructive" }),
   });
 
   const categoryMap = Object.fromEntries((data?.categories ?? []).map(c => [c.id, c.name]));
@@ -167,9 +190,27 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
             <BookOpen size={20} className="text-primary" />
             Przepisy — {user.displayName || user.username}
           </SheetTitle>
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? "Wczytuję..." : `${data?.recipes.length ?? 0} przepisów · ${data?.ingredients.length ?? 0} składników`}
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {isLoading ? "Wczytuję..." : `${data?.recipes.length ?? 0} przepisów · ${data?.ingredients.length ?? 0} składników`}
+            </p>
+            {!isLoading && (data?.recipes.length ?? 0) > 0 && (
+              <Button
+                size="sm"
+                onClick={() => importAll.mutate()}
+                disabled={importAll.isPending}
+                className="flex-shrink-0"
+              >
+                {importAll.isPending ? (
+                  <><Loader2 size={14} className="mr-2 animate-spin" />Importuję...</>
+                ) : importAll.isSuccess ? (
+                  <><CheckCircle2 size={14} className="mr-2 text-green-500" />Zaimportowano</>
+                ) : (
+                  <><Download size={14} className="mr-2" />Importuj wszystkie</>
+                )}
+              </Button>
+            )}
+          </div>
         </SheetHeader>
 
         {isLoading ? (

@@ -66,6 +66,77 @@ Zwróć JSON:
     }
   });
 
+  // AI bulk fill nutrition for all ingredients missing values
+  app.post("/api/ai/fill-nutrition", async (req: Request, res: Response) => {
+    try {
+      const allIngredients = await storage.getIngredients();
+      const missing = allIngredients.filter(
+        i => !i.caloriesPer100g && !i.proteinPer100g && !i.fatPer100g && !i.carbsPer100g
+      );
+
+      if (missing.length === 0) {
+        return res.json({ updated: 0, total: 0, message: "Wszystkie składniki mają już wartości odżywcze" });
+      }
+
+      let updated = 0;
+      const errors: string[] = [];
+
+      // Process in batches of 5 to avoid rate limits
+      const BATCH = 5;
+      for (let i = 0; i < missing.length; i += BATCH) {
+        const batch = missing.slice(i, i + BATCH);
+        await Promise.all(batch.map(async (ingredient) => {
+          try {
+            const response = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: [
+                {
+                  role: "system",
+                  content: `Jesteś ekspertem ds. żywienia. Zwracaj TYLKO JSON bez żadnego dodatkowego tekstu.`
+                },
+                {
+                  role: "user",
+                  content: `Podaj wartości odżywcze na 100g dla składnika: "${ingredient.name}"
+
+Zwróć dokładnie ten JSON (liczby całkowite lub z jednym miejscem po przecinku):
+{"caloriesPer100g": liczba, "proteinPer100g": liczba, "fatPer100g": liczba, "carbsPer100g": liczba, "fiberPer100g": liczba}`
+                }
+              ],
+              response_format: { type: "json_object" },
+              max_tokens: 150,
+            });
+
+            const content = response.choices[0]?.message?.content || "{}";
+            const data = JSON.parse(content);
+
+            if (data.caloriesPer100g !== undefined) {
+              await storage.updateIngredient(ingredient.id, {
+                caloriesPer100g: String(data.caloriesPer100g),
+                proteinPer100g: data.proteinPer100g !== undefined ? String(data.proteinPer100g) : undefined,
+                fatPer100g: data.fatPer100g !== undefined ? String(data.fatPer100g) : undefined,
+                carbsPer100g: data.carbsPer100g !== undefined ? String(data.carbsPer100g) : undefined,
+                fiberPer100g: data.fiberPer100g !== undefined ? String(data.fiberPer100g) : undefined,
+              });
+              updated++;
+            }
+          } catch (err) {
+            errors.push(ingredient.name);
+          }
+        }));
+
+        // Small delay between batches
+        if (i + BATCH < missing.length) {
+          await new Promise(r => setTimeout(r, 500));
+        }
+      }
+
+      res.json({ updated, total: missing.length, errors });
+    } catch (error) {
+      console.error("Error filling nutrition:", error);
+      res.status(500).json({ error: "Failed to fill nutrition values" });
+    }
+  });
+
   // AI recipe-aware chat - learns from user's recipes
   app.post("/api/ai/recipe-chat", async (req: Request, res: Response) => {
     try {

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Plus, Edit, Trash2, Package } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Package, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { IngredientWithStock } from "@shared/schema";
 
@@ -22,11 +22,32 @@ export default function Ingredients() {
     glutenFree: false,
     lactoseFree: false,
   });
+  const [nutritionDone, setNutritionDone] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: ingredients = [], isLoading } = useQuery<IngredientWithStock[]>({
     queryKey: ["/api/ingredients"],
+  });
+
+  const fillNutrition = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/ai/fill-nutrition");
+      return res.json() as Promise<{ updated: number; total: number; errors: string[] }>;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
+      setNutritionDone(true);
+      if (result.total === 0) {
+        toast({ title: "Wszystkie składniki mają już wartości odżywcze" });
+      } else {
+        toast({
+          title: `Uzupełniono ${result.updated} z ${result.total} składników`,
+          description: result.errors.length > 0 ? `Nie udało się: ${result.errors.slice(0, 3).join(", ")}${result.errors.length > 3 ? "…" : ""}` : undefined,
+        });
+      }
+    },
+    onError: () => toast({ title: "Błąd AI", description: "Nie udało się uzupełnić wartości odżywczych", variant: "destructive" }),
   });
 
   const deleteIngredient = useMutation({
@@ -82,10 +103,26 @@ export default function Ingredients() {
       
       <main className="flex-1 overflow-y-auto">
         <Header 
-          title="Ingredient Management" 
-          subtitle="Track inventory, costs, and supplier information"
+          title="Zarządzanie składnikami" 
+          subtitle="Śledź stany magazynowe, koszty i dostawców"
           action={
-            <AddIngredientDialog />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => { setNutritionDone(false); fillNutrition.mutate(); }}
+                disabled={fillNutrition.isPending}
+                title="Uzupełnij wartości odżywcze AI dla wszystkich składników"
+              >
+                {fillNutrition.isPending ? (
+                  <><Loader2 size={16} className="mr-2 animate-spin" />AI uzupełnia...</>
+                ) : nutritionDone ? (
+                  <><CheckCircle2 size={16} className="mr-2 text-green-500" />Gotowe</>
+                ) : (
+                  <><Sparkles size={16} className="mr-2 text-amber-500" />AI: wartości odżywcze</>
+                )}
+              </Button>
+              <AddIngredientDialog />
+            </div>
           }
         />
         
