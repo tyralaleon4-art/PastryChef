@@ -123,7 +123,7 @@ export default function Reports() {
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <Header title="Reports" />
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 pb-20 md:pb-6">
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
               <div>

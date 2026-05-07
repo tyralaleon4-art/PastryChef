@@ -126,7 +126,7 @@ export default function Recipes() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
         <Header
           title="Recipe Library"
           subtitle={`Manage and organize your recipes${filteredRecipes.length !== recipes.length ? ` (${filteredRecipes.length} of ${recipes.length})` : ` (${recipes.length})`}`}

@@ -163,7 +163,7 @@ export default function AIChatPage() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
 
-      <main className="flex-1 overflow-hidden flex flex-col">
+      <main className="flex-1 overflow-hidden flex flex-col mb-16 md:mb-0">
         <Header title="AI Assistant" subtitle="Chat with AI to organize recipes and find ingredients" />
 
         <div className="flex flex-1 overflow-hidden gap-4 p-4">

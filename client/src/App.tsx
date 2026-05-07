@@ -20,6 +20,7 @@ import Settings from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import BottomNav from "@/components/layout/bottom-nav";
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
 interface EBState { error: Error | null }
@@ -71,20 +72,23 @@ function ProtectedRouter() {
   }
 
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/recipes" component={Recipes} />
-      <Route path="/ingredients" component={Ingredients} />
-      <Route path="/calculator" component={Calculator} />
-      <Route path="/production" component={Production} />
-      <Route path="/production-plan" component={ProductionPlan} />
-      <Route path="/inventory" component={Inventory} />
-      <Route path="/reports" component={Reports} />
-      <Route path="/ai-chat" component={AIChat} />
-      <Route path="/admin" component={Admin} />
-      <Route path="/settings" component={Settings} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/recipes" component={Recipes} />
+        <Route path="/ingredients" component={Ingredients} />
+        <Route path="/calculator" component={Calculator} />
+        <Route path="/production" component={Production} />
+        <Route path="/production-plan" component={ProductionPlan} />
+        <Route path="/inventory" component={Inventory} />
+        <Route path="/reports" component={Reports} />
+        <Route path="/ai-chat" component={AIChat} />
+        <Route path="/admin" component={Admin} />
+        <Route path="/settings" component={Settings} />
+        <Route component={NotFound} />
+      </Switch>
+      <BottomNav />
+    </>
   );
 }
 

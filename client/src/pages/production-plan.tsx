@@ -438,7 +438,7 @@ export default function ProductionPlan() {
             subtitle="Planowanie wielu przepisów i obliczanie zapotrzebowania na surowce"
           />
           
-          <main className="flex-1 overflow-y-auto px-4 md:px-6">
+          <main className="flex-1 overflow-y-auto px-4 md:px-6 pb-16 md:pb-0">
             <div className="max-w-7xl mx-auto py-4 md:py-6">
               {/* Plan Selection and Creation */}
               <Card className="mb-6">
