@@ -15,19 +15,19 @@ import type { InsertIngredient, IngredientCategory, IngredientWithStock } from "
 
 const POLISH_ALLERGENS = [
   "Gluten",
-  "Crustaceans",
-  "Eggs",
-  "Fish",
-  "Peanuts",
-  "Soybeans",
-  "Milk",
-  "Nuts",
-  "Celery",
-  "Mustard",
-  "Sesame",
-  "Sulfites",
-  "Lupin",
-  "Mollusks"
+  "Skorupiaki",
+  "Jaja",
+  "Ryby",
+  "Orzeszki ziemne",
+  "Soja",
+  "Mleko",
+  "Orzechy",
+  "Seler",
+  "Gorczyca",
+  "Sezam",
+  "Dwutlenek siarki",
+  "Łubin",
+  "Mięczaki"
 ];
 
 interface AddIngredientDialogProps {
@@ -180,16 +180,16 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       setOpen(false);
       resetForm();
       toast({
-        title: mode === "edit" ? "Ingredient updated" : "Ingredient added",
+        title: mode === "edit" ? "Składnik zaktualizowany" : "Składnik dodany",
         description: mode === "edit" 
-          ? "Ingredient has been updated successfully." 
-          : "Ingredient has been added successfully.",
+          ? "Składnik został pomyślnie zaktualizowany." 
+          : "Składnik został pomyślnie dodany.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: mode === "edit" ? "Failed to update ingredient." : "Failed to add ingredient.",
+        title: "Błąd",
+        description: mode === "edit" ? "Nie udało się zaktualizować składnika." : "Nie udało się dodać składnika.",
         variant: "destructive",
       });
     },
@@ -257,19 +257,19 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title={mode === "edit" ? "Edit Ingredient" : "Add New Ingredient"}
+      title={mode === "edit" ? "Edytuj składnik" : "Dodaj nowy składnik"}
       className="sm:max-w-2xl max-h-[80vh] overflow-y-auto"
       testId="dialog-add-ingredient"
       trigger={trigger || (
         <Button data-testid="button-add-ingredient">
           <Plus size={16} className="mr-2" />
-          Add Ingredient
+          Dodaj składnik
         </Button>
       )}
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-            Cancel
+            Anuluj
           </Button>
           <Button 
             type="submit" 
@@ -278,8 +278,8 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
             data-testid="button-save-ingredient"
           >
             {createIngredient.isPending 
-              ? (mode === "edit" ? "Updating..." : "Adding...") 
-              : (mode === "edit" ? "Update Ingredient" : "Add Ingredient")
+              ? (mode === "edit" ? "Zapisywanie..." : "Dodawanie...") 
+              : (mode === "edit" ? "Zaktualizuj składnik" : "Dodaj składnik")
             }
           </Button>
         </div>
@@ -288,7 +288,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       <form id="ingredient-form" onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Ingredient Name</Label>
+              <Label htmlFor="name">Nazwa składnika</Label>
               <div className="flex gap-2">
                 <Input
                   id="name"
@@ -317,7 +317,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               </div>
             </div>
             <div>
-              <Label htmlFor="costPerUnit">Price per Kg (PLN)</Label>
+              <Label htmlFor="costPerUnit">Cena za kg (PLN)</Label>
               <Input
                 id="costPerUnit"
                 type="number"
@@ -333,14 +333,14 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Kategoria</Label>
               <div className="flex space-x-2">
                 <Select value={categoryId} onValueChange={setCategoryId} data-testid="select-ingredient-category">
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Wybierz kategorię" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No category</SelectItem>
+                    <SelectItem value="none">Bez kategorii</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -352,12 +352,12 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               </div>
             </div>
             <div>
-              <Label htmlFor="supplier">Supplier</Label>
+              <Label htmlFor="supplier">Dostawca</Label>
               <Input
                 id="supplier"
                 value={supplier}
                 onChange={(e) => setSupplier(e.target.value)}
-                placeholder="e.g., Młyny Polskie"
+                placeholder="np. Młyny Polskie"
                 data-testid="input-supplier"
               />
             </div>
@@ -366,7 +366,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
           {/* Allergens & Dietary Properties */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Allergens</Label>
+              <Label className="text-sm font-medium">Alergeny</Label>
               <div className="grid grid-cols-2 gap-1 mt-2 max-h-32 overflow-y-auto">
                 {POLISH_ALLERGENS.map((allergen) => (
                   <div key={allergen} className="flex items-center space-x-1">
@@ -390,7 +390,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               </div>
             </div>
             <div>
-              <Label className="text-sm font-medium">Dietary Properties</Label>
+              <Label className="text-sm font-medium">Właściwości dietetyczne</Label>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -399,7 +399,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                     onCheckedChange={(checked) => setIsVegan(checked === true)}
                     data-testid="checkbox-ingredient-vegan"
                   />
-                  <Label htmlFor="ingredient-vegan" className="text-sm font-normal">Vegan</Label>
+                  <Label htmlFor="ingredient-vegan" className="text-sm font-normal">Wegański</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -408,7 +408,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                     onCheckedChange={(checked) => setIsGlutenFree(checked === true)}
                     data-testid="checkbox-ingredient-gluten-free"
                   />
-                  <Label htmlFor="ingredient-glutenFree" className="text-sm font-normal">Gluten Free</Label>
+                  <Label htmlFor="ingredient-glutenFree" className="text-sm font-normal">Bez glutenu</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -417,7 +417,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                     onCheckedChange={(checked) => setIsLactoseFree(checked === true)}
                     data-testid="checkbox-ingredient-lactose-free"
                   />
-                  <Label htmlFor="ingredient-lactoseFree" className="text-sm font-normal">Lactose Free</Label>
+                  <Label htmlFor="ingredient-lactoseFree" className="text-sm font-normal">Bez laktozy</Label>
                 </div>
               </div>
             </div>
@@ -425,36 +425,36 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           {/* Recipe Scaling Metadata (Optional) */}
           <div className="border-t pt-4">
-            <Label className="text-sm font-medium mb-3 block">Recipe Scaling Properties (Optional)</Label>
+            <Label className="text-sm font-medium mb-3 block">Parametry skalowania (opcjonalnie)</Label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="densityGPerMl">Density (g per ml)</Label>
+                <Label htmlFor="densityGPerMl">Gęstość (g/ml)</Label>
                 <Input
                   id="densityGPerMl"
                   type="number"
                   step="0.001"
                   value={densityGPerMl}
                   onChange={(e) => setDensityGPerMl(e.target.value)}
-                  placeholder="e.g., 1.000 for water, 0.915 for oil"
+                  placeholder="np. 1.000 woda, 0.915 olej"
                   data-testid="input-density-g-per-ml"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Used to convert ml/l measurements to grams for recipe scaling
+                  Do przeliczania ml/l na gramy przy skalowaniu przepisu
                 </p>
               </div>
               <div>
-                <Label htmlFor="weightPerPieceG">Weight per piece (g)</Label>
+                <Label htmlFor="weightPerPieceG">Masa sztuki (g)</Label>
                 <Input
                   id="weightPerPieceG"
                   type="number"
                   step="0.1"
                   value={weightPerPieceG}
                   onChange={(e) => setWeightPerPieceG(e.target.value)}
-                  placeholder="e.g., 60 for large egg, 2 for almond"
+                  placeholder="np. 60 jajko duże, 2 migdał"
                   data-testid="input-weight-per-piece-g"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Used to convert piece measurements to grams for recipe scaling
+                  Do przeliczania sztuk na gramy przy skalowaniu przepisu
                 </p>
               </div>
             </div>
@@ -529,7 +529,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="currentStock">Current Stock (kg)</Label>
+              <Label htmlFor="currentStock">Stan magazynowy (kg)</Label>
               <Input
                 id="currentStock"
                 type="number"
@@ -541,7 +541,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               />
             </div>
             <div>
-              <Label htmlFor="minimumStock">Min Stock (kg)</Label>
+              <Label htmlFor="minimumStock">Min. stan (kg)</Label>
               <Input
                 id="minimumStock"
                 type="number"
@@ -553,7 +553,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               />
             </div>
             <div>
-              <Label htmlFor="expiryDate">Expiry Date</Label>
+              <Label htmlFor="expiryDate">Data ważności</Label>
               <Input
                 id="expiryDate"
                 type="date"

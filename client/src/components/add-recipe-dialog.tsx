@@ -202,16 +202,16 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
       setOpen(false);
       resetForm();
       toast({
-        title: mode === "edit" ? "Recipe updated" : "Recipe added",
+        title: mode === "edit" ? "Przepis zaktualizowany" : "Przepis dodany",
         description: mode === "edit" 
-          ? "Recipe has been updated successfully." 
-          : "Recipe has been added successfully.",
+          ? "Przepis został pomyślnie zaktualizowany." 
+          : "Przepis został pomyślnie dodany.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: mode === "edit" ? "Failed to update recipe." : "Failed to add recipe.",
+        title: "Błąd",
+        description: mode === "edit" ? "Nie udało się zaktualizować przepisu." : "Nie udało się dodać przepisu.",
         variant: "destructive",
       });
     },
@@ -282,19 +282,19 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title={mode === "edit" ? "Edit Recipe" : "Add New Recipe"}
+      title={mode === "edit" ? "Edytuj przepis" : "Dodaj nowy przepis"}
       className="sm:max-w-3xl max-h-[90vh] overflow-y-auto"
       testId="dialog-add-recipe"
       trigger={trigger || (
         <Button data-testid="button-add-recipe">
           <Plus size={16} className="mr-2" />
-          Add Recipe
+          Dodaj przepis
         </Button>
       )}
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-            Cancel
+            Anuluj
           </Button>
           <Button 
             type="submit" 
@@ -303,8 +303,8 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
             data-testid="button-save-recipe"
           >
             {createRecipe.isPending 
-              ? (mode === "edit" ? "Updating..." : "Adding...") 
-              : (mode === "edit" ? "Update Recipe" : "Add Recipe")
+              ? (mode === "edit" ? "Zapisywanie..." : "Dodawanie...") 
+              : (mode === "edit" ? "Zaktualizuj przepis" : "Dodaj przepis")
             }
           </Button>
         </div>
@@ -314,26 +314,27 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Recipe Name</Label>
+              <Label htmlFor="name">Nazwa przepisu</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., Sernik krakowski"
+                placeholder="np. Sernik krakowski"
+                style={{ fontSize: '16px' }}
                 required
                 data-testid="input-recipe-name"
               />
             </div>
 
             <div>
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Kategoria</Label>
               <div className="flex space-x-2">
                 <Select value={categoryId} onValueChange={setCategoryId} data-testid="select-recipe-category">
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Wybierz kategorię" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No category</SelectItem>
+                    <SelectItem value="none">Bez kategorii</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -347,12 +348,12 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
           </div>
 
           <div>
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">Opis (opcjonalnie)</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description of the recipe..."
+              placeholder="Opis przepisu..."
               rows={3}
               data-testid="input-recipe-description"
             />
@@ -360,28 +361,28 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
 
           {/* Recipe Scaling Metadata (Optional) */}
           <div>
-            <Label htmlFor="totalYieldGrams">Total Yield (grams) - Optional</Label>
+            <Label htmlFor="totalYieldGrams">Całkowita wydajność (g) — opcjonalnie</Label>
             <Input
               id="totalYieldGrams"
               type="number"
               step="1"
               value={totalYieldGrams}
               onChange={(e) => setTotalYieldGrams(e.target.value)}
-              placeholder="e.g., 1200 (final weight of prepared recipe)"
+              placeholder="np. 1200 (końcowa masa gotowego wyrobu)"
               data-testid="input-total-yield-grams"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Used as fallback for recipe scaling when ingredient density data is missing
+              Używane jako zapasowa wartość przy skalowaniu przepisu
             </p>
           </div>
 
           {/* Instructions Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <Label>Instructions (optional)</Label>
+              <Label>Instrukcje (opcjonalnie)</Label>
               <Button type="button" variant="outline" size="sm" onClick={addInstruction} data-testid="button-add-instruction">
                 <Plus size={16} className="mr-2" />
-                Add Step
+                Dodaj krok
               </Button>
             </div>
 
@@ -395,7 +396,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
                     <Textarea
                       value={instruction}
                       onChange={(e) => updateInstruction(index, e.target.value)}
-                      placeholder={`Step ${index + 1} - describe what to do...`}
+                      placeholder={`Krok ${index + 1} — opisz co należy zrobić...`}
                       rows={2}
                       data-testid={`textarea-instruction-${index}`}
                     />
@@ -414,7 +415,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               ))}
               
               {instructions.length === 0 && (
-                <p className="text-muted-foreground text-sm">No instructions added yet.</p>
+                <p className="text-muted-foreground text-sm">Nie dodano jeszcze żadnych kroków.</p>
               )}
             </div>
           </div>
@@ -422,10 +423,10 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
           {/* Ingredients Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <Label>Ingredients</Label>
+              <Label>Składniki</Label>
               <Button type="button" variant="outline" size="sm" onClick={addIngredient} data-testid="button-add-ingredient-to-recipe">
                 <Plus size={16} className="mr-2" />
-                Add Ingredient
+                Dodaj składnik
               </Button>
             </div>
 
@@ -441,7 +442,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
                         data-testid={`select-ingredient-${index}`}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select ingredient" />
+                          <SelectValue placeholder="Wybierz składnik" />
                         </SelectTrigger>
                         <SelectContent>
                           {ingredients.map((ingredient) => (
@@ -476,7 +477,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
                           <SelectItem value="kg">kg</SelectItem>
                           <SelectItem value="ml">ml</SelectItem>
                           <SelectItem value="l">l</SelectItem>
-                          <SelectItem value="pcs">pcs</SelectItem>
+                          <SelectItem value="pcs">szt.</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -499,7 +500,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               })}
               
               {recipeIngredients.length === 0 && (
-                <p className="text-muted-foreground text-sm">No ingredients added yet.</p>
+                <p className="text-muted-foreground text-sm">Nie dodano jeszcze żadnych składników.</p>
               )}
             </div>
           </div>
@@ -510,14 +511,14 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium flex items-center">
                   <Calculator size={16} className="mr-2" />
-                  Recipe Analysis
+                  Analiza przepisu
                 </h4>
                 <div className="text-right">
                   <div className="text-lg font-bold text-primary">
-                    {totalCost.toFixed(2)} PLN total
+                    {totalCost.toFixed(2)} PLN łącznie
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Total weight: {(totalWeight * 1000).toFixed(0)}g
+                    Łączna masa: {(totalWeight * 1000).toFixed(0)}g
                   </div>
                 </div>
               </div>
@@ -525,7 +526,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               {/* Ingredient breakdown with percentages */}
               {validDetails.length > 0 && (
                 <div className="mb-3">
-                  <Label className="text-sm font-medium">Ingredient Breakdown:</Label>
+                  <Label className="text-sm font-medium">Podział składników:</Label>
                   <div className="mt-2 space-y-1">
                     {validDetails.map((detail, index) => (
                       <div key={`${detail.ingredientId}-${index}`} className="flex justify-between items-center text-sm">
@@ -543,7 +544,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               
               {detectedAllergens.length > 0 && (
                 <div className="mb-3">
-                  <Label className="text-sm font-medium">Detected Allergens:</Label>
+                  <Label className="text-sm font-medium">Wykryte alergeny:</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {detectedAllergens.map((allergen) => (
                       <Badge key={allergen} variant="secondary" className="text-xs">
@@ -556,13 +557,13 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
 
               <div className="flex space-x-4 text-sm">
                 <span className={isVeganCompatible ? "text-green-600" : "text-muted-foreground"}>
-                  {isVeganCompatible ? "✓" : "✗"} Vegan Compatible
+                  {isVeganCompatible ? "✓" : "✗"} Wegański
                 </span>
                 <span className={isGlutenFreeCompatible ? "text-green-600" : "text-muted-foreground"}>
-                  {isGlutenFreeCompatible ? "✓" : "✗"} Gluten Free Compatible
+                  {isGlutenFreeCompatible ? "✓" : "✗"} Bez glutenu
                 </span>
                 <span className={isLactoseFreeCompatible ? "text-green-600" : "text-muted-foreground"}>
-                  {isLactoseFreeCompatible ? "✓" : "✗"} Lactose Free Compatible
+                  {isLactoseFreeCompatible ? "✓" : "✗"} Bez laktozy
                 </span>
               </div>
             </div>

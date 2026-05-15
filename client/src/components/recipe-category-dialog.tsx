@@ -28,14 +28,14 @@ export default function RecipeCategoryDialog() {
       setName("");
       setDescription("");
       toast({
-        title: "Category added",
-        description: "Recipe category has been added successfully.",
+        title: "Kategoria dodana",
+        description: "Kategoria przepisów została dodana pomyślnie.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to add recipe category.",
+        title: "Błąd",
+        description: "Nie udało się dodać kategorii przepisów.",
         variant: "destructive",
       });
     },
@@ -55,7 +55,7 @@ export default function RecipeCategoryDialog() {
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title="Add Recipe Category"
+      title="Dodaj kategorię przepisów"
       className="sm:max-w-md"
       testId="dialog-add-recipe-category"
       trigger={
@@ -66,7 +66,7 @@ export default function RecipeCategoryDialog() {
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-recipe-category">
-            Cancel
+            Anuluj
           </Button>
           <Button 
             type="submit" 
@@ -74,31 +74,32 @@ export default function RecipeCategoryDialog() {
             disabled={createCategory.isPending || !name.trim()}
             data-testid="button-save-recipe-category"
           >
-            {createCategory.isPending ? "Adding..." : "Add Category"}
+            {createCategory.isPending ? "Dodawanie..." : "Dodaj kategorię"}
           </Button>
         </div>
       }
     >
       <form id="recipe-category-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="categoryName">Category Name</Label>
+            <Label htmlFor="categoryName">Nazwa kategorii</Label>
             <Input
               id="categoryName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Ciasta drożdżowe"
+              placeholder="np. Ciasta drożdżowe"
+              style={{ fontSize: '16px' }}
               required
               data-testid="input-recipe-category-name"
             />
           </div>
           
           <div>
-            <Label htmlFor="categoryDescription">Description (optional)</Label>
+            <Label htmlFor="categoryDescription">Opis (opcjonalnie)</Label>
             <Textarea
               id="categoryDescription"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description of the recipe category..."
+              placeholder="Opis kategorii przepisów..."
               rows={3}
               data-testid="input-recipe-category-description"
             />

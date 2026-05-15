@@ -28,14 +28,14 @@ export default function IngredientCategoryDialog() {
       setName("");
       setDescription("");
       toast({
-        title: "Category created",
-        description: "Ingredient category has been created successfully.",
+        title: "Kategoria utworzona",
+        description: "Kategoria składników została utworzona pomyślnie.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to create ingredient category.",
+        title: "Błąd",
+        description: "Nie udało się utworzyć kategorii składników.",
         variant: "destructive",
       });
     },
@@ -55,19 +55,19 @@ export default function IngredientCategoryDialog() {
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title="Add Ingredient Category"
+      title="Dodaj kategorię składników"
       className="sm:max-w-md"
       testId="dialog-add-category"
       trigger={
         <Button variant="outline" size="sm" data-testid="button-add-category">
           <Plus size={16} className="mr-1" />
-          Add Category
+          Dodaj kategorię
         </Button>
       }
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-            Cancel
+            Anuluj
           </Button>
           <Button 
             type="submit" 
@@ -75,30 +75,31 @@ export default function IngredientCategoryDialog() {
             disabled={createCategory.isPending || !name.trim()}
             data-testid="button-save-category"
           >
-            {createCategory.isPending ? "Creating..." : "Create"}
+            {createCategory.isPending ? "Tworzenie..." : "Utwórz"}
           </Button>
         </div>
       }
     >
       <form id="ingredient-category-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="name">Category Name</Label>
+            <Label htmlFor="name">Nazwa kategorii</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Mąki, Słodziki, Przyprawy"
+              placeholder="np. Mąki, Słodziki, Przyprawy"
+              style={{ fontSize: '16px' }}
               required
               data-testid="input-category-name"
             />
           </div>
           <div>
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description">Opis (opcjonalnie)</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of this category"
+              placeholder="Krótki opis kategorii"
               data-testid="input-category-description"
             />
           </div>

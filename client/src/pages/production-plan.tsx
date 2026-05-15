@@ -1,42 +1,30 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useReactToPrint } from "react-to-print";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { 
   ClipboardList, 
   Plus, 
-  Scale, 
   CheckCircle, 
-  Circle, 
   ChefHat, 
   Trash2,
-  Edit,
   Calculator,
   Archive,
   Clock,
   Utensils,
-  RotateCcw,
   Factory,
-  Download,
-  FileText
+  Printer,
 } from "lucide-react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import PrintableProductionPlan from "@/components/printable-production-plan";
 import type { 
   ProductionPlanWithDetails, 
   RecipeWithDetails,
@@ -45,7 +33,6 @@ import type {
   ProductionPlanRecipe
 } from "@shared/schema";
 
-// Type for individual production plan recipe with details
 type ProductionPlanRecipeWithDetails = ProductionPlanRecipe & { 
   recipe: RecipeWithDetails;
 };
@@ -79,13 +66,6 @@ export default function ProductionPlan() {
   const [selectedRecipeForProduction, setSelectedRecipeForProduction] = useState<ProductionPlanRecipeWithDetails | null>(null);
   const [completedIngredients, setCompletedIngredients] = useState<Set<string>>(new Set());
   const [completedInstructions, setCompletedInstructions] = useState<Set<number>>(new Set());
-  const [exportData, setExportData] = useState<{
-    planName: string;
-    planDescription?: string;
-    recipes: any[];
-    ingredientList: any[];
-  } | null>(null);
-  const printRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
 
@@ -335,94 +315,9 @@ export default function ProductionPlan() {
     });
   };
 
-  const handleExportPlan = async (planId: string) => {
-    try {
-      const response = await fetch(`/api/production-plans/${planId}/export`);
-      if (!response.ok) throw new Error("Export failed");
-      
-      const data = await response.json();
-      setExportData(data);
-      
-      // Wait for render then generate PDF
-      setTimeout(() => {
-        handlePrint();
-      }, 100);
-    } catch (error) {
-      toast({ 
-        title: "Błąd eksportu", 
-        description: "Nie udało się wyeksportować planu.", 
-        variant: "destructive" 
-      });
-    }
+  const handleExportPlan = (planId: string) => {
+    window.open(`/api/production-plans/${planId}/print`, '_blank');
   };
-
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: exportData ? `Plan_Produkcji_${exportData.planName}` : 'Plan_Produkcji',
-    print: async (printIframe) => {
-      try {
-        if (!printIframe.contentDocument) {
-          throw new Error('Content document not available');
-        }
-        const element = printIframe.contentDocument.body;
-        
-        const canvas = await html2canvas(element, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff'
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4'
-        });
-
-        const imgProperties = pdf.getImageProperties(imgData);
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        
-        const margin = 10;
-        const availableWidth = pdfWidth - (margin * 2);
-        const imgHeight = (imgProperties.height * availableWidth) / imgProperties.width;
-
-        // Handle multi-page PDF if content is long
-        let heightLeft = imgHeight;
-        let position = margin;
-
-        pdf.addImage(imgData, 'PNG', margin, position, availableWidth, imgHeight);
-        heightLeft -= (pdfHeight - margin * 2);
-
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight + margin;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', margin, position, availableWidth, imgHeight);
-          heightLeft -= (pdfHeight - margin * 2);
-        }
-
-        const fileName = exportData 
-          ? `Plan_Produkcji_${exportData.planName.replace(/[^a-z0-9]/gi, '_')}.pdf`
-          : 'Plan_Produkcji.pdf';
-        
-        pdf.save(fileName);
-        setExportData(null);
-
-        toast({
-          title: "PDF pobrany!",
-          description: "Plan produkcji został wyeksportowany jako PDF."
-        });
-      } catch (error) {
-        console.error('Error generating PDF:', error);
-        toast({
-          title: "Błąd generowania PDF",
-          description: "Spróbuj ponownie.",
-          variant: "destructive"
-        });
-      }
-    }
-  });
 
 
   return (
@@ -555,8 +450,8 @@ export default function ProductionPlan() {
                             onClick={() => handleExportPlan(selectedPlan.id)}
                             data-testid="button-export-plan"
                           >
-                            <Download className="mr-2" size={16} />
-                            Eksportuj
+                            <Printer className="mr-2" size={16} />
+                            Drukuj / PDF
                           </Button>
                           <Button 
                             variant="outline" 
@@ -920,18 +815,6 @@ export default function ProductionPlan() {
           )}
       </ResponsiveDialog>
 
-      {/* Hidden printable component for PDF export */}
-      {exportData && (
-        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-          <PrintableProductionPlan
-            ref={printRef}
-            planName={exportData.planName}
-            planDescription={exportData.planDescription}
-            recipes={exportData.recipes}
-            ingredientList={exportData.ingredientList}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -85,10 +85,10 @@ export default function Recipes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({ title: "Recipe deleted", description: "Recipe removed successfully." });
+      toast({ title: "Przepis usunięty", description: "Przepis został usunięty." });
     },
     onError: () => {
-      toast({ title: "Error", description: "Failed to delete recipe.", variant: "destructive" });
+      toast({ title: "Błąd", description: "Nie udało się usunąć przepisu.", variant: "destructive" });
     },
   });
 
@@ -128,13 +128,13 @@ export default function Recipes() {
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
         <Header
-          title="Recipe Library"
-          subtitle={`Manage and organize your recipes${filteredRecipes.length !== recipes.length ? ` (${filteredRecipes.length} of ${recipes.length})` : ` (${recipes.length})`}`}
+          title="Przepisy"
+          subtitle={`Zarządzaj i organizuj przepisy${filteredRecipes.length !== recipes.length ? ` (${filteredRecipes.length} z ${recipes.length})` : ` (${recipes.length})`}`}
           action={
             <AddRecipeDialog
               trigger={
                 <Button data-testid="button-add-recipe">
-                  <Plus size={16} className="mr-2" />New Recipe
+                  <Plus size={16} className="mr-2" />Nowy przepis
                 </Button>
               }
             />
@@ -147,18 +147,19 @@ export default function Recipes() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
                 className="pl-10"
-                placeholder="Search recipes..."
+                placeholder="Szukaj przepisów..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 data-testid="input-search-recipes"
+                style={{ fontSize: '16px' }}
               />
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-48" data-testid="select-category-filter">
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder="Wszystkie kategorie" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">Wszystkie kategorie</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
@@ -166,9 +167,9 @@ export default function Recipes() {
             </Select>
             <div className="flex flex-wrap items-center gap-4">
               {[
-                { id: "vegan", label: "Vegan", key: "vegan" },
-                { id: "gluten-free", label: "Gluten Free", key: "glutenFree" },
-                { id: "lactose-free", label: "Lactose Free", key: "lactoseFree" },
+                { id: "vegan", label: "Wegański", key: "vegan" },
+                { id: "gluten-free", label: "Bez glutenu", key: "glutenFree" },
+                { id: "lactose-free", label: "Bez laktozy", key: "lactoseFree" },
               ].map(({ id, label, key }) => (
                 <div key={id} className="flex items-center space-x-2">
                   <Checkbox
@@ -194,14 +195,14 @@ export default function Recipes() {
         ) : filteredRecipes.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-12">
             <Utensils className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-lg">No recipes found</p>
+            <p className="text-muted-foreground text-lg">Brak przepisów</p>
             <p className="text-muted-foreground text-sm mt-2">
-              {search || categoryFilter ? "Try adjusting your search or filter" : "Start by creating your first recipe"}
+              {search || categoryFilter ? "Spróbuj zmienić wyszukiwanie lub filtr" : "Zacznij od dodania pierwszego przepisu"}
             </p>
             <AddRecipeDialog
               trigger={
                 <Button className="mt-4" data-testid="button-create-first-recipe">
-                  <Plus size={16} className="mr-2" />Create Recipe
+                  <Plus size={16} className="mr-2" />Dodaj przepis
                 </Button>
               }
             />
@@ -234,31 +235,31 @@ export default function Recipes() {
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
                               <div>
-                                <div className="text-muted-foreground">Category</div>
+                                <div className="text-muted-foreground">Kategoria</div>
                                 <div className="mt-1">
                                   {recipe.category ? <Badge variant="secondary" className="text-xs">{recipe.category.name}</Badge> : <span className="text-muted-foreground">-</span>}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground">Cost/kg</div>
+                                <div className="text-muted-foreground">Koszt/kg</div>
                                 <div className="mt-1 font-bold text-primary">{costPer1Kg.toFixed(2)} PLN/kg</div>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">Vegan</Badge>}
-                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
-                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">LF</Badge>}
+                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">Wegański</Badge>}
+                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">Bez gl.</Badge>}
+                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">Bez lak.</Badge>}
                               {recipe.allergens?.slice(0, 2).map(a => <Badge key={a} variant="destructive" className="text-xs">{a}</Badge>)}
                             </div>
                             <div className="flex items-center gap-2 pt-2 border-t">
                               <RecipeScaleDialog recipe={recipe} trigger={
                                 <Button size="sm" variant="outline" className="flex-1" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
-                                  <Calculator size={14} className="mr-1" />Scale
+                                  <Calculator size={14} className="mr-1" />Skaluj
                                 </Button>
                               } />
                               <AddRecipeDialog recipe={recipe} mode="edit" trigger={
                                 <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
-                                  <Edit size={14} className="mr-1" />Edit
+                                  <Edit size={14} className="mr-1" />Edytuj
                                 </Button>
                               } />
                               <AlertDialog>
@@ -269,13 +270,13 @@ export default function Recipes() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
-                                    <AlertDialogDescription>Delete "{recipe.name}"? This cannot be undone.</AlertDialogDescription>
+                                    <AlertDialogTitle>Usuń przepis</AlertDialogTitle>
+                                    <AlertDialogDescription>Usunąć „{recipe.name}"? Tej operacji nie można cofnąć.</AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => deleteRecipe.mutate(recipe.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                      Delete
+                                      Usuń
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -301,13 +302,13 @@ export default function Recipes() {
                   <Table>
                     <TableHeader className="sticky top-0 z-10 bg-background">
                       <TableRow>
-                        <TableHead>Recipe Name</TableHead>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Ingredients</TableHead>
-                        <TableHead>Cost per 1kg</TableHead>
-                        <TableHead>Dietary</TableHead>
-                        <TableHead>Allergens</TableHead>
-                        <TableHead>Actions</TableHead>
+                        <TableHead>Przepis</TableHead>
+                        <TableHead>Kategoria</TableHead>
+                        <TableHead>Składniki</TableHead>
+                        <TableHead>Koszt / 1 kg</TableHead>
+                        <TableHead>Dieta</TableHead>
+                        <TableHead>Alergeny</TableHead>
+                        <TableHead>Akcje</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -342,7 +343,7 @@ export default function Recipes() {
                             </TableCell>
                             <TableCell>
                               <span className="font-medium">{recipe.recipeIngredients.length}</span>
-                              <span className="text-muted-foreground text-sm"> ing.</span>
+                              <span className="text-muted-foreground text-sm"> skł.</span>
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
@@ -354,7 +355,7 @@ export default function Recipes() {
                               <div className="flex flex-wrap gap-1">
                                 {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">V</Badge>}
                                 {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
-                                {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">LF</Badge>}
+                                {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">BL</Badge>}
                                 {!recipe.isVegan && !recipe.isGlutenFree && !recipe.isLactoseFree && <span className="text-muted-foreground text-sm">-</span>}
                               </div>
                             </TableCell>
@@ -365,7 +366,7 @@ export default function Recipes() {
                                   {recipe.allergens.length > 2 && <Badge variant="destructive" className="text-xs">+{recipe.allergens.length - 2}</Badge>}
                                 </div>
                               ) : (
-                                <span className="text-muted-foreground text-sm">None</span>
+                                <span className="text-muted-foreground text-sm">-</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -388,13 +389,13 @@ export default function Recipes() {
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Recipe</AlertDialogTitle>
-                                      <AlertDialogDescription>Delete "{recipe.name}"? This cannot be undone.</AlertDialogDescription>
+                                      <AlertDialogTitle>Usuń przepis</AlertDialogTitle>
+                                      <AlertDialogDescription>Usunąć „{recipe.name}"? Tej operacji nie można cofnąć.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
                                       <AlertDialogAction onClick={() => deleteRecipe.mutate(recipe.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                        Delete
+                                        Usuń
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>

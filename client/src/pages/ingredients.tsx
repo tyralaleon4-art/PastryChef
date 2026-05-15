@@ -59,14 +59,14 @@ export default function Ingredients() {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
-        title: "Ingredient deleted",
-        description: "Ingredient has been deleted successfully.",
+        title: "Składnik usunięty",
+        description: "Składnik został usunięty pomyślnie.",
       });
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to delete ingredient. It may be used in recipes.",
+        title: "Błąd",
+        description: "Nie udało się usunąć składnika. Może być używany w przepisach.",
         variant: "destructive",
       });
     },
@@ -91,9 +91,9 @@ export default function Ingredients() {
 
   const getStockBadgeText = (stockStatus: string) => {
     switch (stockStatus) {
-      case "low": return "Low Stock";
-      case "expired": return "Expired";
-      default: return "Normal";
+      case "low": return "Mały zapas";
+      case "expired": return "Przeterminowane";
+      default: return "OK";
     }
   };
 
@@ -134,7 +134,8 @@ export default function Ingredients() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
                 <Input 
                   className="pl-10" 
-                  placeholder="Search ingredients..." 
+                  placeholder="Szukaj składników..."
+                  style={{ fontSize: '16px' }}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   data-testid="input-search-ingredients"
@@ -149,7 +150,7 @@ export default function Ingredients() {
                     data-testid="checkbox-filter-ingredient-vegan"
                   />
                   <label htmlFor="ingredient-vegan-filter" className="text-sm font-medium cursor-pointer">
-                    Vegan
+                    Wegański
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -160,7 +161,7 @@ export default function Ingredients() {
                     data-testid="checkbox-filter-ingredient-gluten-free"
                   />
                   <label htmlFor="ingredient-gluten-free-filter" className="text-sm font-medium cursor-pointer">
-                    Gluten Free
+                    Bez glutenu
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -171,7 +172,7 @@ export default function Ingredients() {
                     data-testid="checkbox-filter-ingredient-lactose-free"
                   />
                   <label htmlFor="ingredient-lactose-free-filter" className="text-sm font-medium cursor-pointer">
-                    Lactose Free
+                    Bez laktozy
                   </label>
                 </div>
               </div>
@@ -188,15 +189,15 @@ export default function Ingredients() {
           ) : filteredIngredients.length === 0 ? (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-lg">No ingredients found</p>
+              <p className="text-muted-foreground text-lg">Brak składników</p>
               <p className="text-muted-foreground text-sm mt-2">
-                {search ? "Try adjusting your search criteria" : "Start by adding your first ingredient"}
+                {search ? "Spróbuj zmienić wyszukiwanie" : "Zacznij od dodania pierwszego składnika"}
               </p>
               <AddIngredientDialog 
                 trigger={
                   <Button className="mt-4" data-testid="button-create-first-ingredient">
                     <Plus size={16} className="mr-2" />
-                    Add Ingredient
+                    Dodaj składnik
                   </Button>
                 }
               />
@@ -229,7 +230,7 @@ export default function Ingredients() {
                       {/* Ingredient Details */}
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <div className="text-muted-foreground">Category</div>
+                          <div className="text-muted-foreground">Kategoria</div>
                           <div className="mt-1">
                             {ingredient.category ? (
                               <Badge variant="secondary" className="text-xs">{ingredient.category.name}</Badge>
@@ -239,19 +240,19 @@ export default function Ingredients() {
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Price/kg</div>
+                          <div className="text-muted-foreground">Cena/kg</div>
                           <div className="mt-1 font-medium">
                             {Number(ingredient.costPerUnit).toFixed(2)} PLN
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Current Stock</div>
+                          <div className="text-muted-foreground">Stan</div>
                           <div className="mt-1 font-medium">
                             {Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Min Stock</div>
+                          <div className="text-muted-foreground">Min. stan</div>
                           <div className="mt-1 font-medium">
                             {Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}
                           </div>
@@ -261,7 +262,7 @@ export default function Ingredients() {
                       {/* Supplier */}
                       {ingredient.supplier && (
                         <div>
-                          <div className="text-sm text-muted-foreground">Supplier</div>
+                          <div className="text-sm text-muted-foreground">Dostawca</div>
                           <div className="mt-1 text-sm font-medium">{ingredient.supplier}</div>
                         </div>
                       )}
@@ -269,7 +270,7 @@ export default function Ingredients() {
                       {/* Allergens */}
                       {ingredient.allergens && ingredient.allergens.length > 0 && (
                         <div>
-                          <div className="text-sm text-muted-foreground mb-1">Allergens</div>
+                          <div className="text-sm text-muted-foreground mb-1">Alergeny</div>
                           <div className="flex flex-wrap gap-1">
                             {ingredient.allergens.slice(0, 3).map((allergen) => (
                               <Badge key={allergen} variant="destructive" className="text-xs">
@@ -293,7 +294,7 @@ export default function Ingredients() {
                           trigger={
                             <Button size="default" variant="outline" className="flex-1 h-11" data-testid={`button-edit-mobile-${ingredient.id}`}>
                               <Edit size={16} className="mr-2" />
-                              Edit
+                              Edytuj
                             </Button>
                           }
                         />
@@ -305,18 +306,18 @@ export default function Ingredients() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Ingredient</AlertDialogTitle>
+                              <AlertDialogTitle>Usuń składnik</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Are you sure you want to delete "{ingredient.name}"? This action cannot be undone and may affect recipes that use this ingredient.
+                                Usunąć „{ingredient.name}"? Tej operacji nie można cofnąć. Może to wpłynąć na przepisy korzystające z tego składnika.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel>Anuluj</AlertDialogCancel>
                               <AlertDialogAction 
                                 onClick={() => deleteIngredient.mutate(ingredient.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                {deleteIngredient.isPending ? "Deleting..." : "Delete"}
+                                {deleteIngredient.isPending ? "Usuwanie..." : "Usuń"}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -333,15 +334,15 @@ export default function Ingredients() {
                   <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Price/kg</TableHead>
-                    <TableHead>Current Stock</TableHead>
-                    <TableHead>Min Stock</TableHead>
+                    <TableHead>Składnik</TableHead>
+                    <TableHead>Kategoria</TableHead>
+                    <TableHead>Cena/kg</TableHead>
+                    <TableHead>Stan</TableHead>
+                    <TableHead>Min. stan</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Supplier</TableHead>
-                    <TableHead>Allergens</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Dostawca</TableHead>
+                    <TableHead>Alergeny</TableHead>
+                    <TableHead>Akcje</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -396,7 +397,7 @@ export default function Ingredients() {
                             )}
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">None</span>
+                          <span className="text-muted-foreground text-sm">-</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -418,18 +419,18 @@ export default function Ingredients() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Ingredient</AlertDialogTitle>
+                                <AlertDialogTitle>Usuń składnik</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Are you sure you want to delete "{ingredient.name}"? This action cannot be undone and may affect recipes that use this ingredient.
+                                  Usunąć „{ingredient.name}"? Tej operacji nie można cofnąć. Może wpłynąć na przepisy korzystające z tego składnika.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogCancel>Anuluj</AlertDialogCancel>
                                 <AlertDialogAction 
                                   onClick={() => deleteIngredient.mutate(ingredient.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  {deleteIngredient.isPending ? "Deleting..." : "Delete"}
+                                  {deleteIngredient.isPending ? "Usuwanie..." : "Usuń"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

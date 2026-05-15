@@ -203,14 +203,14 @@ export default function Production() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="recipe-select">Select Recipe</Label>
+                  <Label htmlFor="recipe-select">Wybierz przepis</Label>
                   <Select
                     value={selectedRecipeId}
                     onValueChange={setSelectedRecipeId}
                     data-testid="select-production-recipe"
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Choose a recipe to produce" />
+                      <SelectValue placeholder="Wybierz przepis do produkcji" />
                     </SelectTrigger>
                     <SelectContent>
                       {recipes.map((recipe) => (
@@ -223,7 +223,7 @@ export default function Production() {
                 </div>
 
                 <div>
-                  <Label htmlFor="target-weight">Target Production Weight</Label>
+                  <Label htmlFor="target-weight">Docelowa masa produkcji</Label>
                   <div className="flex space-x-2">
                     <Input
                       id="target-weight"
@@ -286,11 +286,11 @@ export default function Production() {
             {scaledIngredients.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Production Preview</CardTitle>
+                  <CardTitle>Podgląd produkcji</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <h4 className="font-medium">Scaled Ingredients:</h4>
+                    <h4 className="font-medium">Przeskalowane składniki:</h4>
                     {scaledIngredients.slice(0, 5).map((ing, index) => (
                       <div key={ing.ingredientId} className="flex justify-between items-center text-sm">
                         <span>{ing.ingredientName}</span>
@@ -347,7 +347,7 @@ export default function Production() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium">Overall Progress</span>
+                      <span className="font-medium">Ogólny postęp</span>
                       <span className="text-sm text-muted-foreground">{overallProgress.toFixed(0)}%</span>
                     </div>
                     <Progress value={overallProgress} className="h-2" />

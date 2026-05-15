@@ -731,6 +731,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/production-plans/:id/print", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const plan = await storage.getProductionPlan(id);
+      if (!plan) return res.status(404).json({ message: "Production plan not found" });
+
+      const currentDate = new Date().toLocaleDateString('pl-PL');
+      const currentTime = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+
+      const convertToGrams = (quantity: number, unit: string): number => {
+        switch (unit) {
+          case 'g': return quantity;
+          case 'kg': return quantity * 1000;
+          case 'ml': return quantity;
+          case 'l': return quantity * 1000;
+          case 'pcs': case 'szt': return quantity * 100;
+          default: return quantity;
+        }
+      };
+
+      const ingredientMap = new Map<string, { name: string; totalQuantity: number; unit: string; recipes: string[] }>();
+
+      const recipeSections = plan.productionPlanRecipes.map((planRecipe: any, index: number) => {
+        const recipe = planRecipe.recipe;
+        const targetGrams = planRecipe.targetUnit === "kg"
+          ? Number(planRecipe.targetWeight) * 1000
+          : Number(planRecipe.targetWeight);
+        const originalWeight = recipe.recipeIngredients.reduce((sum: number, ri: any) =>
+          sum + convertToGrams(Number(ri.quantity), ri.unit), 0);
+        const scaleFactor = originalWeight > 0 ? targetGrams / originalWeight : 1;
+
+        const ingredientRows = recipe.recipeIngredients.map((ri: any) => {
+          const scaled = (Number(ri.quantity) * scaleFactor).toFixed(1);
+          const key = ri.ingredientId;
+          if (ingredientMap.has(key)) {
+            const existing = ingredientMap.get(key)!;
+            existing.totalQuantity += Number(ri.quantity) * scaleFactor;
+            if (!existing.recipes.includes(recipe.name)) existing.recipes.push(recipe.name);
+          } else {
+            ingredientMap.set(key, {
+              name: ri.ingredient.name,
+              totalQuantity: Number(ri.quantity) * scaleFactor,
+              unit: ri.unit,
+              recipes: [recipe.name]
+            });
+          }
+          return `<tr><td>${ri.ingredient.name}</td><td style="text-align:right;font-weight:bold">${scaled}</td><td>${ri.unit}</td></tr>`;
+        }).join('');
+
+        const instructionRows = (recipe.instructions || []).map((instr: string, i: number) =>
+          `<li>${instr}</li>`).join('');
+
+        return `
+          <div class="recipe-card">
+            <div class="recipe-header">
+              <div class="recipe-name">${index + 1}. ${recipe.name}</div>
+              <div class="recipe-meta">Cel: ${planRecipe.targetWeight} ${planRecipe.targetUnit} &nbsp;|&nbsp; Skala: ${scaleFactor.toFixed(2)}x</div>
+            </div>
+            <table class="ing-table">
+              <thead><tr><th style="width:50%">Składnik</th><th style="width:25%">Ilość</th><th style="width:25%">Jed.</th></tr></thead>
+              <tbody>${ingredientRows}</tbody>
+            </table>
+            ${instructionRows ? `<div class="instructions"><strong>Instrukcje:</strong><ol>${instructionRows}</ol></div>` : ''}
+          </div>`;
+      }).join('');
+
+      const shoppingRows = Array.from(ingredientMap.values()).map(ing =>
+        `<tr><td>${ing.name}</td><td style="text-align:right;font-weight:bold">${ing.totalQuantity.toFixed(1)} ${ing.unit}</td><td style="font-size:10px;color:#666">${ing.recipes.join(', ')}</td></tr>`
+      ).join('');
+
+      const html = `<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan Produkcji - ${plan.name}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #000; background: #fff; padding: 10mm; }
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none !important; }
+    .recipe-card { page-break-inside: avoid; }
+  }
+  h1 { font-size: 22px; font-weight: bold; margin-bottom: 4px; }
+  .subtitle { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .date-info { font-size: 10px; color: #999; margin-bottom: 16px; }
+  .summary { display: flex; gap: 24px; background: #f4f4f4; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; }
+  .summary-item { text-align: center; }
+  .summary-value { font-size: 22px; font-weight: bold; }
+  .summary-label { font-size: 10px; color: #666; }
+  h2 { font-size: 14px; font-weight: bold; border-bottom: 2px solid #333; padding-bottom: 4px; margin: 20px 0 12px; }
+  .recipe-card { background: #f8f8f8; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+  .recipe-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #ddd; }
+  .recipe-name { font-size: 13px; font-weight: bold; }
+  .recipe-meta { font-size: 10px; color: #666; text-align: right; }
+  .ing-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 10px; }
+  .ing-table th { background: #e0e0e0; padding: 5px 8px; text-align: left; border: 1px solid #ccc; }
+  .ing-table td { padding: 4px 8px; border: 1px solid #ddd; background: #fff; }
+  .instructions { font-size: 10px; margin-top: 8px; }
+  .instructions ol { padding-left: 18px; margin-top: 4px; }
+  .instructions li { margin-bottom: 3px; }
+  .shopping { background: #f0f7f0; border: 2px solid #4a7c4a; border-radius: 8px; padding: 16px; margin-top: 20px; }
+  .shopping-title { font-size: 16px; font-weight: bold; color: #2d5a2d; margin-bottom: 12px; text-align: center; }
+  .shop-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .shop-table th { background: #4a7c4a; color: #fff; padding: 7px 8px; text-align: left; }
+  .shop-table td { padding: 5px 8px; border-bottom: 1px solid #ccc; background: #fff; }
+  .shop-table tr:nth-child(even) td { background: #f5f5f5; }
+  .footer { margin-top: 24px; text-align: center; font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 10px; }
+  .print-btn { display: block; margin: 0 auto 20px; padding: 10px 28px; background: #16a34a; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+  .print-btn:hover { background: #15803d; }
+</style>
+</head>
+<body>
+<div class="no-print" style="text-align:center;margin-bottom:16px">
+  <button class="print-btn" onclick="window.print()">🖨️ Drukuj / Zapisz jako PDF</button>
+</div>
+<h1>${plan.name}</h1>
+${plan.description ? `<div class="subtitle">${plan.description}</div>` : ''}
+<div class="date-info">Wygenerowano: ${currentDate} o ${currentTime}</div>
+<div class="summary">
+  <div class="summary-item"><div class="summary-value">${plan.productionPlanRecipes.length}</div><div class="summary-label">Przepisy</div></div>
+  <div class="summary-item"><div class="summary-value">${ingredientMap.size}</div><div class="summary-label">Składniki</div></div>
+</div>
+<h2>Przepisy (${plan.productionPlanRecipes.length})</h2>
+${recipeSections}
+<div class="shopping">
+  <div class="shopping-title">Lista zakupów — suma składników</div>
+  <table class="shop-table">
+    <thead><tr><th style="width:40%">Składnik</th><th style="width:25%">Łącznie</th><th style="width:35%">Przepisy</th></tr></thead>
+    <tbody>${shoppingRows}</tbody>
+  </table>
+</div>
+<div class="footer">PastryPro — System zarządzania recepturami | Plan produkcji wygenerowany automatycznie</div>
+</body>
+</html>`;
+
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate print view" });
+    }
+  });
+
   app.get("/api/production-plans-archived", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;

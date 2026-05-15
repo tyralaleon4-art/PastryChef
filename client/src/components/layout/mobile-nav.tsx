@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: ChartLine },
+  { name: "Pulpit", href: "/", icon: ChartLine },
   { name: "Przepisy", href: "/recipes", icon: BookOpen },
   { name: "Składniki", href: "/ingredients", icon: Sprout },
   { name: "Kalkulator", href: "/calculator", icon: Calculator },
