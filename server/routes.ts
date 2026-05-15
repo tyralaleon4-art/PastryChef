@@ -840,14 +840,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   .shop-table td { padding: 5px 8px; border-bottom: 1px solid #ccc; background: #fff; }
   .shop-table tr:nth-child(even) td { background: #f5f5f5; }
   .footer { margin-top: 24px; text-align: center; font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 10px; }
-  .print-btn { display: block; margin: 0 auto 20px; padding: 10px 28px; background: #16a34a; color: #fff; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
-  .print-btn:hover { background: #15803d; }
+  .print-btn { display: block; width: 100%; max-width: 320px; margin: 0 auto 12px; padding: 16px 28px; background: #16a34a; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .print-btn:active { background: #15803d; }
+  .ios-hint { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin: 0 auto 16px; max-width: 480px; font-size: 13px; color: #78350f; line-height: 1.6; }
+  .ios-hint b { display: block; margin-bottom: 4px; font-size: 14px; }
+  .ios-hint ol { padding-left: 20px; margin-top: 4px; }
+  .ios-hint li { margin-bottom: 2px; }
 </style>
 </head>
 <body>
-<div class="no-print" style="text-align:center;margin-bottom:16px">
+<div class="no-print" style="padding:16px 0;text-align:center">
   <button class="print-btn" onclick="window.print()">🖨️ Drukuj / Zapisz jako PDF</button>
+  <div class="ios-hint" id="ios-hint" style="display:none">
+    <b>📱 Jak zapisać PDF na iPhonie:</b>
+    <ol>
+      <li>Dotknij przycisku <b>Udostępnij</b> (kwadrat ze strzałką ↑) na dole Safari</li>
+      <li>Przewiń w dół i wybierz <b>Drukuj</b></li>
+      <li>Na ekranie podglądu wydruku — rozsuń dwa palce (powiększ miniaturę)</li>
+      <li>Otworzy się plik PDF — dotknij <b>Udostępnij</b> ponownie</li>
+      <li>Wybierz <b>Zapisz do Plików</b> i wskaż folder</li>
+    </ol>
+  </div>
 </div>
+<script>
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isIOS) {
+    document.getElementById('ios-hint').style.display = 'block';
+  } else {
+    window.onload = function() { window.print(); };
+  }
+</script>
 <h1>${plan.name}</h1>
 ${plan.description ? `<div class="subtitle">${plan.description}</div>` : ''}
 <div class="date-info">Wygenerowano: ${currentDate} o ${currentTime}</div>
