@@ -840,7 +840,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   .shop-table td { padding: 5px 8px; border-bottom: 1px solid #ccc; background: #fff; }
   .shop-table tr:nth-child(even) td { background: #f5f5f5; }
   .footer { margin-top: 24px; text-align: center; font-size: 9px; color: #aaa; border-top: 1px solid #eee; padding-top: 10px; }
-  .print-btn { display: block; width: 100%; max-width: 320px; margin: 0 auto 12px; padding: 16px 28px; background: #16a34a; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .back-btn { display: inline-block; margin: 0 auto 10px; padding: 10px 20px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .back-btn:active { background: #f0f0f0; }
+  .print-btn { display: block; width: 100%; max-width: 320px; margin: 8px auto 12px; padding: 16px 28px; background: #16a34a; color: #fff; border: none; border-radius: 10px; font-size: 17px; font-weight: bold; cursor: pointer; -webkit-tap-highlight-color: transparent; }
   .print-btn:active { background: #15803d; }
   .ios-hint { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 16px; margin: 0 auto 16px; max-width: 480px; font-size: 13px; color: #78350f; line-height: 1.6; }
   .ios-hint b { display: block; margin-bottom: 4px; font-size: 14px; }
@@ -850,15 +852,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 </head>
 <body>
 <div class="no-print" style="padding:16px 0;text-align:center">
+  <button class="back-btn" onclick="window.history.back()">← Wróć do aplikacji</button>
   <button class="print-btn" onclick="window.print()">🖨️ Drukuj / Zapisz jako PDF</button>
   <div class="ios-hint" id="ios-hint" style="display:none">
     <b>📱 Jak zapisać PDF na iPhonie:</b>
     <ol>
-      <li>Dotknij przycisku <b>Udostępnij</b> (kwadrat ze strzałką ↑) na dole Safari</li>
+      <li>Dotknij przycisku <b>Udostępnij</b> (kwadrat ze strzałką ↑) na dole ekranu Safari</li>
       <li>Przewiń w dół i wybierz <b>Drukuj</b></li>
-      <li>Na ekranie podglądu wydruku — rozsuń dwa palce (powiększ miniaturę)</li>
-      <li>Otworzy się plik PDF — dotknij <b>Udostępnij</b> ponownie</li>
-      <li>Wybierz <b>Zapisz do Plików</b> i wskaż folder</li>
+      <li>Na ekranie podglądu — rozsuń dwa palce na miniaturce (powiększ)</li>
+      <li>Otworzy się PDF — dotknij <b>Udostępnij</b> ponownie</li>
+      <li>Wybierz <b>Zapisz do Plików</b> → wybierz folder → <b>Zapisz</b></li>
     </ol>
   </div>
 </div>

@@ -316,7 +316,7 @@ export default function ProductionPlan() {
   };
 
   const handleExportPlan = (planId: string) => {
-    window.open(`/api/production-plans/${planId}/print`, '_blank');
+    window.location.href = `/api/production-plans/${planId}/print`;
   };
 
 
