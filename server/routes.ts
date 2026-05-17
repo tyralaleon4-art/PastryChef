@@ -115,8 +115,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!currentPassword) {
           return res.status(400).json({ message: "Podaj aktualne hasło" });
         }
-        const { comparePasswords, hashPassword } = await import("./auth");
-        const valid = await comparePasswords(currentPassword, user.password);
+        const { verifyPassword, hashPassword } = await import("./auth");
+        const valid = await verifyPassword(currentPassword, user.password);
         if (!valid) {
           return res.status(400).json({ message: "Aktualne hasło jest nieprawidłowe" });
         }

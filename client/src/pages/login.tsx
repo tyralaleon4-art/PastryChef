@@ -85,9 +85,12 @@ export default function Login() {
                       placeholder="Wpisz nazwę użytkownika"
                       style={{ fontSize: '16px' }}
                       value={loginForm.username}
-                      onChange={e => setLoginForm(f => ({ ...f, username: e.target.value }))}
+                      onChange={e => setLoginForm(f => ({ ...f, username: e.target.value.trim() }))}
                       required
                       autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                     />
                   </div>
                   <div className="space-y-2">
@@ -139,9 +142,12 @@ export default function Login() {
                       placeholder="Wybierz nazwę użytkownika"
                       style={{ fontSize: '16px' }}
                       value={registerForm.username}
-                      onChange={e => setRegisterForm(f => ({ ...f, username: e.target.value }))}
+                      onChange={e => setRegisterForm(f => ({ ...f, username: e.target.value.trim() }))}
                       required
                       autoComplete="username"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
                     />
                   </div>
                   <div className="space-y-2">
