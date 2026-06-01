@@ -14,15 +14,15 @@ export default function UnitConverter() {
   const [result, setResult] = useState<number>(17.64);
 
   const units = [
-    { value: "grams", label: "grams" },
-    { value: "ounces", label: "ounces" },
-    { value: "pounds", label: "pounds" },
-    { value: "kilograms", label: "kilograms" },
-    { value: "cups", label: "cups" },
-    { value: "tablespoons", label: "tablespoons" },
-    { value: "teaspoons", label: "teaspoons" },
-    { value: "milliliters", label: "milliliters" },
-    { value: "liters", label: "liters" },
+    { value: "grams", label: "gramy (g)" },
+    { value: "ounces", label: "uncje (oz)" },
+    { value: "pounds", label: "funty (lb)" },
+    { value: "kilograms", label: "kilogramy (kg)" },
+    { value: "cups", label: "szklanki" },
+    { value: "tablespoons", label: "łyżki stołowe" },
+    { value: "teaspoons", label: "łyżeczki" },
+    { value: "milliliters", label: "mililitry (ml)" },
+    { value: "liters", label: "litry (l)" },
   ];
 
   const handleConvert = () => {
@@ -31,16 +31,16 @@ export default function UnitConverter() {
   };
 
   return (
-    <Card className="bg-background border border-border" data-testid="unit-converter">
+    <Card className="bg-card border border-border" data-testid="unit-converter">
       <CardContent className="p-6">
         <h4 className="font-semibold text-foreground mb-4 flex items-center">
-          <ArrowRightLeft className="text-green-600 mr-2" size={20} />
-          Unit Converter
+          <ArrowRightLeft className="text-secondary mr-2" size={20} />
+          Przelicznik jednostek
         </h4>
         <div className="space-y-4">
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              From
+              Z
             </Label>
             <div className="flex space-x-2">
               <Input
@@ -49,9 +49,10 @@ export default function UnitConverter() {
                 onChange={(e) => setFromValue(Number(e.target.value))}
                 className="flex-1"
                 data-testid="input-from-value"
+                style={{ fontSize: '16px' }}
               />
               <Select value={fromUnit} onValueChange={setFromUnit} data-testid="select-from-unit">
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -66,7 +67,7 @@ export default function UnitConverter() {
           </div>
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              To
+              Na
             </Label>
             <div className="flex space-x-2">
               <Input
@@ -77,7 +78,7 @@ export default function UnitConverter() {
                 data-testid="input-result"
               />
               <Select value={toUnit} onValueChange={setToUnit} data-testid="select-to-unit">
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -91,11 +92,11 @@ export default function UnitConverter() {
             </div>
           </div>
           <Button 
-            className="w-full bg-green-600 text-white hover:bg-green-700"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={handleConvert}
             data-testid="button-convert"
           >
-            Convert
+            Przelicz
           </Button>
         </div>
       </CardContent>

@@ -7,40 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { User, Lock, Palette, ChefHat, Loader2, Save, Shield } from "lucide-react";
-
-const PREFS_KEY = "pastrpro_prefs";
-
-interface Prefs {
-  language: "pl" | "en";
-  recipesDefaultView: "table" | "grid";
-  costUnit: "per_kg" | "per_100g";
-  compactSidebar: boolean;
-  showNutrition: boolean;
-}
-
-function loadPrefs(): Prefs {
-  try {
-    return { ...defaultPrefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || "{}") };
-  } catch {
-    return defaultPrefs;
-  }
-}
-
-const defaultPrefs: Prefs = {
-  language: "pl",
-  recipesDefaultView: "table",
-  costUnit: "per_kg",
-  compactSidebar: false,
-  showNutrition: true,
-};
+import { User, Lock, ChefHat, Loader2, Save, Shield } from "lucide-react";
 
 export default function Settings() {
   const { user, isAdmin } = useAuth();
@@ -62,21 +34,6 @@ export default function Settings() {
     newPassword: "",
     confirmPassword: "",
   });
-
-  // Preferences
-  const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
-  const [prefsChanged, setPrefsChanged] = useState(false);
-
-  const updatePref = <K extends keyof Prefs>(key: K, value: Prefs[K]) => {
-    setPrefs(p => ({ ...p, [key]: value }));
-    setPrefsChanged(true);
-  };
-
-  const savePrefs = () => {
-    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-    setPrefsChanged(false);
-    toast({ title: "Preferencje zapisane" });
-  };
 
   const profileMutation = useMutation({
     mutationFn: (displayName: string) =>
@@ -239,78 +196,25 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          {/* Preferences */}
+          {/* App info */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Palette size={18} className="text-primary" />
-                Preferencje aplikacji
+                <ChefHat size={18} className="text-primary" />
+                O aplikacji
               </CardTitle>
-              <CardDescription>Dostosuj wygląd i zachowanie aplikacji pod swoje potrzeby</CardDescription>
+              <CardDescription>Art de Sucre — system zarządzania recepturami</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-
-              <div className="space-y-2">
-                <Label>Domyślny widok przepisów</Label>
-                <Select value={prefs.recipesDefaultView} onValueChange={v => updatePref("recipesDefaultView", v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="table">Tabela (lista)</SelectItem>
-                    <SelectItem value="grid">Kafelki (siatka)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Jak chcesz domyślnie widzieć listę przepisów</p>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex justify-between">
+                <span>Wersja</span>
+                <span className="font-medium text-foreground">1.0</span>
               </div>
-
-              <div className="space-y-2">
-                <Label>Jednostka kosztu</Label>
-                <Select value={prefs.costUnit} onValueChange={v => updatePref("costUnit", v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="per_kg">PLN/kg</SelectItem>
-                    <SelectItem value="per_100g">PLN/100g</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Jednostka do wyświetlania kosztów przepisów</p>
-              </div>
-
               <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Pokazuj wartości odżywcze</Label>
-                  <p className="text-xs text-muted-foreground">Wyświetlaj kalorie i makroskładniki na kartach przepisów</p>
-                </div>
-                <Switch
-                  checked={prefs.showNutrition}
-                  onCheckedChange={v => updatePref("showNutrition", v)}
-                />
+              <div className="flex justify-between">
+                <span>Zalogowano jako</span>
+                <span className="font-medium text-foreground">{user?.displayName || user?.username}</span>
               </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Kompaktowy pasek boczny</Label>
-                  <p className="text-xs text-muted-foreground">Zmniejsz pasek boczny do samych ikon (wymaga przeładowania)</p>
-                </div>
-                <Switch
-                  checked={prefs.compactSidebar}
-                  onCheckedChange={v => updatePref("compactSidebar", v)}
-                />
-              </div>
-
-              {prefsChanged && (
-                <Button onClick={savePrefs} className="w-full">
-                  <Save size={16} className="mr-2" />
-                  Zapisz preferencje
-                </Button>
-              )}
-              {!prefsChanged && (
-                <p className="text-xs text-center text-muted-foreground">Preferencje są aktualne</p>
-              )}
             </CardContent>
           </Card>
 

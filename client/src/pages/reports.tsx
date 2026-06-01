@@ -122,7 +122,7 @@ export default function Reports() {
     <div className="flex h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        <Header title="Reports" />
+        <Header title="Raporty" />
         <main className="flex-1 overflow-auto p-6 pb-20 md:pb-6">
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
@@ -288,7 +288,7 @@ export default function Reports() {
                                     Ukończone: {plan.productionPlanRecipes.filter(r => r.completed).length}
                                   </span>
                                   <Badge variant="outline">
-                                    {plan.status}
+                                    {plan.status === "active" ? "Aktywny" : plan.status === "completed" ? "Ukończony" : "Zarchiwizowany"}
                                   </Badge>
                                 </div>
                               </div>

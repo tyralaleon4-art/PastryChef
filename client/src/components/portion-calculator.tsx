@@ -17,39 +17,41 @@ export default function PortionCalculator() {
   };
 
   return (
-    <Card className="bg-background border border-border" data-testid="portion-calculator">
+    <Card className="bg-card border border-border" data-testid="portion-calculator">
       <CardContent className="p-6">
         <h4 className="font-semibold text-foreground mb-4 flex items-center">
-          <Calculator className="text-primary mr-2" size={20} />
-          Portion Calculator
+          <Calculator className="text-secondary mr-2" size={20} />
+          Kalkulator porcji
         </h4>
         <div className="space-y-4">
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Original Yield
+              Wydajność oryginalna
             </Label>
             <Input
               type="number"
               value={originalServings}
               onChange={(e) => setOriginalServings(Number(e.target.value))}
               data-testid="input-original-servings"
+              style={{ fontSize: '16px' }}
             />
           </div>
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Target Yield
+              Wydajność docelowa
             </Label>
             <Input
               type="number"
               value={targetServings}
               onChange={(e) => setTargetServings(Number(e.target.value))}
               data-testid="input-target-servings"
+              style={{ fontSize: '16px' }}
             />
           </div>
           <div className="bg-muted p-3 rounded-md">
-            <p className="text-xs text-muted-foreground">Scaling Factor</p>
-            <p className="text-lg font-bold text-primary" data-testid="scaling-factor">
-              {scalingFactor.toFixed(1)}x
+            <p className="text-xs text-muted-foreground">Współczynnik skalowania</p>
+            <p className="text-lg font-bold text-secondary" data-testid="scaling-factor">
+              {scalingFactor.toFixed(2)}x
             </p>
           </div>
           <Button 
@@ -57,7 +59,7 @@ export default function PortionCalculator() {
             onClick={handleCalculate}
             data-testid="button-calculate-portions"
           >
-            Calculate Portions
+            Oblicz porcje
           </Button>
         </div>
       </CardContent>

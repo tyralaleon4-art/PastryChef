@@ -430,7 +430,7 @@ export default function ProductionPlan() {
                           )}
                         </div>
                         <Badge variant={selectedPlan.status === "active" ? "default" : "secondary"}>
-                          {selectedPlan.status}
+                          {selectedPlan.status === "active" ? "Aktywny" : selectedPlan.status === "completed" ? "Ukończony" : "Zarchiwizowany"}
                         </Badge>
                       </CardTitle>
                     </CardHeader>

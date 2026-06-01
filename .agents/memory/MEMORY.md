@@ -1,0 +1,1 @@
+- [Product direction](product-direction.md) — Art de Sucre / PastryPro is Polish-localized; sold as yearly per-user access, accounts created by admin. UI must stay fully Polish, currency PLN.

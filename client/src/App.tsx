@@ -9,7 +9,6 @@ import Dashboard from "@/pages/dashboard";
 import Recipes from "@/pages/recipes";
 import Ingredients from "@/pages/ingredients";
 import Calculator from "@/pages/calculator";
-import Production from "@/pages/production";
 import ProductionPlan from "@/pages/production-plan";
 import Inventory from "@/pages/inventory";
 import Reports from "@/pages/reports";
@@ -78,7 +77,6 @@ function ProtectedRouter() {
         <Route path="/recipes" component={Recipes} />
         <Route path="/ingredients" component={Ingredients} />
         <Route path="/calculator" component={Calculator} />
-        <Route path="/production" component={Production} />
         <Route path="/production-plan" component={ProductionPlan} />
         <Route path="/inventory" component={Inventory} />
         <Route path="/reports" component={Reports} />

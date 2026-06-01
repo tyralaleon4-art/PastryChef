@@ -16,47 +16,49 @@ export default function YieldCalculator() {
   };
 
   return (
-    <Card className="bg-background border border-border" data-testid="yield-calculator">
+    <Card className="bg-card border border-border" data-testid="yield-calculator">
       <CardContent className="p-6">
         <h4 className="font-semibold text-foreground mb-4 flex items-center">
-          <TrendingUp className="text-purple-600 mr-2" size={20} />
-          Yield Calculator
+          <TrendingUp className="text-secondary mr-2" size={20} />
+          Kalkulator wydajności
         </h4>
         <div className="space-y-4">
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Batch Size
+              Liczba sztuk / porcji
             </Label>
             <Input
               type="number"
               value={batchSize}
               onChange={(e) => setBatchSize(Number(e.target.value))}
               data-testid="input-batch-size"
+              style={{ fontSize: '16px' }}
             />
           </div>
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Portion Size (g)
+              Waga porcji (g)
             </Label>
             <Input
               type="number"
               value={portionSize}
               onChange={(e) => setPortionSize(Number(e.target.value))}
               data-testid="input-portion-size"
+              style={{ fontSize: '16px' }}
             />
           </div>
           <div className="bg-muted p-3 rounded-md">
-            <p className="text-xs text-muted-foreground">Total Yield</p>
-            <p className="text-lg font-bold text-purple-600" data-testid="total-yield">
+            <p className="text-xs text-muted-foreground">Łączna wydajność</p>
+            <p className="text-lg font-bold text-secondary" data-testid="total-yield">
               {totalYield.toFixed(2)} kg
             </p>
           </div>
           <Button 
-            className="w-full bg-purple-600 text-white hover:bg-purple-700"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={handleCalculate}
             data-testid="button-calculate-yield"
           >
-            Calculate Yield
+            Oblicz wydajność
           </Button>
         </div>
       </CardContent>

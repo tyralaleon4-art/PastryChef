@@ -46,7 +46,7 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        <Header title="Dashboard" subtitle="Witaj! Oto co dzieje się w Twojej kuchni." />
+        <Header title="Pulpit" subtitle="Witaj! Oto co dzieje się w Twojej kuchni." />
 
         <div className="p-4 md:p-6 space-y-5">
           {/* Stats Overview */}
@@ -234,13 +234,13 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </Link>
-            <Link href="/production">
+            <Link href="/production-plan">
               <Card className="hover:bg-accent transition-colors cursor-pointer">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-9 h-9 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Factory className="text-secondary" size={16} />
                   </div>
-                  <span className="text-sm font-medium">Produkcja</span>
+                  <span className="text-sm font-medium">Plan produkcji</span>
                 </CardContent>
               </Card>
             </Link>
