@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Menu, Utensils } from "lucide-react";
+import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -13,7 +13,6 @@ import {
   Calculator,
   Warehouse,
   ChartBar,
-  Factory,
   ClipboardList,
   Sparkles,
   Shield,
@@ -26,7 +25,6 @@ const navigation = [
   { name: "Przepisy", href: "/recipes", icon: BookOpen },
   { name: "Składniki", href: "/ingredients", icon: Sprout },
   { name: "Kalkulator", href: "/calculator", icon: Calculator },
-  { name: "Produkcja", href: "/production", icon: Factory },
   { name: "Plan produkcji", href: "/production-plan", icon: ClipboardList },
   { name: "Magazyn", href: "/inventory", icon: Warehouse },
   { name: "Raporty", href: "/reports", icon: ChartBar },
@@ -50,17 +48,17 @@ export default function MobileNav() {
           <span className="sr-only">Otwórz menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-0 flex flex-col" data-testid="mobile-nav">
-        {/* Header */}
-        <div className="p-5 border-b border-border flex-shrink-0">
-          <h1 className="text-xl font-bold text-primary flex items-center" data-testid="mobile-app-title">
-            <Utensils className="mr-2" size={20} />
-            PastryPro
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">System zarządzania recepturami</p>
+      <SheetContent side="left" className="w-72 p-0 flex flex-col bg-sidebar border-sidebar-border" data-testid="mobile-nav">
+        <div className="p-5 border-b border-sidebar-border flex-shrink-0">
+          <div className="flex items-center gap-3" data-testid="mobile-app-title">
+            <img src="/logo-ads.png" alt="Art de Sucre" className="w-9 h-9 object-contain rounded-lg bg-sidebar-accent p-0.5" />
+            <div>
+              <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">Art de Sucre</p>
+              <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by Leon Tyrała</p>
+            </div>
+          </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-3">
           <ul className="space-y-1">
             {navigation.map((item) => {
@@ -73,8 +71,8 @@ export default function MobileNav() {
                       className={cn(
                         "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors w-full",
                         isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                       )}
                       data-testid={`mobile-nav-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
                     >
@@ -94,8 +92,8 @@ export default function MobileNav() {
                     className={cn(
                       "flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-colors w-full",
                       location === "/admin"
-                        ? "bg-primary text-primary-foreground"
-                        : "text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-primary/80 hover:bg-sidebar-accent hover:text-sidebar-primary"
                     )}
                     data-testid="mobile-nav-admin"
                   >
@@ -108,32 +106,31 @@ export default function MobileNav() {
           </ul>
         </nav>
 
-        {/* User section at bottom */}
         {user && (
-          <div className="p-3 border-t border-border flex-shrink-0">
+          <div className="p-3 border-t border-sidebar-border flex-shrink-0">
             <SheetClose asChild>
               <Link href="/settings">
                 <div className={cn(
                   "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors mb-1",
-                  location === "/settings" ? "bg-primary/10" : "hover:bg-accent"
+                  location === "/settings" ? "bg-sidebar-primary/20" : "hover:bg-sidebar-accent"
                 )}>
                   <Avatar className="h-8 w-8 flex-shrink-0">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                    <AvatarFallback className="bg-sidebar-primary/20 text-sidebar-primary text-xs font-semibold">
                       {initials}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{user.displayName || user.username}</p>
-                    <p className="text-xs text-muted-foreground">{isAdmin ? "Administrator" : "Pracownik"}</p>
+                    <p className="text-sm font-medium truncate text-sidebar-foreground">{user.displayName || user.username}</p>
+                    <p className="text-xs text-sidebar-foreground/50">{isAdmin ? "Administrator" : "Pracownik"}</p>
                   </div>
-                  <Settings size={14} className="text-muted-foreground flex-shrink-0" />
+                  <Settings size={14} className="text-sidebar-foreground/40 flex-shrink-0" />
                 </div>
               </Link>
             </SheetClose>
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start text-muted-foreground hover:text-destructive text-sm"
+              className="w-full justify-start text-sidebar-foreground/50 hover:text-destructive hover:bg-sidebar-accent text-sm"
               onClick={() => { logout(); setOpen(false); }}
             >
               <LogOut size={15} className="mr-2" />

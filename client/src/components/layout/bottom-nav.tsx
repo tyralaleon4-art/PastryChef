@@ -20,7 +20,7 @@ export default function BottomNav() {
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border safe-area-pb">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t border-sidebar-border safe-area-pb">
       <div className="flex">
         {tabs.map((tab) => {
           const isActive = location === tab.href;
@@ -32,15 +32,15 @@ export default function BottomNav() {
                 "flex-1 flex flex-col items-center justify-center py-2 px-0.5 font-medium transition-colors min-h-[56px]",
                 tabs.length > 5 ? "text-[10px]" : "text-xs",
                 isActive
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                  ? "text-sidebar-primary"
+                  : "text-sidebar-foreground/50"
               )}
             >
               <tab.icon
                 size={isAdmin ? 18 : 20}
                 className={cn(
                   "mb-0.5",
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50"
                 )}
               />
               <span className="leading-tight text-center">{tab.name}</span>

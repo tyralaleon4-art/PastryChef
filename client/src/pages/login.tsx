@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Utensils, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 export default function Login() {
   const { login, register } = useAuth();
@@ -53,26 +53,32 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-2">
-            <div className="bg-primary rounded-xl p-2.5">
-              <Utensils className="text-primary-foreground" size={28} />
-            </div>
-            <h1 className="text-3xl font-bold text-primary">PastryPro</h1>
+        {/* Brand Header */}
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-4">
+            <img
+              src="/logo-ads.png"
+              alt="Art de Sucre"
+              className="w-28 h-28 object-contain"
+            />
           </div>
-          <p className="text-muted-foreground">Profesjonalny system zarządzania recepturami</p>
+          <h1 className="ads-logo-text text-3xl font-bold text-foreground tracking-widest uppercase">
+            Art de Sucre
+          </h1>
+          <p className="text-secondary font-medium tracking-wider text-sm mt-1">by Leon Tyrała</p>
+          <p className="text-muted-foreground text-sm mt-3">System zarządzania recepturami</p>
         </div>
 
         <Tabs defaultValue="login">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 bg-muted">
             <TabsTrigger value="login">Zaloguj się</TabsTrigger>
             <TabsTrigger value="register">Utwórz konto</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
-            <Card>
+            <Card className="border-border shadow-md">
               <CardHeader>
-                <CardTitle>Witaj ponownie</CardTitle>
+                <CardTitle className="text-xl">Witaj ponownie</CardTitle>
                 <CardDescription>Zaloguj się, aby kontynuować</CardDescription>
               </CardHeader>
               <CardContent>
@@ -106,7 +112,7 @@ export default function Login() {
                       autoComplete="current-password"
                     />
                   </div>
-                  <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 text-base bg-primary hover:bg-primary/90" disabled={isLoading}>
                     {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logowanie...</> : "Zaloguj się"}
                   </Button>
                 </form>
@@ -115,9 +121,9 @@ export default function Login() {
           </TabsContent>
 
           <TabsContent value="register">
-            <Card>
+            <Card className="border-border shadow-md">
               <CardHeader>
-                <CardTitle>Utwórz konto</CardTitle>
+                <CardTitle className="text-xl">Utwórz konto</CardTitle>
                 <CardDescription>Zarejestruj się, aby zarządzać przepisami</CardDescription>
               </CardHeader>
               <CardContent>
@@ -163,7 +169,7 @@ export default function Login() {
                       autoComplete="new-password"
                     />
                   </div>
-                  <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
+                  <Button type="submit" className="w-full h-12 text-base bg-primary hover:bg-primary/90" disabled={isLoading}>
                     {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Tworzenie konta...</> : "Utwórz konto"}
                   </Button>
                 </form>

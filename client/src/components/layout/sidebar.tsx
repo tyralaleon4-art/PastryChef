@@ -7,30 +7,25 @@ import {
   Sprout, 
   Calculator, 
   Warehouse, 
-  DollarSign, 
   ChartBar,
-  Utensils,
-  Factory,
   ClipboardList,
   Sparkles,
   Shield,
   LogOut,
-  User,
   Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: ChartLine },
-  { name: "Recipes", href: "/recipes", icon: BookOpen },
-  { name: "Ingredients", href: "/ingredients", icon: Sprout },
-  { name: "Calculator", href: "/calculator", icon: Calculator },
-  { name: "Production", href: "/production", icon: Factory },
+  { name: "Pulpit", href: "/", icon: ChartLine },
+  { name: "Przepisy", href: "/recipes", icon: BookOpen },
+  { name: "Składniki", href: "/ingredients", icon: Sprout },
+  { name: "Kalkulator", href: "/calculator", icon: Calculator },
   { name: "Plan produkcji", href: "/production-plan", icon: ClipboardList },
-  { name: "Inventory", href: "/inventory", icon: Warehouse },
-  { name: "Reports", href: "/reports", icon: ChartBar },
-  { name: "AI Assistant", href: "/ai-chat", icon: Sparkles },
+  { name: "Magazyn", href: "/inventory", icon: Warehouse },
+  { name: "Raporty", href: "/reports", icon: ChartBar },
+  { name: "AI Asystent", href: "/ai-chat", icon: Sparkles },
 ];
 
 export default function Sidebar() {
@@ -42,28 +37,30 @@ export default function Sidebar() {
     : user?.username?.slice(0, 2).toUpperCase() || "?";
 
   return (
-    <aside className="hidden md:flex flex-col sidebar-nav bg-card border-r border-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
-      <div className="p-6 border-b border-border">
-        <h1 className="text-2xl font-bold text-primary flex items-center" data-testid="app-title">
-          <Utensils className="mr-3" size={24} />
-          PastryPro
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Professional Recipe Management</p>
+    <aside className="hidden md:flex flex-col sidebar-nav bg-sidebar border-r border-sidebar-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
+      <div className="p-6 border-b border-sidebar-border">
+        <div className="flex items-center gap-3" data-testid="app-title">
+          <img src="/logo-ads.png" alt="Art de Sucre" className="w-10 h-10 object-contain rounded-lg bg-sidebar-accent p-0.5" />
+          <div>
+            <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">Art de Sucre</p>
+            <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by Leon Tyrała</p>
+          </div>
+        </div>
       </div>
       
       <nav className="p-4 flex-1">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {navigation.map((item) => {
             const isActive = location === item.href;
             return (
               <li key={item.name}>
                 <Link href={item.href} className={cn(
-                  "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                  "flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors",
                   isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                 )} data-testid={`nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
-                  <item.icon className="w-5 h-5 mr-3" />
+                  <item.icon className="w-4 h-4 mr-3 flex-shrink-0" />
                   {item.name}
                 </Link>
               </li>
@@ -72,50 +69,49 @@ export default function Sidebar() {
           {isAdmin && (
             <li>
               <Link href="/admin" className={cn(
-                "flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors",
+                "flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors",
                 location === "/admin"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-primary/80 hover:bg-sidebar-accent hover:text-sidebar-primary"
               )} data-testid="nav-admin">
-                <Shield className="w-5 h-5 mr-3" />
-                User Management
+                <Shield className="w-4 h-4 mr-3" />
+                Użytkownicy
               </Link>
             </li>
           )}
         </ul>
       </nav>
 
-      {/* User info at bottom */}
       {user && (
-        <div className="p-4 border-t border-border">
+        <div className="p-4 border-t border-sidebar-border">
           <Link href="/settings">
             <div className={cn(
               "flex items-center gap-3 mb-2 p-2 rounded-lg cursor-pointer transition-colors",
               location === "/settings"
-                ? "bg-primary/10"
-                : "hover:bg-accent"
+                ? "bg-sidebar-primary/20"
+                : "hover:bg-sidebar-accent"
             )}>
-              <Avatar className="h-9 w-9 flex-shrink-0">
-                <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarFallback className="bg-sidebar-primary/20 text-sidebar-primary text-xs font-semibold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.displayName || user.username}</p>
-                <p className="text-xs text-muted-foreground truncate">
+                <p className="text-sm font-medium truncate text-sidebar-foreground">{user.displayName || user.username}</p>
+                <p className="text-xs text-sidebar-foreground/50 truncate">
                   {isAdmin ? "Administrator" : "Pracownik"}
                 </p>
               </div>
-              <Settings size={15} className="text-muted-foreground flex-shrink-0" />
+              <Settings size={14} className="text-sidebar-foreground/40 flex-shrink-0" />
             </div>
           </Link>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-muted-foreground hover:text-destructive"
+            className="w-full justify-start text-sidebar-foreground/50 hover:text-destructive hover:bg-sidebar-accent"
             onClick={logout}
           >
-            <LogOut size={16} className="mr-2" />
+            <LogOut size={15} className="mr-2" />
             Wyloguj się
           </Button>
         </div>

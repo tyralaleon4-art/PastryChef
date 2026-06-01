@@ -10,15 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Plus, Utensils, Calculator, Edit, Trash2 } from "lucide-react";
+import { Search, Plus, Utensils, Calculator, Edit, Trash2, Eye, X, ChefHat, Leaf, Wheat, Milk, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { RecipeWithDetails, Category } from "@shared/schema";
 
 const ROW_HEIGHT = 64;
-const CARD_HEIGHT = 260;
+const CARD_HEIGHT = 270;
 const OVERSCAN = 5;
 
 function convertToKg(quantity: number, unit: string, ingredient: any): number {
@@ -40,38 +42,188 @@ function calcCost(recipe: RecipeWithDetails) {
   const totalWeightKg = recipe.recipeIngredients.reduce((sum, ri) => {
     return sum + convertToKg(Number(ri.quantity), ri.unit, ri.ingredient);
   }, 0);
-  return { totalCost, costPer1Kg: totalWeightKg > 0 ? totalCost / totalWeightKg : 0 };
+  return { totalCost, costPer1Kg: totalWeightKg > 0 ? totalCost / totalWeightKg : 0, totalWeightKg };
 }
 
-// Virtual scroll hook
-function useVirtualScroll(
-  totalItems: number,
-  itemHeight: number,
-  containerHeight: number,
-  scrollTop: number
-) {
+function formatQty(qty: number, unit: string): string {
+  const val = Number(qty);
+  return `${val % 1 === 0 ? val : val.toFixed(2)} ${unit}`;
+}
+
+// ─── Recipe Preview Sheet ──────────────────────────────────────────────────────
+function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetails | null; open: boolean; onClose: () => void }) {
+  if (!recipe) return null;
+  const { totalCost, costPer1Kg, totalWeightKg } = calcCost(recipe);
+  const instructions: string[] = Array.isArray(recipe.instructions) ? recipe.instructions : [];
+
+  return (
+    <Sheet open={open} onOpenChange={v => !v && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto p-0">
+        <SheetHeader className="p-6 pb-4 border-b bg-primary text-primary-foreground">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="text-xl font-bold text-primary-foreground leading-tight">{recipe.name}</SheetTitle>
+              {recipe.description && (
+                <p className="text-primary-foreground/75 text-sm mt-1 leading-relaxed">{recipe.description}</p>
+              )}
+            </div>
+            <SheetClose asChild>
+              <Button size="icon" variant="ghost" className="text-primary-foreground hover:bg-primary-foreground/20 flex-shrink-0 -mr-2">
+                <X size={18} />
+              </Button>
+            </SheetClose>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-3">
+            {recipe.category && (
+              <Badge className="bg-secondary text-secondary-foreground border-0 text-xs">
+                {recipe.category.name}
+              </Badge>
+            )}
+            {recipe.isVegan && (
+              <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground/80 text-xs">
+                <Leaf size={10} className="mr-1" />Wegański
+              </Badge>
+            )}
+            {recipe.isGlutenFree && (
+              <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground/80 text-xs">
+                <Wheat size={10} className="mr-1" />Bez glutenu
+              </Badge>
+            )}
+            {recipe.isLactoseFree && (
+              <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground/80 text-xs">
+                <Milk size={10} className="mr-1" />Bez laktozy
+              </Badge>
+            )}
+          </div>
+        </SheetHeader>
+
+        <div className="p-6 space-y-6">
+          {/* Cost Summary */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-accent rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Koszt całkowity</p>
+              <p className="font-bold text-lg text-foreground">{totalCost.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">PLN</p>
+            </div>
+            <div className="bg-accent rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Koszt / kg</p>
+              <p className="font-bold text-lg text-secondary">{costPer1Kg.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">PLN/kg</p>
+            </div>
+            <div className="bg-accent rounded-lg p-3 text-center">
+              <p className="text-xs text-muted-foreground mb-1">Waga łączna</p>
+              <p className="font-bold text-lg text-foreground">{(totalWeightKg * 1000).toFixed(0)}</p>
+              <p className="text-xs text-muted-foreground">g</p>
+            </div>
+          </div>
+
+          {/* Ingredients */}
+          {recipe.recipeIngredients.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
+                <ChefHat size={16} className="text-secondary" />
+                Składniki ({recipe.recipeIngredients.length})
+              </h3>
+              <div className="space-y-2">
+                {recipe.recipeIngredients.map((ri, i) => {
+                  const ingCost = Number(ri.ingredient.costPerUnit) * convertToKg(Number(ri.quantity), ri.unit, ri.ingredient);
+                  return (
+                    <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg bg-accent/50 hover:bg-accent transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{ri.ingredient.name}</p>
+                        {ri.ingredient.supplier && (
+                          <p className="text-xs text-muted-foreground">{ri.ingredient.supplier}</p>
+                        )}
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-3">
+                        <p className="font-semibold text-sm">{formatQty(Number(ri.quantity), ri.unit)}</p>
+                        <p className="text-xs text-muted-foreground">{ingCost.toFixed(2)} PLN</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Instructions */}
+          {instructions.length > 0 && (
+            <div>
+              <Separator className="mb-4" />
+              <h3 className="font-semibold text-base mb-3">Sposób wykonania</h3>
+              <ol className="space-y-3">
+                {instructions.map((step, i) => (
+                  <li key={i} className="flex gap-3">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center mt-0.5">
+                      {i + 1}
+                    </span>
+                    <p className="text-sm leading-relaxed text-foreground">{step}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {/* Allergens */}
+          {recipe.allergens && recipe.allergens.length > 0 && (
+            <div>
+              <Separator className="mb-4" />
+              <h3 className="font-semibold text-base mb-3 flex items-center gap-2 text-destructive">
+                <AlertTriangle size={16} />
+                Alergeny
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {recipe.allergens.map(a => (
+                  <Badge key={a} variant="destructive" className="text-xs">{a}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Nutrition */}
+          {(recipe.calories || recipe.protein || recipe.fat || recipe.carbs) && (
+            <div>
+              <Separator className="mb-4" />
+              <h3 className="font-semibold text-base mb-3">Wartości odżywcze (na 100g)</h3>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                {[
+                  { label: "Kcal", val: recipe.calories },
+                  { label: "Białko", val: recipe.protein ? `${recipe.protein}g` : null },
+                  { label: "Tłuszcze", val: recipe.fat ? `${recipe.fat}g` : null },
+                  { label: "Węgl.", val: recipe.carbs ? `${recipe.carbs}g` : null },
+                ].map(({ label, val }) => val ? (
+                  <div key={label} className="bg-accent rounded-lg p-2">
+                    <p className="text-xs text-muted-foreground">{label}</p>
+                    <p className="font-bold text-sm">{val}</p>
+                  </div>
+                ) : null)}
+              </div>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ─── Virtual scroll hook ───────────────────────────────────────────────────────
+function useVirtualScroll(totalItems: number, itemHeight: number, containerHeight: number, scrollTop: number) {
   const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - OVERSCAN);
   const endIndex = Math.min(totalItems - 1, Math.ceil((scrollTop + containerHeight) / itemHeight) + OVERSCAN);
   const visibleItems = [];
-  for (let i = startIndex; i <= endIndex; i++) {
-    visibleItems.push(i);
-  }
-  return {
-    startIndex,
-    endIndex,
-    visibleItems,
-    totalHeight: totalItems * itemHeight,
-    offsetY: startIndex * itemHeight,
-  };
+  for (let i = startIndex; i <= endIndex; i++) visibleItems.push(i);
+  return { startIndex, endIndex, visibleItems, totalHeight: totalItems * itemHeight, offsetY: startIndex * itemHeight };
 }
 
+// ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Recipes() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [dietaryFilters, setDietaryFilters] = useState({ vegan: false, glutenFree: false, lactoseFree: false });
   const [scrollTop, setScrollTop] = useState(0);
   const [containerHeight, setContainerHeight] = useState(600);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [previewRecipe, setPreviewRecipe] = useState<RecipeWithDetails | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -85,7 +237,7 @@ export default function Recipes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({ title: "Przepis usunięty", description: "Przepis został usunięty." });
+      toast({ title: "Przepis usunięty" });
     },
     onError: () => {
       toast({ title: "Błąd", description: "Nie udało się usunąć przepisu.", variant: "destructive" });
@@ -118,9 +270,7 @@ export default function Recipes() {
     }
   }, []);
 
-  // Mobile virtual scroll
   const mobileVirtual = useVirtualScroll(filteredRecipes.length, CARD_HEIGHT, containerHeight, scrollTop);
-  // Desktop virtual scroll
   const desktopVirtual = useVirtualScroll(filteredRecipes.length, ROW_HEIGHT, containerHeight, scrollTop);
 
   return (
@@ -141,7 +291,7 @@ export default function Recipes() {
           }
         />
 
-        <div className="px-4 md:px-6 py-4 border-b bg-background">
+        <div className="px-4 md:px-6 py-4 border-b bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col lg:flex-row lg:items-center gap-4">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
@@ -185,7 +335,6 @@ export default function Recipes() {
           </div>
         </div>
 
-        {/* Scrollable content area */}
         {isLoading ? (
           <div className="flex-1 p-4 md:p-6 space-y-3">
             {[...Array(8)].map((_, i) => (
@@ -222,10 +371,10 @@ export default function Recipes() {
                     const { costPer1Kg } = calcCost(recipe);
                     return (
                       <div key={recipe.id} style={{ height: CARD_HEIGHT, marginBottom: 16 }}>
-                        <Card className="p-4 h-full" data-testid={`recipe-card-${recipe.id}`}>
+                        <Card className="p-4 h-full shadow-sm" data-testid={`recipe-card-${recipe.id}`}>
                           <div className="space-y-3">
                             <div className="flex items-start gap-3">
-                              <Utensils size={20} className="text-primary mt-1 flex-shrink-0" />
+                              <Utensils size={20} className="text-secondary mt-1 flex-shrink-0" />
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-semibold text-base leading-tight truncate">{recipe.name}</h3>
                                 {recipe.description && (
@@ -235,28 +384,32 @@ export default function Recipes() {
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
                               <div>
-                                <div className="text-muted-foreground">Kategoria</div>
+                                <div className="text-muted-foreground text-xs">Kategoria</div>
                                 <div className="mt-1">
                                   {recipe.category ? <Badge variant="secondary" className="text-xs">{recipe.category.name}</Badge> : <span className="text-muted-foreground">-</span>}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground">Koszt/kg</div>
-                                <div className="mt-1 font-bold text-primary">{costPer1Kg.toFixed(2)} PLN/kg</div>
+                                <div className="text-muted-foreground text-xs">Koszt/kg</div>
+                                <div className="mt-1 font-bold text-secondary">{costPer1Kg.toFixed(2)} PLN/kg</div>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">Wegański</Badge>}
-                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">Bez gl.</Badge>}
-                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">Bez lak.</Badge>}
+                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-700">Wegański</Badge>}
+                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700">Bez gl.</Badge>}
+                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">Bez lak.</Badge>}
                               {recipe.allergens?.slice(0, 2).map(a => <Badge key={a} variant="destructive" className="text-xs">{a}</Badge>)}
                             </div>
                             <div className="flex items-center gap-2 pt-2 border-t">
-                              <RecipeScaleDialog recipe={recipe} trigger={
-                                <Button size="sm" variant="outline" className="flex-1" data-testid={`button-scale-recipe-mobile-${recipe.id}`}>
-                                  <Calculator size={14} className="mr-1" />Skaluj
-                                </Button>
-                              } />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 text-secondary border-secondary/30 hover:bg-secondary/10"
+                                onClick={() => setPreviewRecipe(recipe)}
+                                data-testid={`button-preview-recipe-mobile-${recipe.id}`}
+                              >
+                                <Eye size={14} className="mr-1" />Podgląd
+                              </Button>
                               <AddRecipeDialog recipe={recipe} mode="edit" trigger={
                                 <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
                                   <Edit size={14} className="mr-1" />Edytuj
@@ -264,7 +417,7 @@ export default function Recipes() {
                               } />
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="outline" className="px-3" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
+                                  <Button size="sm" variant="outline" className="px-3 text-destructive hover:text-destructive" data-testid={`button-delete-recipe-mobile-${recipe.id}`}>
                                     <Trash2 size={14} />
                                   </Button>
                                 </AlertDialogTrigger>
@@ -298,10 +451,10 @@ export default function Recipes() {
               ref={containerCallbackRef}
             >
               <div className="mx-4 md:mx-6 mb-6">
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden shadow-sm">
                   <Table>
-                    <TableHeader className="sticky top-0 z-10 bg-background">
-                      <TableRow>
+                    <TableHeader className="sticky top-0 z-10 bg-card">
+                      <TableRow className="border-border">
                         <TableHead>Przepis</TableHead>
                         <TableHead>Kategoria</TableHead>
                         <TableHead>Składniki</TableHead>
@@ -312,7 +465,6 @@ export default function Recipes() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {/* Spacer top */}
                       {desktopVirtual.startIndex > 0 && (
                         <TableRow style={{ height: desktopVirtual.startIndex * ROW_HEIGHT }}>
                           <TableCell colSpan={7} className="p-0 border-0" />
@@ -322,10 +474,15 @@ export default function Recipes() {
                         const recipe = filteredRecipes[index];
                         const { costPer1Kg } = calcCost(recipe);
                         return (
-                          <TableRow key={recipe.id} style={{ height: ROW_HEIGHT }} data-testid={`recipe-row-${recipe.id}`}>
+                          <TableRow
+                            key={recipe.id}
+                            style={{ height: ROW_HEIGHT }}
+                            className="cursor-pointer hover:bg-accent/40 transition-colors"
+                            data-testid={`recipe-row-${recipe.id}`}
+                          >
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
-                                <Utensils size={16} className="text-primary flex-shrink-0" />
+                                <Utensils size={16} className="text-secondary flex-shrink-0" />
                                 <div className="min-w-0">
                                   <div className="font-semibold truncate max-w-48">{recipe.name}</div>
                                   {recipe.description && (
@@ -346,16 +503,13 @@ export default function Recipes() {
                               <span className="text-muted-foreground text-sm"> skł.</span>
                             </TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
-                                <Calculator size={14} className="text-primary" />
-                                <span className="font-bold text-primary">{costPer1Kg.toFixed(2)} PLN/kg</span>
-                              </div>
+                              <span className="font-bold text-secondary">{costPer1Kg.toFixed(2)} PLN/kg</span>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
-                                {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-600">V</Badge>}
-                                {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-600">GF</Badge>}
-                                {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-600">BL</Badge>}
+                                {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-700">V</Badge>}
+                                {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700">GF</Badge>}
+                                {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">BL</Badge>}
                                 {!recipe.isVegan && !recipe.isGlutenFree && !recipe.isLactoseFree && <span className="text-muted-foreground text-sm">-</span>}
                               </div>
                             </TableCell>
@@ -371,19 +525,29 @@ export default function Recipes() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-secondary hover:text-secondary hover:bg-secondary/10"
+                                  onClick={() => setPreviewRecipe(recipe)}
+                                  data-testid={`button-preview-recipe-${recipe.id}`}
+                                  title="Podgląd receptury"
+                                >
+                                  <Eye size={14} />
+                                </Button>
                                 <RecipeScaleDialog recipe={recipe} trigger={
-                                  <Button size="sm" variant="ghost" data-testid={`button-scale-recipe-${recipe.id}`}>
+                                  <Button size="sm" variant="ghost" data-testid={`button-scale-recipe-${recipe.id}`} title="Skaluj przepis">
                                     <Calculator size={14} />
                                   </Button>
                                 } />
                                 <AddRecipeDialog recipe={recipe} mode="edit" trigger={
-                                  <Button size="sm" variant="ghost" data-testid={`button-edit-recipe-${recipe.id}`}>
+                                  <Button size="sm" variant="ghost" data-testid={`button-edit-recipe-${recipe.id}`} title="Edytuj przepis">
                                     <Edit size={14} />
                                   </Button>
                                 } />
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" data-testid={`button-delete-recipe-${recipe.id}`}>
+                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" data-testid={`button-delete-recipe-${recipe.id}`} title="Usuń przepis">
                                       <Trash2 size={14} />
                                     </Button>
                                   </AlertDialogTrigger>
@@ -405,7 +569,6 @@ export default function Recipes() {
                           </TableRow>
                         );
                       })}
-                      {/* Spacer bottom */}
                       {desktopVirtual.endIndex < filteredRecipes.length - 1 && (
                         <TableRow style={{ height: (filteredRecipes.length - 1 - desktopVirtual.endIndex) * ROW_HEIGHT }}>
                           <TableCell colSpan={7} className="p-0 border-0" />
@@ -419,6 +582,12 @@ export default function Recipes() {
           </>
         )}
       </main>
+
+      <RecipePreviewSheet
+        recipe={previewRecipe}
+        open={!!previewRecipe}
+        onClose={() => setPreviewRecipe(null)}
+      />
     </div>
   );
 }
