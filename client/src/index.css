@@ -1,85 +1,103 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: hsl(40, 33%, 95%);
-  --foreground: hsl(30, 12%, 10%);
-  --card: hsl(38, 25%, 98%);
-  --card-foreground: hsl(30, 12%, 10%);
-  --popover: hsl(38, 25%, 98%);
-  --popover-foreground: hsl(30, 12%, 10%);
-  --primary: hsl(30, 12%, 13%);
-  --primary-foreground: hsl(40, 33%, 95%);
-  --secondary: hsl(35, 58%, 48%);
-  --secondary-foreground: hsl(40, 33%, 95%);
-  --muted: hsl(38, 22%, 88%);
-  --muted-foreground: hsl(30, 10%, 42%);
-  --accent: hsl(38, 22%, 91%);
-  --accent-foreground: hsl(30, 12%, 10%);
-  --destructive: hsl(0, 72%, 51%);
-  --destructive-foreground: hsl(0, 0%, 98%);
-  --border: hsl(38, 18%, 84%);
-  --input: hsl(38, 18%, 84%);
-  --ring: hsl(35, 58%, 48%);
-  --chart-1: hsl(30, 12%, 13%);
-  --chart-2: hsl(35, 58%, 48%);
+  /* Background: wyraźny ciepły krem, żeby białe karty odcinały się od tła */
+  --background: hsl(38, 30%, 86%);
+  --foreground: hsl(25, 20%, 10%);
+
+  /* Karty: czysta biel — wyraźnie odcina się od kremowego tła */
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(25, 20%, 10%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(25, 20%, 10%);
+
+  /* Primary: ciemny węgiel, główne przyciski i akcenty */
+  --primary: hsl(25, 18%, 14%);
+  --primary-foreground: hsl(40, 30%, 95%);
+
+  /* Secondary: złoto — akcenty, ceny, wyróżnienia */
+  --secondary: hsl(38, 72%, 44%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+
+  /* Muted: lekko kremowe — tła sekcji wewnątrz kart */
+  --muted: hsl(38, 25%, 93%);
+  --muted-foreground: hsl(30, 12%, 42%);
+
+  /* Accent: hover-stany elementów */
+  --accent: hsl(38, 28%, 90%);
+  --accent-foreground: hsl(25, 20%, 10%);
+
+  /* Destructive: czerwony */
+  --destructive: hsl(0, 72%, 48%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+
+  /* Borders: wyraźne, ciemniejsze — inputs są teraz widoczne */
+  --border: hsl(35, 18%, 68%);
+  --input: hsl(35, 18%, 68%);
+  --ring: hsl(38, 72%, 44%);
+
+  /* Charts */
+  --chart-1: hsl(25, 18%, 14%);
+  --chart-2: hsl(38, 72%, 44%);
   --chart-3: hsl(38, 70%, 60%);
   --chart-4: hsl(160, 40%, 35%);
   --chart-5: hsl(0, 60%, 50%);
-  --sidebar: hsl(30, 14%, 11%);
+
+  /* Sidebar: ciemny węgiel ze złotymi akcentami */
+  --sidebar: hsl(25, 18%, 11%);
   --sidebar-foreground: hsl(40, 22%, 88%);
-  --sidebar-primary: hsl(35, 58%, 52%);
-  --sidebar-primary-foreground: hsl(30, 14%, 8%);
-  --sidebar-accent: hsl(30, 14%, 17%);
+  --sidebar-primary: hsl(38, 68%, 50%);
+  --sidebar-primary-foreground: hsl(25, 18%, 8%);
+  --sidebar-accent: hsl(25, 18%, 18%);
   --sidebar-accent-foreground: hsl(40, 22%, 88%);
-  --sidebar-border: hsl(30, 14%, 20%);
-  --sidebar-ring: hsl(35, 58%, 48%);
+  --sidebar-border: hsl(25, 18%, 22%);
+  --sidebar-ring: hsl(38, 68%, 50%);
+
+  /* Typography */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-heading: 'Playfair Display', Georgia, serif;
-  --font-mono: 'Fira Code', monospace;
-  --radius: 0.5rem;
-  --shadow-2xs: 0px 1px 2px 0px hsl(30 12% 5% / 0.06);
-  --shadow-xs: 0px 1px 2px 0px hsl(30 12% 5% / 0.06);
-  --shadow-sm: 0px 1px 3px 0px hsl(30 12% 5% / 0.1), 0px 1px 2px 0px hsl(30 12% 5% / 0.06);
-  --shadow: 0px 1px 3px 0px hsl(30 12% 5% / 0.1), 0px 1px 2px 0px hsl(30 12% 5% / 0.06);
-  --shadow-md: 0px 4px 6px -1px hsl(30 12% 5% / 0.1), 0px 2px 4px -1px hsl(30 12% 5% / 0.06);
-  --shadow-lg: 0px 10px 15px -3px hsl(30 12% 5% / 0.1), 0px 4px 6px -2px hsl(30 12% 5% / 0.05);
-  --shadow-xl: 0px 20px 25px -5px hsl(30 12% 5% / 0.12), 0px 10px 10px -5px hsl(30 12% 5% / 0.06);
-  --shadow-2xl: 0px 25px 50px -12px hsl(30 12% 5% / 0.28);
-  --tracking-normal: 0em;
-  --spacing: 0.25rem;
+  --radius: 0.625rem;
+
+  /* Shadows — wyraźniejsze, żeby karty unosiły się nad tłem */
+  --shadow-xs: 0px 1px 3px 0px hsl(25 18% 8% / 0.10);
+  --shadow-sm: 0px 2px 6px 0px hsl(25 18% 8% / 0.12), 0px 1px 3px 0px hsl(25 18% 8% / 0.08);
+  --shadow: 0px 4px 10px 0px hsl(25 18% 8% / 0.12), 0px 2px 4px 0px hsl(25 18% 8% / 0.08);
+  --shadow-md: 0px 8px 18px -2px hsl(25 18% 8% / 0.14), 0px 4px 8px -2px hsl(25 18% 8% / 0.08);
+  --shadow-lg: 0px 16px 28px -4px hsl(25 18% 8% / 0.16), 0px 6px 10px -2px hsl(25 18% 8% / 0.08);
+  --shadow-xl: 0px 24px 40px -6px hsl(25 18% 8% / 0.20), 0px 10px 14px -4px hsl(25 18% 8% / 0.08);
 }
 
 .dark {
-  --background: hsl(30, 14%, 8%);
+  --background: hsl(25, 18%, 8%);
   --foreground: hsl(40, 22%, 90%);
-  --card: hsl(30, 14%, 11%);
+  --card: hsl(25, 18%, 12%);
   --card-foreground: hsl(40, 22%, 90%);
-  --popover: hsl(30, 14%, 11%);
+  --popover: hsl(25, 18%, 12%);
   --popover-foreground: hsl(40, 22%, 90%);
-  --primary: hsl(35, 58%, 52%);
-  --primary-foreground: hsl(30, 14%, 8%);
-  --secondary: hsl(30, 14%, 17%);
+  --primary: hsl(38, 68%, 50%);
+  --primary-foreground: hsl(25, 18%, 8%);
+  --secondary: hsl(25, 18%, 20%);
   --secondary-foreground: hsl(40, 22%, 88%);
-  --muted: hsl(30, 14%, 17%);
+  --muted: hsl(25, 18%, 18%);
   --muted-foreground: hsl(38, 15%, 55%);
-  --accent: hsl(30, 14%, 20%);
+  --accent: hsl(25, 18%, 22%);
   --accent-foreground: hsl(40, 22%, 90%);
   --destructive: hsl(0, 72%, 51%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --border: hsl(30, 14%, 20%);
-  --input: hsl(30, 14%, 20%);
-  --ring: hsl(35, 58%, 48%);
-  --sidebar: hsl(30, 14%, 7%);
+  --border: hsl(25, 18%, 25%);
+  --input: hsl(25, 18%, 25%);
+  --ring: hsl(38, 68%, 50%);
+  --sidebar: hsl(25, 18%, 7%);
   --sidebar-foreground: hsl(40, 22%, 88%);
-  --sidebar-primary: hsl(35, 58%, 52%);
-  --sidebar-primary-foreground: hsl(30, 14%, 8%);
-  --sidebar-accent: hsl(30, 14%, 14%);
+  --sidebar-primary: hsl(38, 68%, 50%);
+  --sidebar-primary-foreground: hsl(25, 18%, 8%);
+  --sidebar-accent: hsl(25, 18%, 15%);
   --sidebar-accent-foreground: hsl(40, 22%, 88%);
-  --sidebar-border: hsl(30, 14%, 18%);
-  --sidebar-ring: hsl(35, 58%, 48%);
+  --sidebar-border: hsl(25, 18%, 20%);
+  --sidebar-ring: hsl(38, 68%, 50%);
 }
 
 @layer base {
@@ -94,26 +112,48 @@
   }
 }
 
+/* ── Login background — dekoracyjny gradient ── */
+.login-bg {
+  background:
+    radial-gradient(ellipse at 20% 50%, hsl(38 60% 78% / 0.5) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, hsl(25 40% 72% / 0.4) 0%, transparent 55%),
+    radial-gradient(ellipse at 60% 85%, hsl(38 50% 80% / 0.35) 0%, transparent 50%),
+    hsl(38, 30%, 86%);
+}
+
+/* ── Sidebar nav transition ── */
 .sidebar-nav {
   transition: transform 0.3s ease-in-out;
 }
-
 @media (max-width: 768px) {
   .sidebar-nav.hidden {
     transform: translateX(-100%);
   }
 }
 
+/* ── Recipe card hover ── */
 .recipe-card:hover {
   transform: translateY(-2px);
   transition: transform 0.2s ease-in-out;
+  box-shadow: var(--shadow-md);
 }
 
+/* ── Brand text ── */
 .ads-logo-text {
   font-family: var(--font-heading);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .gold-accent {
-  color: hsl(35, 58%, 52%);
+  color: hsl(38, 72%, 44%);
+}
+
+/* ── Input czyste białe tło, żeby były wyraźnie widoczne ── */
+input, textarea, select {
+  background-color: hsl(0, 0%, 100%);
+}
+
+/* ── Karty z wyraźnym cieniem ── */
+.card-elevated {
+  box-shadow: var(--shadow-md);
 }
