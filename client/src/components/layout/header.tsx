@@ -17,24 +17,36 @@ export default function Header({ title, subtitle, action }: HeaderProps) {
   const displayName = user?.displayName || user?.username || "";
 
   return (
-    <header className="bg-card border-b border-border p-6 flex-shrink-0" data-testid="page-header">
-      <div className="flex items-center justify-between">
+    <header className="bg-white border-b border-border flex-shrink-0 shadow-sm" data-testid="page-header">
+      {/* Gold accent line at very top */}
+      <div className="h-0.5 bg-gradient-to-r from-secondary/40 via-secondary to-secondary/40" />
+      <div className="px-4 md:px-6 py-4 flex items-center justify-between">
         <div className="flex items-center">
           <MobileNav />
-          <div className="ml-4 md:ml-0">
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground" data-testid="page-title">{title}</h2>
+          <div className="ml-3 md:ml-0">
+            <h2
+              className="text-xl md:text-2xl font-bold text-foreground tracking-tight leading-tight"
+              style={{ fontFamily: 'var(--font-heading)' }}
+              data-testid="page-title"
+            >
+              {title}
+            </h2>
             {subtitle && (
-              <p className="text-muted-foreground mt-1" data-testid="page-subtitle">{subtitle}</p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-0.5" data-testid="page-subtitle">{subtitle}</p>
             )}
           </div>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-3">
           {action}
-          <div className="hidden sm:flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold text-sm" data-testid="user-avatar">
-              <span>{initials}</span>
+          <div className="hidden sm:flex items-center gap-2">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg, hsl(25,18%,20%), hsl(25,18%,14%))' }}
+              data-testid="user-avatar"
+            >
+              {initials}
             </div>
-            <span className="text-sm font-medium" data-testid="user-name">{displayName}</span>
+            <span className="text-sm font-medium text-foreground/80" data-testid="user-name">{displayName}</span>
           </div>
         </div>
       </div>

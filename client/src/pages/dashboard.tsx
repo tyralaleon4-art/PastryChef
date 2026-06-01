@@ -45,110 +45,124 @@ export default function Dashboard() {
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
 
-      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0 bg-background">
         <Header title="Pulpit" subtitle="Witaj! Oto co dzieje się w Twojej kuchni." />
 
         <div className="p-4 md:p-6 space-y-5">
           {/* Stats Overview */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-5">
-            <Card data-testid="stat-total-recipes">
-              <CardContent className="p-4 md:p-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+
+            <Card className="bg-white border-border shadow-sm overflow-hidden" data-testid="stat-total-recipes">
+              <div className="h-1 bg-primary" />
+              <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium text-muted-foreground">Przepisy</p>
-                    <p className="text-2xl font-bold text-foreground">{stats?.totalRecipes || 0}</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Przepisy</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats?.totalRecipes ?? "—"}</p>
                   </div>
-                  <div className="w-9 h-9 md:w-12 md:h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
                     <BookOpen className="text-primary" size={18} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-active-ingredients">
-              <CardContent className="p-4 md:p-6">
+            <Card className="bg-white border-border shadow-sm overflow-hidden" data-testid="stat-active-ingredients">
+              <div className="h-1 bg-secondary" />
+              <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium text-muted-foreground">Składniki</p>
-                    <p className="text-2xl font-bold text-foreground">{stats?.activeIngredients || 0}</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Składniki</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats?.activeIngredients ?? "—"}</p>
                   </div>
-                  <div className="w-9 h-9 md:w-12 md:h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center">
                     <Sprout className="text-secondary" size={18} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-low-stock">
-              <CardContent className="p-4 md:p-6">
+            <Card className="bg-white border-border shadow-sm overflow-hidden" data-testid="stat-low-stock">
+              <div className="h-1 bg-red-400" />
+              <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium text-muted-foreground">Niski stan</p>
-                    <p className="text-2xl font-bold text-foreground">{stats?.lowStockItems || 0}</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Niski stan</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats?.lowStockItems ?? "—"}</p>
                   </div>
-                  <div className="w-9 h-9 md:w-12 md:h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <TriangleAlert className="text-red-600" size={18} />
+                  <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                    <TriangleAlert className="text-red-500" size={18} />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card data-testid="stat-categories">
-              <CardContent className="p-4 md:p-6">
+            <Card className="bg-white border-border shadow-sm overflow-hidden" data-testid="stat-categories">
+              <div className="h-1 bg-blue-400" />
+              <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs md:text-sm font-medium text-muted-foreground">Kategorie</p>
-                    <p className="text-2xl font-bold text-foreground">{stats?.totalCategories || 0}</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Kategorie</p>
+                    <p className="text-3xl font-bold text-foreground mt-1">{stats?.totalCategories ?? "—"}</p>
                   </div>
-                  <div className="w-9 h-9 md:w-12 md:h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Package className="text-blue-600" size={18} />
+                  <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                    <Package className="text-blue-500" size={18} />
                   </div>
                 </div>
               </CardContent>
             </Card>
+
           </div>
 
           {/* Recent + Alerts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* Recent Recipes */}
-            <Card data-testid="recent-recipes">
-              <CardContent className="p-4 md:p-6">
-                <h3 className="text-base font-semibold text-foreground mb-3">Ostatnie przepisy</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            <Card className="bg-white border-border shadow-sm" data-testid="recent-recipes">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>Ostatnie przepisy</h3>
+                <Link href="/recipes">
+                  <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80 text-xs gap-1 h-7 px-2">
+                    Wszystkie <ChevronRight size={13} />
+                  </Button>
+                </Link>
+              </div>
+              <CardContent className="p-4">
                 <div className="space-y-2">
                   {recentRecipes.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">Brak przepisów — dodaj swój pierwszy!</p>
+                    <p className="text-muted-foreground text-sm py-2">Brak przepisów — dodaj swój pierwszy!</p>
                   ) : (
                     recentRecipes.map((recipe) => (
                       <Link key={recipe.id} href="/recipes">
-                        <div className="flex items-center justify-between p-3 bg-muted rounded-md hover:bg-accent transition-colors cursor-pointer" data-testid={`recent-recipe-${recipe.id}`}>
+                        <div className="flex items-center justify-between p-3 bg-muted/60 rounded-lg hover:bg-accent transition-colors cursor-pointer" data-testid={`recent-recipe-${recipe.id}`}>
                           <div className="min-w-0">
-                            <p className="font-medium text-foreground truncate">{recipe.name}</p>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="font-medium text-foreground text-sm truncate">{recipe.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
                               {recipe.category?.name || "Bez kategorii"}
                               {recipe.servings ? ` · ${recipe.servings} porcji` : ""}
                             </p>
                           </div>
-                          <ChevronRight className="text-muted-foreground flex-shrink-0 ml-2" size={16} />
+                          <ChevronRight className="text-muted-foreground flex-shrink-0 ml-2" size={15} />
                         </div>
                       </Link>
                     ))
                   )}
                 </div>
-                <Link href="/recipes">
-                  <Button variant="ghost" className="w-full mt-3 text-primary font-medium text-sm">
-                    Zobacz wszystkie przepisy
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
 
-            {/* Inventory Alerts */}
-            <Card data-testid="inventory-alerts">
-              <CardContent className="p-4 md:p-6">
-                <h3 className="text-base font-semibold text-foreground mb-3">Alerty magazynowe</h3>
+            <Card className="bg-white border-border shadow-sm" data-testid="inventory-alerts">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>Alerty magazynowe</h3>
+                <Link href="/inventory">
+                  <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80 text-xs gap-1 h-7 px-2">
+                    Magazyn <ChevronRight size={13} />
+                  </Button>
+                </Link>
+              </div>
+              <CardContent className="p-4">
                 <div className="space-y-2">
                   {lowStockIngredients.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">Wszystkie stany magazynowe są w normie</p>
+                    <p className="text-muted-foreground text-sm py-2">Wszystkie stany magazynowe są w normie</p>
                   ) : (
                     lowStockIngredients.slice(0, 4).map((ingredient) => {
                       const severity = getAlertSeverity(ingredient);
@@ -156,7 +170,7 @@ export default function Dashboard() {
                       return (
                         <div
                           key={ingredient.id}
-                          className={`flex items-center justify-between p-3 border rounded-md ${
+                          className={`flex items-center justify-between p-3 border rounded-lg ${
                             severity === "red" ? "bg-red-50 border-red-200" :
                             severity === "orange" ? "bg-orange-50 border-orange-200" :
                             "bg-yellow-50 border-yellow-200"
@@ -164,56 +178,45 @@ export default function Dashboard() {
                           data-testid={`alert-${ingredient.id}`}
                         >
                           <div className="min-w-0">
-                            <p className={`font-medium truncate ${
+                            <p className={`font-medium text-sm truncate ${
                               severity === "red" ? "text-red-900" :
                               severity === "orange" ? "text-orange-900" :
                               "text-yellow-900"
                             }`}>{ingredient.name}</p>
-                            <p className={`text-sm ${
+                            <p className={`text-xs mt-0.5 ${
                               severity === "red" ? "text-red-600" :
                               severity === "orange" ? "text-orange-600" :
                               "text-yellow-600"
                             }`}>{message}</p>
                           </div>
                           {ingredient.stockStatus === "expired" ? (
-                            <Clock className={`flex-shrink-0 ml-2 ${
-                              severity === "red" ? "text-red-600" : "text-orange-600"
-                            }`} size={16} />
+                            <Clock className="flex-shrink-0 ml-2 text-red-500" size={15} />
                           ) : (
-                            <TriangleAlert className={`flex-shrink-0 ml-2 ${
-                              severity === "orange" ? "text-orange-600" : "text-yellow-600"
-                            }`} size={16} />
+                            <TriangleAlert className="flex-shrink-0 ml-2 text-orange-500" size={15} />
                           )}
                         </div>
                       );
                     })
                   )}
                 </div>
-                <Link href="/inventory">
-                  <Button variant="ghost" className="w-full mt-3 text-primary font-medium text-sm">
-                    Zarządzaj magazynem
-                  </Button>
-                </Link>
               </CardContent>
             </Card>
+
           </div>
 
           {/* Featured Recipes */}
           {featuredRecipes.length > 0 && (
-            <Card data-testid="recipe-library">
-              <div className="p-4 md:p-6 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-foreground">Biblioteka przepisów</h3>
-                  <Link href="/recipes">
-                    <Button variant="ghost" size="sm" className="text-primary text-sm">
-                      Zobacz wszystkie
-                      <ChevronRight size={14} className="ml-1" />
-                    </Button>
-                  </Link>
-                </div>
+            <Card className="bg-white border-border shadow-sm" data-testid="recipe-library">
+              <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>Biblioteka przepisów</h3>
+                <Link href="/recipes">
+                  <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80 text-xs gap-1 h-7 px-2">
+                    Wszystkie <ChevronRight size={13} />
+                  </Button>
+                </Link>
               </div>
-              <div className="p-4 md:p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {featuredRecipes.map((recipe) => (
                     <RecipeCard key={recipe.id} recipe={recipe} />
                   ))}
@@ -222,10 +225,10 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Quick links for mobile */}
+          {/* Quick links — only mobile */}
           <div className="md:hidden grid grid-cols-2 gap-3">
             <Link href="/calculator">
-              <Card className="hover:bg-accent transition-colors cursor-pointer">
+              <Card className="bg-white hover:bg-accent border-border shadow-sm transition-colors cursor-pointer">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <BookOpen className="text-primary" size={16} />
@@ -235,7 +238,7 @@ export default function Dashboard() {
               </Card>
             </Link>
             <Link href="/production-plan">
-              <Card className="hover:bg-accent transition-colors cursor-pointer">
+              <Card className="bg-white hover:bg-accent border-border shadow-sm transition-colors cursor-pointer">
                 <CardContent className="p-4 flex items-center gap-3">
                   <div className="w-9 h-9 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Factory className="text-secondary" size={16} />
@@ -245,6 +248,7 @@ export default function Dashboard() {
               </Card>
             </Link>
           </div>
+
         </div>
       </main>
     </div>

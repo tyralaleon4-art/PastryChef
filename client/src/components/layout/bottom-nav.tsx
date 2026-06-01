@@ -20,7 +20,7 @@ export default function BottomNav() {
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t border-sidebar-border safe-area-pb">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t-2 border-sidebar-border safe-area-pb" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex">
         {tabs.map((tab) => {
           const isActive = location === tab.href;
@@ -29,21 +29,27 @@ export default function BottomNav() {
               key={tab.href}
               href={tab.href}
               className={cn(
-                "flex-1 flex flex-col items-center justify-center py-2 px-0.5 font-medium transition-colors min-h-[56px]",
-                tabs.length > 5 ? "text-[10px]" : "text-xs",
-                isActive
-                  ? "text-sidebar-primary"
-                  : "text-sidebar-foreground/50"
+                "flex-1 flex flex-col items-center justify-center py-2 px-1 transition-all min-h-[60px] relative",
+                tabs.length > 5 ? "text-[9px]" : "text-[11px]",
               )}
             >
+              {/* Active background pill */}
+              {isActive && (
+                <span className="absolute inset-x-1 top-1.5 bottom-1.5 rounded-xl bg-sidebar-primary/15" />
+              )}
               <tab.icon
-                size={isAdmin ? 18 : 20}
+                size={isAdmin ? 19 : 21}
                 className={cn(
-                  "mb-0.5",
-                  isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50"
+                  "mb-1 relative z-10 transition-colors",
+                  isActive ? "text-sidebar-primary" : "text-sidebar-foreground/40"
                 )}
               />
-              <span className="leading-tight text-center">{tab.name}</span>
+              <span className={cn(
+                "leading-tight text-center relative z-10 font-medium tracking-tight",
+                isActive ? "text-sidebar-primary" : "text-sidebar-foreground/40"
+              )}>
+                {tab.name}
+              </span>
             </Link>
           );
         })}

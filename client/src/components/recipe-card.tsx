@@ -10,84 +10,70 @@ interface RecipeCardProps {
 }
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
-  // Helper function to convert units to kg for cost calculation
   const convertToKg = (quantity: number, unit: string, ingredient: any): number => {
     switch (unit) {
       case 'g': return quantity / 1000;
       case 'kg': return quantity;
-      case 'ml': 
-        // Use densityGPerMl if available, otherwise assume 1ml ≈ 1g
-        const density = ingredient.densityGPerMl || 1;
-        return (quantity * density) / 1000;
-      case 'l': 
-        const densityL = ingredient.densityGPerMl || 1;
-        return (quantity * 1000 * densityL) / 1000; // 1L = 1000ml
-      case 'pcs': 
-        // Use weightPerPieceG if available, otherwise estimate 100g per piece
-        const weightPerPiece = ingredient.weightPerPieceG || 100;
-        return (quantity * weightPerPiece) / 1000;
+      case 'ml': return (quantity * (ingredient.densityGPerMl || 1)) / 1000;
+      case 'l': return (quantity * 1000 * (ingredient.densityGPerMl || 1)) / 1000;
+      case 'pcs': return (quantity * (ingredient.weightPerPieceG || 100)) / 1000;
       default: return quantity;
     }
   };
 
-  // Calculate total cost with proper unit conversion
   const totalCost = recipe.recipeIngredients.reduce((sum, ri) => {
-    const quantity = Number(ri.quantity);
-    const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
-    const ingredientCost = Number(ri.ingredient.costPerUnit) * weightInKg;
-    return sum + ingredientCost;
+    const weightInKg = convertToKg(Number(ri.quantity), ri.unit, ri.ingredient);
+    return sum + Number(ri.ingredient.costPerUnit) * weightInKg;
   }, 0);
 
-  // Calculate total weight in kg for the recipe
   const totalWeightKg = recipe.recipeIngredients.reduce((sum, ri) => {
-    const quantity = Number(ri.quantity);
-    const weightInKg = convertToKg(quantity, ri.unit, ri.ingredient);
-    return sum + weightInKg;
+    return sum + convertToKg(Number(ri.quantity), ri.unit, ri.ingredient);
   }, 0);
 
-  // Calculate cost per 1kg of product
   const costPer1Kg = totalWeightKg > 0 ? totalCost / totalWeightKg : 0;
 
   return (
-    <Card className="recipe-card bg-background border border-border rounded-lg shadow-sm hover:shadow-md transition-all" data-testid={`recipe-card-${recipe.id}`}>
+    <Card className="recipe-card bg-white border border-border rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden" data-testid={`recipe-card-${recipe.id}`}>
+      {/* Gold top accent strip */}
+      <div className="h-0.5 bg-gradient-to-r from-secondary/60 via-secondary to-secondary/60" />
       <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h4 className="font-semibold text-foreground text-lg mb-1 flex items-center" data-testid={`recipe-name-${recipe.id}`}>
-              <Utensils size={16} className="mr-2 text-primary" />
-              {recipe.name}
+        <div className="flex items-start justify-between mb-3 gap-2">
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-foreground text-base mb-0.5 flex items-center gap-1.5 truncate" data-testid={`recipe-name-${recipe.id}`}>
+              <Utensils size={14} className="text-secondary flex-shrink-0" />
+              <span className="truncate">{recipe.name}</span>
             </h4>
             {recipe.description && (
-              <p className="text-sm text-muted-foreground mb-2" data-testid={`recipe-description-${recipe.id}`}>
+              <p className="text-xs text-muted-foreground line-clamp-2" data-testid={`recipe-description-${recipe.id}`}>
                 {recipe.description}
               </p>
             )}
           </div>
-          <div className="text-right">
-            <div className="text-lg font-bold text-primary" data-testid={`recipe-cost-${recipe.id}`}>
-              {costPer1Kg.toFixed(2)} PLN/kg
+          <div className="text-right flex-shrink-0">
+            <div className="text-base font-bold text-secondary" data-testid={`recipe-cost-${recipe.id}`}>
+              {costPer1Kg.toFixed(2)} zł
             </div>
-            <div className="text-xs text-muted-foreground">Cost per 1kg</div>
+            <div className="text-[10px] text-muted-foreground">/ kg</div>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {recipe.category && (
-            <Badge variant="secondary" data-testid={`recipe-category-${recipe.id}`}>
+            <Badge variant="secondary" className="text-xs" data-testid={`recipe-category-${recipe.id}`}>
               {recipe.category.name}
             </Badge>
           )}
-          {recipe.isVegan && <Badge variant="outline" className="text-green-600">Vegan</Badge>}
-          {recipe.isGlutenFree && <Badge variant="outline" className="text-blue-600">Gluten Free</Badge>}
-          {recipe.isLactoseFree && <Badge variant="outline" className="text-purple-600">Lactose Free</Badge>}
+          {recipe.isVegan && <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-300 bg-emerald-50">Wegański</Badge>}
+          {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700 border-blue-300 bg-blue-50">Bez glutenu</Badge>}
+          {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700 border-purple-300 bg-purple-50">Bez laktozy</Badge>}
         </div>
 
         {recipe.allergens && recipe.allergens.length > 0 && (
           <div className="mb-3">
-            <div className="text-xs text-muted-foreground mb-1">Allergens:</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Alergeny</div>
             <div className="flex flex-wrap gap-1">
               {recipe.allergens.map((allergen) => (
-                <Badge key={allergen} variant="destructive" className="text-xs">
+                <Badge key={allergen} variant="destructive" className="text-[10px]">
                   {allergen}
                 </Badge>
               ))}
@@ -99,19 +85,19 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           <RecipeNutrition recipeId={recipe.id} compact />
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {recipe.recipeIngredients.length} ingredients
+        <div className="flex items-center justify-between pt-2 border-t border-border/60">
+          <div className="text-xs text-muted-foreground">
+            {recipe.recipeIngredients.length} {recipe.recipeIngredients.length === 1 ? 'składnik' : recipe.recipeIngredients.length < 5 ? 'składniki' : 'składników'}
           </div>
-          <div className="flex items-center space-x-1">
-            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-primary" data-testid={`button-edit-recipe-${recipe.id}`}>
-              <Edit size={14} />
+          <div className="flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary" data-testid={`button-edit-recipe-${recipe.id}`}>
+              <Edit size={13} />
             </Button>
-            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-primary" data-testid={`button-copy-recipe-${recipe.id}`}>
-              <Copy size={14} />
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary" data-testid={`button-copy-recipe-${recipe.id}`}>
+              <Copy size={13} />
             </Button>
-            <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-primary" data-testid={`button-calculate-recipe-${recipe.id}`}>
-              <Calculator size={14} />
+            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary" data-testid={`button-calculate-recipe-${recipe.id}`}>
+              <Calculator size={13} />
             </Button>
           </div>
         </div>
