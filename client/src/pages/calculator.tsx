@@ -32,7 +32,7 @@ export default function Calculator() {
                 <UnitConverter />
                 <YieldCalculator />
 
-                <Card className="p-4 md:p-6">
+                <Card className="order-first p-4 md:order-none md:p-6">
                   <CardHeader className="p-0 mb-4">
                     <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
                       <CalculatorIcon size={20} />

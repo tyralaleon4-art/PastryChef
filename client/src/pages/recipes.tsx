@@ -403,6 +403,16 @@ export default function Recipes() {
                               {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">{t("recipes.lactoseFreeShort")}</Badge>}
                               {recipe.allergens?.slice(0, 2).map(a => <Badge key={a} variant="destructive" className="text-xs">{a}</Badge>)}
                             </div>
+                            <RecipeScaleDialog recipe={recipe} trigger={
+                              <Button
+                                size="sm"
+                                className="w-full"
+                                data-testid={`button-scale-recipe-mobile-${recipe.id}`}
+                              >
+                                <Calculator size={14} className="mr-2" />
+                                {t("recipes.scale")}
+                              </Button>
+                            } />
                             <div className="flex items-center gap-2 pt-2 border-t">
                               <Button
                                 size="sm"

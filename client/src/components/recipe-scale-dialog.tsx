@@ -461,7 +461,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
       className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
       testId="dialog-recipe-scale"
       trigger={trigger || (
-        <Button variant="outline" data-testid="button-recipe-scale">
+        <Button variant="outline" className="w-full sm:w-auto" data-testid="button-recipe-scale">
           <Calculator size={16} className="mr-2" />
           {messages.scaleRecipe}
         </Button>
