@@ -22,6 +22,11 @@ function isOwnershipError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("does not belong to user");
 }
 
+function logAuthError(operation: string, error: unknown): void {
+  const detail = error instanceof Error ? error.stack || error.message : String(error);
+  console.error(`[auth] ${operation} failed: ${detail}`);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== AUTH ROUTES ====================
@@ -45,9 +50,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser({ username, password: hashed, role: "user", displayName: displayName || null, language: language || "pl" });
       req.session.userId = user.id;
       req.session.userRole = user.role;
-      const { password: _, ...safeUser } = user;
-      res.status(201).json(safeUser);
+      req.session.save((error) => {
+        if (error) {
+          logAuthError("register session save", error);
+          return res.status(500).json({ message: "Failed to save session" });
+        }
+        const { password: _, ...safeUser } = user;
+        res.status(201).json(safeUser);
+      });
     } catch (error) {
+      logAuthError("register", error);
       res.status(500).json({ message: "Failed to register" });
     }
   });
@@ -71,12 +83,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Wait for session to be persisted to DB before responding
       req.session.save((err) => {
         if (err) {
+          logAuthError("login session save", err);
           return res.status(500).json({ message: "Failed to save session" });
         }
         const { password: _, ...safeUser } = user;
         res.json(safeUser);
       });
     } catch (error) {
+      logAuthError("login", error);
       res.status(500).json({ message: "Failed to login" });
     }
   });
