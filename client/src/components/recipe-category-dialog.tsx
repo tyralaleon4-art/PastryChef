@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n";
 import type { InsertCategory } from "@shared/schema";
 
 export default function RecipeCategoryDialog() {
@@ -15,6 +16,7 @@ export default function RecipeCategoryDialog() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const createCategory = useMutation({
@@ -28,14 +30,14 @@ export default function RecipeCategoryDialog() {
       setName("");
       setDescription("");
       toast({
-        title: "Kategoria dodana",
-        description: "Kategoria przepisów została dodana pomyślnie.",
+        title: t("recipeCategories.created"),
+        description: t("recipeCategories.createdDescription"),
       });
     },
     onError: () => {
       toast({
-        title: "Błąd",
-        description: "Nie udało się dodać kategorii przepisów.",
+        title: t("common.error"),
+        description: t("recipeCategories.createFailed"),
         variant: "destructive",
       });
     },
@@ -55,7 +57,8 @@ export default function RecipeCategoryDialog() {
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title="Dodaj kategorię przepisów"
+      title={t("recipeCategories.add")}
+      description={t("recipeCategories.dialogDescription")}
       className="sm:max-w-md"
       testId="dialog-add-recipe-category"
       trigger={
@@ -66,7 +69,7 @@ export default function RecipeCategoryDialog() {
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel-recipe-category">
-            Anuluj
+            {t("common.cancel")}
           </Button>
           <Button 
             type="submit" 
@@ -74,19 +77,19 @@ export default function RecipeCategoryDialog() {
             disabled={createCategory.isPending || !name.trim()}
             data-testid="button-save-recipe-category"
           >
-            {createCategory.isPending ? "Dodawanie..." : "Dodaj kategorię"}
+            {createCategory.isPending ? t("recipeCategories.adding") : t("recipeCategories.add")}
           </Button>
         </div>
       }
     >
       <form id="recipe-category-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="categoryName">Nazwa kategorii</Label>
+            <Label htmlFor="categoryName">{t("recipeCategories.name")}</Label>
             <Input
               id="categoryName"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="np. Ciasta drożdżowe"
+              placeholder={t("recipeCategories.namePlaceholder")}
               style={{ fontSize: '16px' }}
               required
               data-testid="input-recipe-category-name"
@@ -94,12 +97,12 @@ export default function RecipeCategoryDialog() {
           </div>
           
           <div>
-            <Label htmlFor="categoryDescription">Opis (opcjonalnie)</Label>
+            <Label htmlFor="categoryDescription">{t("recipeCategories.description")}</Label>
             <Textarea
               id="categoryDescription"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opis kategorii przepisów..."
+              placeholder={t("recipeCategories.descriptionPlaceholder")}
               rows={3}
               data-testid="input-recipe-category-description"
             />

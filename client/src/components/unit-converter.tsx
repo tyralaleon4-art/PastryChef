@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowRightLeft } from "lucide-react";
 import { convertUnits } from "@/lib/calculations";
+import { useI18n } from "@/i18n";
 
 export default function UnitConverter() {
+  const { t } = useI18n();
   const [fromValue, setFromValue] = useState<number>(500);
   const [fromUnit, setFromUnit] = useState<string>("grams");
   const [toUnit, setToUnit] = useState<string>("ounces");
@@ -35,12 +37,12 @@ export default function UnitConverter() {
       <CardContent className="p-6">
         <h4 className="font-semibold text-foreground mb-4 flex items-center">
           <ArrowRightLeft className="text-secondary mr-2" size={20} />
-          Przelicznik jednostek
+           {t("calculator.converter")}
         </h4>
         <div className="space-y-4">
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Z
+               {t("calculator.from")}
             </Label>
             <div className="flex space-x-2">
               <Input
@@ -67,7 +69,7 @@ export default function UnitConverter() {
           </div>
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Na
+               {t("calculator.to")}
             </Label>
             <div className="flex space-x-2">
               <Input
@@ -96,7 +98,7 @@ export default function UnitConverter() {
             onClick={handleConvert}
             data-testid="button-convert"
           >
-            Przelicz
+            {t("calculator.convert")}
           </Button>
         </div>
       </CardContent>

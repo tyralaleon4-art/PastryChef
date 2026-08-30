@@ -10,6 +10,7 @@ import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n";
 import RecipeCategoryDialog from "./recipe-category-dialog";
 import type { InsertRecipe, Category, Ingredient, RecipeWithDetails } from "@shared/schema";
 
@@ -38,6 +39,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
   const [instructions, setInstructions] = useState<string[]>([]);
   const [recipeIngredients, setRecipeIngredients] = useState<RecipeIngredientItem[]>([]);
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: categories = [] } = useQuery<Category[]>({
@@ -202,16 +204,16 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
       setOpen(false);
       resetForm();
       toast({
-        title: mode === "edit" ? "Przepis zaktualizowany" : "Przepis dodany",
+        title: mode === "edit" ? t("recipeForm.updated") : t("recipeForm.created"),
         description: mode === "edit" 
-          ? "Przepis został pomyślnie zaktualizowany." 
-          : "Przepis został pomyślnie dodany.",
+          ? t("recipeForm.updatedDescription")
+          : t("recipeForm.createdDescription"),
       });
     },
     onError: () => {
       toast({
-        title: "Błąd",
-        description: mode === "edit" ? "Nie udało się zaktualizować przepisu." : "Nie udało się dodać przepisu.",
+        title: t("common.error"),
+        description: mode === "edit" ? t("recipeForm.updateFailed") : t("recipeForm.createFailed"),
         variant: "destructive",
       });
     },
@@ -282,19 +284,20 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title={mode === "edit" ? "Edytuj przepis" : "Dodaj nowy przepis"}
+      title={mode === "edit" ? t("recipeForm.edit") : t("recipeForm.add")}
+      description={t("recipeForm.dialogDescription")}
       className="sm:max-w-3xl max-h-[90vh] overflow-y-auto"
       testId="dialog-add-recipe"
       trigger={trigger || (
         <Button data-testid="button-add-recipe">
           <Plus size={16} className="mr-2" />
-          Dodaj przepis
+          {t("recipes.add")}
         </Button>
       )}
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-            Anuluj
+            {t("common.cancel")}
           </Button>
           <Button 
             type="submit" 
@@ -303,8 +306,8 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
             data-testid="button-save-recipe"
           >
             {createRecipe.isPending 
-              ? (mode === "edit" ? "Zapisywanie..." : "Dodawanie...") 
-              : (mode === "edit" ? "Zaktualizuj przepis" : "Dodaj przepis")
+              ? (mode === "edit" ? t("common.saving") : t("recipeForm.adding"))
+              : (mode === "edit" ? t("recipeForm.update") : t("recipes.add"))
             }
           </Button>
         </div>
@@ -314,12 +317,12 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Nazwa przepisu</Label>
+              <Label htmlFor="name">{t("recipeForm.name")}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="np. Sernik krakowski"
+                placeholder={t("recipeForm.namePlaceholder")}
                 style={{ fontSize: '16px' }}
                 required
                 data-testid="input-recipe-name"
@@ -327,14 +330,14 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
             </div>
 
             <div>
-              <Label htmlFor="category">Kategoria</Label>
+              <Label htmlFor="category">{t("recipes.category")}</Label>
               <div className="flex space-x-2">
                 <Select value={categoryId} onValueChange={setCategoryId} data-testid="select-recipe-category">
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Wybierz kategorię" />
+                    <SelectValue placeholder={t("recipeForm.selectCategory")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Bez kategorii</SelectItem>
+                    <SelectItem value="none">{t("recipeForm.noCategory")}</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -348,12 +351,12 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
           </div>
 
           <div>
-            <Label htmlFor="description">Opis (opcjonalnie)</Label>
+            <Label htmlFor="description">{t("recipeForm.description")}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Opis przepisu..."
+              placeholder={t("recipeForm.descriptionPlaceholder")}
               rows={3}
               data-testid="input-recipe-description"
             />
@@ -361,28 +364,28 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
 
           {/* Recipe Scaling Metadata (Optional) */}
           <div>
-            <Label htmlFor="totalYieldGrams">Całkowita wydajność (g) — opcjonalnie</Label>
+            <Label htmlFor="totalYieldGrams">{t("recipeForm.totalYield")}</Label>
             <Input
               id="totalYieldGrams"
               type="number"
               step="1"
               value={totalYieldGrams}
               onChange={(e) => setTotalYieldGrams(e.target.value)}
-              placeholder="np. 1200 (końcowa masa gotowego wyrobu)"
+              placeholder={t("recipeForm.totalYieldPlaceholder")}
               data-testid="input-total-yield-grams"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Używane jako zapasowa wartość przy skalowaniu przepisu
+              {t("recipeForm.totalYieldHelp")}
             </p>
           </div>
 
           {/* Instructions Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <Label>Instrukcje (opcjonalnie)</Label>
+              <Label>{t("recipeForm.instructions")}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addInstruction} data-testid="button-add-instruction">
                 <Plus size={16} className="mr-2" />
-                Dodaj krok
+                {t("recipeForm.addStep")}
               </Button>
             </div>
 
@@ -396,7 +399,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
                     <Textarea
                       value={instruction}
                       onChange={(e) => updateInstruction(index, e.target.value)}
-                      placeholder={`Krok ${index + 1} — opisz co należy zrobić...`}
+                      placeholder={t("recipeForm.stepPlaceholder", { step: index + 1 })}
                       rows={2}
                       data-testid={`textarea-instruction-${index}`}
                     />
@@ -415,7 +418,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               ))}
               
               {instructions.length === 0 && (
-                <p className="text-muted-foreground text-sm">Nie dodano jeszcze żadnych kroków.</p>
+                 <p className="text-muted-foreground text-sm">{t("recipeForm.noSteps")}</p>
               )}
             </div>
           </div>
@@ -423,10 +426,10 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
           {/* Ingredients Section */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <Label>Składniki</Label>
+              <Label>{t("recipes.ingredients")}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addIngredient} data-testid="button-add-ingredient-to-recipe">
                 <Plus size={16} className="mr-2" />
-                Dodaj składnik
+                {t("ingredients.add")}
               </Button>
             </div>
 
@@ -442,7 +445,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
                         data-testid={`select-ingredient-${index}`}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Wybierz składnik" />
+                          <SelectValue placeholder={t("recipeForm.selectIngredient")} />
                         </SelectTrigger>
                         <SelectContent>
                           {ingredients.map((ingredient) => (
@@ -477,7 +480,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
                           <SelectItem value="kg">kg</SelectItem>
                           <SelectItem value="ml">ml</SelectItem>
                           <SelectItem value="l">l</SelectItem>
-                          <SelectItem value="pcs">szt.</SelectItem>
+                          <SelectItem value="pcs">{t("recipeForm.pieces")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -500,7 +503,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               })}
               
               {recipeIngredients.length === 0 && (
-                <p className="text-muted-foreground text-sm">Nie dodano jeszcze żadnych składników.</p>
+                 <p className="text-muted-foreground text-sm">{t("recipeForm.noIngredients")}</p>
               )}
             </div>
           </div>
@@ -511,14 +514,14 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               <div className="flex items-center justify-between mb-3">
                 <h4 className="font-medium flex items-center">
                   <Calculator size={16} className="mr-2" />
-                  Analiza przepisu
+                  {t("recipeForm.analysis")}
                 </h4>
                 <div className="text-right">
                   <div className="text-lg font-bold text-primary">
-                    {totalCost.toFixed(2)} PLN łącznie
+                    {t("recipeForm.totalCost", { cost: totalCost.toFixed(2) })}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Łączna masa: {(totalWeight * 1000).toFixed(0)}g
+                    {t("recipeForm.totalWeight", { weight: (totalWeight * 1000).toFixed(0) })}
                   </div>
                 </div>
               </div>
@@ -526,7 +529,7 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               {/* Ingredient breakdown with percentages */}
               {validDetails.length > 0 && (
                 <div className="mb-3">
-                  <Label className="text-sm font-medium">Podział składników:</Label>
+                  <Label className="text-sm font-medium">{t("recipeForm.ingredientBreakdown")}</Label>
                   <div className="mt-2 space-y-1">
                     {validDetails.map((detail, index) => (
                       <div key={`${detail.ingredientId}-${index}`} className="flex justify-between items-center text-sm">
@@ -544,11 +547,11 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
               
               {detectedAllergens.length > 0 && (
                 <div className="mb-3">
-                  <Label className="text-sm font-medium">Wykryte alergeny:</Label>
+                  <Label className="text-sm font-medium">{t("recipeForm.detectedAllergens")}</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {detectedAllergens.map((allergen) => (
                       <Badge key={allergen} variant="secondary" className="text-xs">
-                        {allergen}
+                        {t(`allergens.${allergen}`)}
                       </Badge>
                     ))}
                   </div>
@@ -557,13 +560,13 @@ export default function AddRecipeDialog({ trigger, recipe, mode = "add" }: AddRe
 
               <div className="flex space-x-4 text-sm">
                 <span className={isVeganCompatible ? "text-green-600" : "text-muted-foreground"}>
-                  {isVeganCompatible ? "✓" : "✗"} Wegański
+                  {isVeganCompatible ? "✓" : "✗"} {t("recipe.vegan")}
                 </span>
                 <span className={isGlutenFreeCompatible ? "text-green-600" : "text-muted-foreground"}>
-                  {isGlutenFreeCompatible ? "✓" : "✗"} Bez glutenu
+                  {isGlutenFreeCompatible ? "✓" : "✗"} {t("recipe.glutenFree")}
                 </span>
                 <span className={isLactoseFreeCompatible ? "text-green-600" : "text-muted-foreground"}>
-                  {isLactoseFreeCompatible ? "✓" : "✗"} Bez laktozy
+                  {isLactoseFreeCompatible ? "✓" : "✗"} {t("recipe.lactoseFree")}
                 </span>
               </div>
             </div>

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import {
   BarChart, 
   Archive, 
   TrendingUp, 
-  Users, 
   ChefHat, 
   Package, 
   ChartBar,
@@ -19,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import type { ProductionPlanWithDetails } from "@shared/schema";
+import { useI18n } from "@/i18n";
+import { enInventoryReports, plInventoryReports } from "@/i18n/inventory-reports";
 
 interface ProductionStats {
   totalPlans: number;
@@ -38,6 +38,12 @@ interface ProductionStats {
 
 export default function Reports() {
   const { toast } = useToast();
+  const { language } = useI18n();
+  const translations = language === "en" ? enInventoryReports : plInventoryReports;
+  const t = (key: string, values: Record<string, string | number> = {}) => {
+    const entry = translations[key];
+    return typeof entry === "function" ? entry(values) : entry ?? key;
+  };
 
   // Fetch archived production plans
   const { data: archivedPlans = [] } = useQuery<ProductionPlanWithDetails[]>({
@@ -52,10 +58,10 @@ export default function Reports() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-plans-archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
-      toast({ title: "Plan został przywrócony z archiwum" });
+      toast({ title: t("reports.restored") });
     },
     onError: () => {
-      toast({ title: "Błąd podczas przywracania planu", variant: "destructive" });
+      toast({ title: t("reports.restoreFailed"), variant: "destructive" });
     }
   });
 
@@ -122,16 +128,16 @@ export default function Reports() {
     <div className="flex h-screen">
       <Sidebar />
       <div className="flex-1 flex flex-col">
-        <Header title="Raporty" />
+        <Header title={t("reports.header")} />
         <main className="flex-1 overflow-auto p-6 pb-20 md:pb-6">
           <div className="max-w-7xl mx-auto space-y-8">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-foreground" data-testid="reports-title">
-                  Raporty i statystyki
+                  {t("reports.title")}
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  Przegląd statystyk produkcji i zarchiwizowanych planów
+                  {t("reports.subtitle")}
                 </p>
               </div>
             </div>
@@ -140,11 +146,11 @@ export default function Reports() {
               <TabsList>
                 <TabsTrigger value="statistics" className="flex items-center space-x-2">
                   <ChartBar className="w-4 h-4" />
-                  <span>Statystyki</span>
+                  <span>{t("reports.statistics")}</span>
                 </TabsTrigger>
                 <TabsTrigger value="archived" className="flex items-center space-x-2">
                   <Archive className="w-4 h-4" />
-                  <span>Archiwum planów ({archivedPlans.length})</span>
+                  <span>{t("reports.archiveTab", { count: archivedPlans.length })}</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -153,7 +159,7 @@ export default function Reports() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Łącznie planów</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t("reports.totalPlans")}</CardTitle>
                       <BarChart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -161,14 +167,14 @@ export default function Reports() {
                         {stats.totalPlans}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Aktywne: {stats.activePlans} | Zarchiwizowane: {stats.archivedPlans}
+                        {t("reports.planBreakdown", { active: stats.activePlans, archived: stats.archivedPlans })}
                       </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Unikalne przepisy</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t("reports.uniqueRecipes")}</CardTitle>
                       <ChefHat className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -176,14 +182,14 @@ export default function Reports() {
                         {stats.totalRecipes}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Użyte w planach produkcji
+                        {t("reports.usedInPlans")}
                       </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Unikalne składniki</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t("reports.uniqueIngredients")}</CardTitle>
                       <Package className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -191,14 +197,14 @@ export default function Reports() {
                         {stats.totalIngredients}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Użyte w przepisach
+                        {t("reports.usedInRecipes")}
                       </p>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Współczynnik aktywności</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t("reports.activityRate")}</CardTitle>
                       <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
@@ -206,7 +212,7 @@ export default function Reports() {
                         {stats.totalPlans > 0 ? Math.round((stats.activePlans / stats.totalPlans) * 100) : 0}%
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Aktywne plany vs wszystkie
+                        {t("reports.activeVsAll")}
                       </p>
                     </CardContent>
                   </Card>
@@ -218,7 +224,7 @@ export default function Reports() {
                     <CardHeader>
                       <CardTitle className="flex items-center">
                         <ChefHat className="mr-2" size={20} />
-                        Najczęściej używane przepisy
+                        {t("reports.mostUsedRecipes")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -231,7 +237,7 @@ export default function Reports() {
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-muted-foreground">Brak danych</p>
+                          <p className="text-sm text-muted-foreground">{t("reports.noData")}</p>
                         )}
                       </div>
                     </CardContent>
@@ -241,7 +247,7 @@ export default function Reports() {
                     <CardHeader>
                       <CardTitle className="flex items-center">
                         <Package className="mr-2" size={20} />
-                        Najczęściej używane składniki
+                        {t("reports.mostUsedIngredients")}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -254,7 +260,7 @@ export default function Reports() {
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-muted-foreground">Brak danych</p>
+                          <p className="text-sm text-muted-foreground">{t("reports.noData")}</p>
                         )}
                       </div>
                     </CardContent>
@@ -268,7 +274,7 @@ export default function Reports() {
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <Archive className="mr-2" size={20} />
-                      Zarchiwizowane plany produkcji
+                      {t("reports.archivedProductionPlans")}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -283,12 +289,12 @@ export default function Reports() {
                                   <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
                                 )}
                                 <div className="flex items-center space-x-4 mt-2 text-sm text-muted-foreground">
-                                  <span>Przepisy: {plan.productionPlanRecipes.length}</span>
+                                   <span>{t("reports.recipes", { count: plan.productionPlanRecipes.length })}</span>
                                   <span>
-                                    Ukończone: {plan.productionPlanRecipes.filter(r => r.completed).length}
+                                     {t("reports.completed", { count: plan.productionPlanRecipes.filter(r => r.completed).length })}
                                   </span>
                                   <Badge variant="outline">
-                                    {plan.status === "active" ? "Aktywny" : plan.status === "completed" ? "Ukończony" : "Zarchiwizowany"}
+                                     {plan.status === "active" ? t("reports.active") : plan.status === "completed" ? t("reports.completedStatus") : t("reports.archived")}
                                   </Badge>
                                 </div>
                               </div>
@@ -300,7 +306,7 @@ export default function Reports() {
                                 data-testid={`button-unarchive-${plan.id}`}
                               >
                                 <RotateCcw className="mr-2" size={16} />
-                                {unarchivePlanMutation.isPending ? "Przywracanie..." : "Przywróć"}
+                                 {unarchivePlanMutation.isPending ? t("reports.restoring") : t("reports.restore")}
                               </Button>
                             </div>
                           </div>
@@ -309,9 +315,9 @@ export default function Reports() {
                     ) : (
                       <div className="text-center py-8">
                         <Archive className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-medium">Brak zarchiwizowanych planów</h3>
+                         <h3 className="text-lg font-medium">{t("reports.noArchivedPlans")}</h3>
                         <p className="text-sm text-muted-foreground">
-                          Zarchiwizowane plany będą tutaj wyświetlane
+                           {t("reports.archivedPlansHint")}
                         </p>
                       </div>
                     )}

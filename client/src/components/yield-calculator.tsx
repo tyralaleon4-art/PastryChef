@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { TrendingUp } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 export default function YieldCalculator() {
+  const { t } = useI18n();
   const [batchSize, setBatchSize] = useState<number>(24);
   const [portionSize, setPortionSize] = useState<number>(85);
   const [totalYield, setTotalYield] = useState<number>(2.04);
@@ -20,12 +22,12 @@ export default function YieldCalculator() {
       <CardContent className="p-6">
         <h4 className="font-semibold text-foreground mb-4 flex items-center">
           <TrendingUp className="text-secondary mr-2" size={20} />
-          Kalkulator wydajności
+           {t("calculator.yield")}
         </h4>
         <div className="space-y-4">
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Liczba sztuk / porcji
+               {t("calculator.batchSize")}
             </Label>
             <Input
               type="number"
@@ -37,7 +39,7 @@ export default function YieldCalculator() {
           </div>
           <div>
             <Label className="block text-sm font-medium text-muted-foreground mb-1">
-              Waga porcji (g)
+               {t("calculator.portionWeight")}
             </Label>
             <Input
               type="number"
@@ -48,7 +50,7 @@ export default function YieldCalculator() {
             />
           </div>
           <div className="bg-muted p-3 rounded-md">
-            <p className="text-xs text-muted-foreground">Łączna wydajność</p>
+            <p className="text-xs text-muted-foreground">{t("calculator.totalYield")}</p>
             <p className="text-lg font-bold text-secondary" data-testid="total-yield">
               {totalYield.toFixed(2)} kg
             </p>
@@ -58,7 +60,7 @@ export default function YieldCalculator() {
             onClick={handleCalculate}
             data-testid="button-calculate-yield"
           >
-            Oblicz wydajność
+            {t("calculator.calculateYield")}
           </Button>
         </div>
       </CardContent>

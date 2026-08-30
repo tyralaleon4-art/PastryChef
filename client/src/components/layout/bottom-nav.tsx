@@ -2,22 +2,18 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { ChartLine, BookOpen, Sprout, ClipboardList, Sparkles, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-
-const baseTabs = [
-  { name: "Pulpit", href: "/", icon: ChartLine },
-  { name: "Przepisy", href: "/recipes", icon: BookOpen },
-  { name: "Składniki", href: "/ingredients", icon: Sprout },
-  { name: "Plan", href: "/production-plan", icon: ClipboardList },
-  { name: "AI", href: "/ai-chat", icon: Sparkles },
-];
-
-const adminTab = { name: "Admin", href: "/admin", icon: Shield };
+import { useI18n } from "@/i18n";
 
 export default function BottomNav() {
   const [location] = useLocation();
   const { isAdmin } = useAuth();
-
-  const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
+  const { t } = useI18n();
+  const baseTabs = [
+    { name: t("nav.dashboard"), href: "/", icon: ChartLine }, { name: t("nav.recipes"), href: "/recipes", icon: BookOpen },
+    { name: t("nav.ingredients"), href: "/ingredients", icon: Sprout }, { name: t("nav.productionPlan"), href: "/production-plan", icon: ClipboardList },
+    { name: t("nav.ai"), href: "/ai-chat", icon: Sparkles },
+  ];
+  const tabs = isAdmin ? [...baseTabs, { name: t("nav.admin"), href: "/admin", icon: Shield }] : baseTabs;
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t-2 border-sidebar-border safe-area-pb" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>

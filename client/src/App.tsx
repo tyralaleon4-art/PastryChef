@@ -20,6 +20,7 @@ import NotFound from "@/pages/not-found";
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BottomNav from "@/components/layout/bottom-nav";
+import { I18nProvider } from "@/i18n";
 
 // ─── Error Boundary ────────────────────────────────────────────────────────────
 interface EBState { error: Error | null }
@@ -28,13 +29,16 @@ class ErrorBoundary extends Component<{ children: ReactNode }, EBState> {
   static getDerivedStateFromError(error: Error) { return { error }; }
   render() {
     if (this.state.error) {
+      const isEnglish = document.documentElement.lang === "en";
       return (
         <div className="min-h-screen flex items-center justify-center bg-background p-6">
           <div className="max-w-md w-full text-center space-y-4">
             <AlertTriangle className="mx-auto text-destructive" size={48} />
-            <h1 className="text-xl font-bold">Coś poszło nie tak</h1>
+            <h1 className="text-xl font-bold">{isEnglish ? "Something went wrong" : "Coś poszło nie tak"}</h1>
             <p className="text-muted-foreground text-sm">
-              Jeśli to pierwsza instalacja na Render — uruchom migrację bazy danych w Render Shell:
+              {isEnglish
+                ? "If this is the first installation, run the database migration in the application shell:"
+                : "Jeśli to pierwsza instalacja, uruchom migrację bazy danych w konsoli aplikacji:"}
             </p>
             <pre className="bg-muted rounded p-3 text-left text-xs overflow-auto">
               npx tsx server/migrate.ts
@@ -44,7 +48,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, EBState> {
             </p>
             <Button onClick={() => window.location.reload()} className="gap-2">
               <RefreshCw size={16} />
-              Odśwież stronę
+              {isEnglish ? "Refresh page" : "Odśwież stronę"}
             </Button>
           </div>
         </div>
@@ -98,8 +102,10 @@ function App() {
         <TooltipProvider>
           <ErrorBoundary>
             <AuthProvider>
-              <Toaster />
-              <ProtectedRouter />
+              <I18nProvider>
+                <Toaster />
+                <ProtectedRouter />
+              </I18nProvider>
             </AuthProvider>
           </ErrorBoundary>
         </TooltipProvider>

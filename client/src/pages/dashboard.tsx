@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Sprout, TriangleAlert, ChevronRight, Clock, Package, Factory } from "lucide-react";
 import type { RecipeWithDetails, IngredientWithStock } from "@shared/schema";
+import { useI18n } from "@/i18n";
 
 export default function Dashboard() {
+  const { t } = useI18n();
   const { data: stats } = useQuery<{
     totalRecipes: number;
     activeIngredients: number;
@@ -36,9 +38,9 @@ export default function Dashboard() {
   };
 
   const getAlertMessage = (ingredient: IngredientWithStock) => {
-    if (ingredient.stockStatus === "expired") return "Termin ważności minął";
-    if (ingredient.stockStatus === "low") return "Poniżej minimum";
-    return "Niski stan";
+    if (ingredient.stockStatus === "expired") return t("dashboard.expired");
+    if (ingredient.stockStatus === "low") return t("dashboard.belowMinimum");
+    return t("dashboard.low");
   };
 
   return (
@@ -46,7 +48,7 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0 bg-background">
-        <Header title="Pulpit" subtitle="Witaj! Oto co dzieje się w Twojej kuchni." />
+        <Header title={t("dashboard.title")} subtitle={t("dashboard.subtitle")} />
 
         <div className="p-4 md:p-6 space-y-5">
           {/* Stats Overview */}
@@ -57,7 +59,7 @@ export default function Dashboard() {
               <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Przepisy</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("nav.recipes")}</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats?.totalRecipes ?? "—"}</p>
                   </div>
                   <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
@@ -72,7 +74,7 @@ export default function Dashboard() {
               <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Składniki</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("nav.ingredients")}</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats?.activeIngredients ?? "—"}</p>
                   </div>
                   <div className="w-10 h-10 bg-secondary/10 rounded-xl flex items-center justify-center">
@@ -87,7 +89,7 @@ export default function Dashboard() {
               <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Niski stan</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("dashboard.lowStock")}</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats?.lowStockItems ?? "—"}</p>
                   </div>
                   <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
@@ -102,7 +104,7 @@ export default function Dashboard() {
               <CardContent className="p-4 md:p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Kategorie</p>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("dashboard.categories")}</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stats?.totalCategories ?? "—"}</p>
                   </div>
                   <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
@@ -119,17 +121,17 @@ export default function Dashboard() {
 
             <Card className="bg-white border-border shadow-sm" data-testid="recent-recipes">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>Ostatnie przepisy</h3>
+                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>{t("dashboard.recentRecipes")}</h3>
                 <Link href="/recipes">
                   <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80 text-xs gap-1 h-7 px-2">
-                    Wszystkie <ChevronRight size={13} />
+                    {t("dashboard.all")} <ChevronRight size={13} />
                   </Button>
                 </Link>
               </div>
               <CardContent className="p-4">
                 <div className="space-y-2">
                   {recentRecipes.length === 0 ? (
-                    <p className="text-muted-foreground text-sm py-2">Brak przepisów — dodaj swój pierwszy!</p>
+                    <p className="text-muted-foreground text-sm py-2">{t("dashboard.noRecipes")}</p>
                   ) : (
                     recentRecipes.map((recipe) => (
                       <Link key={recipe.id} href="/recipes">
@@ -137,8 +139,8 @@ export default function Dashboard() {
                           <div className="min-w-0">
                             <p className="font-medium text-foreground text-sm truncate">{recipe.name}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {recipe.category?.name || "Bez kategorii"}
-                              {recipe.servings ? ` · ${recipe.servings} porcji` : ""}
+                              {recipe.category?.name || t("dashboard.noCategory")}
+                              {recipe.servings ? ` · ${recipe.servings} ${t("dashboard.servings")}` : ""}
                             </p>
                           </div>
                           <ChevronRight className="text-muted-foreground flex-shrink-0 ml-2" size={15} />
@@ -152,17 +154,17 @@ export default function Dashboard() {
 
             <Card className="bg-white border-border shadow-sm" data-testid="inventory-alerts">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>Alerty magazynowe</h3>
+                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>{t("dashboard.inventoryAlerts")}</h3>
                 <Link href="/inventory">
                   <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80 text-xs gap-1 h-7 px-2">
-                    Magazyn <ChevronRight size={13} />
+                    {t("nav.inventory")} <ChevronRight size={13} />
                   </Button>
                 </Link>
               </div>
               <CardContent className="p-4">
                 <div className="space-y-2">
                   {lowStockIngredients.length === 0 ? (
-                    <p className="text-muted-foreground text-sm py-2">Wszystkie stany magazynowe są w normie</p>
+                    <p className="text-muted-foreground text-sm py-2">{t("dashboard.inventoryNormal")}</p>
                   ) : (
                     lowStockIngredients.slice(0, 4).map((ingredient) => {
                       const severity = getAlertSeverity(ingredient);
@@ -208,10 +210,10 @@ export default function Dashboard() {
           {featuredRecipes.length > 0 && (
             <Card className="bg-white border-border shadow-sm" data-testid="recipe-library">
               <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>Biblioteka przepisów</h3>
+                <h3 className="font-semibold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>{t("dashboard.recipeLibrary")}</h3>
                 <Link href="/recipes">
                   <Button variant="ghost" size="sm" className="text-secondary hover:text-secondary/80 text-xs gap-1 h-7 px-2">
-                    Wszystkie <ChevronRight size={13} />
+                    {t("dashboard.all")} <ChevronRight size={13} />
                   </Button>
                 </Link>
               </div>
@@ -233,7 +235,7 @@ export default function Dashboard() {
                   <div className="w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <BookOpen className="text-primary" size={16} />
                   </div>
-                  <span className="text-sm font-medium">Kalkulator</span>
+                  <span className="text-sm font-medium">{t("nav.calculator")}</span>
                 </CardContent>
               </Card>
             </Link>
@@ -243,7 +245,7 @@ export default function Dashboard() {
                   <div className="w-9 h-9 bg-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                     <Factory className="text-secondary" size={16} />
                   </div>
-                  <span className="text-sm font-medium">Plan produkcji</span>
+                  <span className="text-sm font-medium">{t("nav.productionPlan")}</span>
                 </CardContent>
               </Card>
             </Link>

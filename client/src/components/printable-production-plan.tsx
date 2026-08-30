@@ -1,4 +1,7 @@
 import { forwardRef } from "react";
+import { BRANDING } from "@/config/branding";
+import { useI18n } from "@/i18n";
+import { enProduction, plProduction } from "@/i18n/production";
 
 interface ScaledIngredient {
   name: string;
@@ -36,8 +39,15 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
   recipes,
   ingredientList
 }, ref) => {
-  const currentDate = new Date().toLocaleDateString('pl-PL');
-  const currentTime = new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'});
+  const { language } = useI18n();
+  const translations = language === "en" ? enProduction : plProduction;
+  const t = (key: string, values: Record<string, string | number> = {}) => {
+    const entry = translations[key] ?? key;
+    return typeof entry === "function" ? entry(values) : entry;
+  };
+  const locale = language === "en" ? "en-US" : "pl-PL";
+  const currentDate = new Date().toLocaleDateString(locale);
+  const currentTime = new Date().toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'});
 
   return (
     <div ref={ref}>
@@ -250,45 +260,45 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
             <div className="plan-description">{planDescription}</div>
           )}
           <div className="date-info">
-            Wygenerowano: {currentDate} o {currentTime}
+            {t("generated", { date: currentDate, time: currentTime })}
           </div>
         </div>
         
         <div className="summary-box">
           <div className="summary-item">
             <div className="summary-value">{recipes.length}</div>
-            <div className="summary-label">Przepisy</div>
+            <div className="summary-label">{t("recipesInPlan")}</div>
           </div>
           <div className="summary-item">
             <div className="summary-value">{ingredientList.length}</div>
-            <div className="summary-label">Składniki</div>
+            <div className="summary-label">{t("ingredients")}</div>
           </div>
           <div className="summary-item">
             <div className="summary-value">
               {Math.round(ingredientList.reduce((sum, ing) => sum + ing.totalQuantity, 0))} g
             </div>
-            <div className="summary-label">Suma składników</div>
+            <div className="summary-label">{t("ingredientTotal")}</div>
           </div>
         </div>
 
-        <div className="section-title">Przepisy ({recipes.length})</div>
+        <div className="section-title">{t("recipesInPlan")} ({recipes.length})</div>
         
         {recipes.map((recipe, index) => (
           <div key={index} className="recipe-card">
             <div className="recipe-header">
               <div className="recipe-name">{index + 1}. {recipe.recipeName}</div>
               <div className="recipe-meta">
-                Docelowo: {recipe.targetWeight} {recipe.targetUnit}<br/>
-                Skalowanie: {recipe.scaleFactor}x
+                {t("target")} {recipe.targetWeight} {recipe.targetUnit}<br/>
+                {t("scaling")} {recipe.scaleFactor}x
               </div>
             </div>
             
             <table className="ingredients-table">
               <thead>
                 <tr>
-                  <th style={{width: '50%'}}>Składnik</th>
-                  <th style={{width: '25%'}}>Ilość</th>
-                  <th style={{width: '25%'}}>Jednostka</th>
+                  <th style={{width: '50%'}}>{t("ingredient")}</th>
+                  <th style={{width: '25%'}}>{t("quantity")}</th>
+                  <th style={{width: '25%'}}>{t("unit")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -306,7 +316,7 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
             
             {recipe.instructions && recipe.instructions.length > 0 && (
               <div>
-                <strong style={{fontSize: '11px'}}>Instrukcje:</strong>
+                <strong style={{fontSize: '11px'}}>{t("instructions")}:</strong>
                 <ol className="instructions-list">
                   {recipe.instructions.map((instr, i) => (
                     <li key={i}>{instr}</li>
@@ -318,13 +328,13 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
         ))}
 
         <div className="shopping-list">
-          <div className="shopping-title">📦 Lista zakupów - suma składników</div>
+          <div className="shopping-title">{t("shoppingList")}</div>
           <table className="shopping-table">
             <thead>
               <tr>
-                <th style={{width: '40%'}}>Składnik</th>
-                <th style={{width: '20%'}}>Ilość</th>
-                <th style={{width: '40%'}}>Używane w przepisach</th>
+                <th style={{width: '40%'}}>{t("ingredient")}</th>
+                <th style={{width: '20%'}}>{t("quantity")}</th>
+                <th style={{width: '40%'}}>{t("usedInRecipes")}</th>
               </tr>
             </thead>
             <tbody>
@@ -342,7 +352,7 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
         </div>
 
         <div className="footer">
-          PastryPro - System zarządzania recepturami | Plan produkcji wygenerowany automatycznie
+          {BRANDING.productName} - {t("printFooter")}
         </div>
       </div>
     </div>

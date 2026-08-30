@@ -4,6 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import AddIngredientDialog from "@/components/add-ingredient-dialog";
+import IngredientCategoryDialog from "@/components/ingredient-category-dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Search, Plus, Edit, Trash2, Package, Sparkles, CheckCircle2, Loader2 } from "lucide-react";
+import { Search, Plus, Edit, Trash2, Package, Sparkles, CheckCircle2, Loader2, FolderCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n";
 import type { IngredientWithStock } from "@shared/schema";
 
 export default function Ingredients() {
@@ -24,6 +26,7 @@ export default function Ingredients() {
   });
   const [nutritionDone, setNutritionDone] = useState(false);
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: ingredients = [], isLoading } = useQuery<IngredientWithStock[]>({
@@ -39,15 +42,15 @@ export default function Ingredients() {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
       setNutritionDone(true);
       if (result.total === 0) {
-        toast({ title: "Wszystkie składniki mają już wartości odżywcze" });
+          toast({ title: t("ingredients.nutritionComplete") });
       } else {
         toast({
-          title: `Uzupełniono ${result.updated} z ${result.total} składników`,
-          description: result.errors.length > 0 ? `Nie udało się: ${result.errors.slice(0, 3).join(", ")}${result.errors.length > 3 ? "…" : ""}` : undefined,
+          title: t("ingredients.nutritionUpdated", { updated: result.updated, total: result.total }),
+          description: result.errors.length > 0 ? t("ingredients.nutritionErrors", { errors: `${result.errors.slice(0, 3).join(", ")}${result.errors.length > 3 ? "…" : ""}` }) : undefined,
         });
       }
     },
-    onError: () => toast({ title: "Błąd AI", description: "Nie udało się uzupełnić wartości odżywczych", variant: "destructive" }),
+    onError: () => toast({ title: t("ingredients.aiError"), description: t("ingredients.nutritionFailed"), variant: "destructive" }),
   });
 
   const deleteIngredient = useMutation({
@@ -59,14 +62,14 @@ export default function Ingredients() {
       queryClient.invalidateQueries({ queryKey: ["/api/ingredients"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
-        title: "Składnik usunięty",
-        description: "Składnik został usunięty pomyślnie.",
+        title: t("ingredients.deleted"),
+        description: t("ingredients.deletedDescription"),
       });
     },
     onError: () => {
       toast({
-        title: "Błąd",
-        description: "Nie udało się usunąć składnika. Może być używany w przepisach.",
+        title: t("common.error"),
+        description: t("ingredients.deleteFailed"),
         variant: "destructive",
       });
     },
@@ -91,9 +94,9 @@ export default function Ingredients() {
 
   const getStockBadgeText = (stockStatus: string) => {
     switch (stockStatus) {
-      case "low": return "Mały zapas";
-      case "expired": return "Przeterminowane";
-      default: return "OK";
+      case "low": return t("ingredients.stockLow");
+      case "expired": return t("ingredients.stockExpired");
+      default: return t("ingredients.stockOk");
     }
   };
 
@@ -103,22 +106,23 @@ export default function Ingredients() {
       
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <Header 
-          title="Zarządzanie składnikami" 
-          subtitle="Śledź stany magazynowe, koszty i dostawców"
+          title={t("ingredients.title")}
+          subtitle={t("ingredients.subtitle")}
           action={
             <div className="flex items-center gap-2">
+              <IngredientCategoryDialog trigger={<Button variant="outline" data-testid="button-manage-ingredient-categories"><FolderCog size={16} className="mr-2" /><span className="hidden sm:inline">{t("ingredientCategories.manage")}</span><span className="sm:hidden">{t("ingredientCategories.categories")}</span></Button>} />
               <Button
                 variant="outline"
                 onClick={() => { setNutritionDone(false); fillNutrition.mutate(); }}
                 disabled={fillNutrition.isPending}
-                title="Uzupełnij wartości odżywcze AI dla wszystkich składników"
+                title={t("ingredients.fillNutritionTitle")}
               >
                 {fillNutrition.isPending ? (
-                  <><Loader2 size={16} className="mr-2 animate-spin" />AI uzupełnia...</>
+                  <><Loader2 size={16} className="mr-2 animate-spin" />{t("ingredients.aiFilling")}</>
                 ) : nutritionDone ? (
-                  <><CheckCircle2 size={16} className="mr-2 text-green-500" />Gotowe</>
+                  <><CheckCircle2 size={16} className="mr-2 text-green-500" />{t("ingredients.done")}</>
                 ) : (
-                  <><Sparkles size={16} className="mr-2 text-amber-500" />AI: wartości odżywcze</>
+                  <><Sparkles size={16} className="mr-2 text-amber-500" />{t("ingredients.aiNutrition")}</>
                 )}
               </Button>
               <AddIngredientDialog />
@@ -134,7 +138,7 @@ export default function Ingredients() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
                 <Input 
                   className="pl-10" 
-                  placeholder="Szukaj składników..."
+                  placeholder={t("ingredients.search")}
                   style={{ fontSize: '16px' }}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -150,7 +154,7 @@ export default function Ingredients() {
                     data-testid="checkbox-filter-ingredient-vegan"
                   />
                   <label htmlFor="ingredient-vegan-filter" className="text-sm font-medium cursor-pointer">
-                    Wegański
+                    {t("recipe.vegan")}
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -161,7 +165,7 @@ export default function Ingredients() {
                     data-testid="checkbox-filter-ingredient-gluten-free"
                   />
                   <label htmlFor="ingredient-gluten-free-filter" className="text-sm font-medium cursor-pointer">
-                    Bez glutenu
+                    {t("recipe.glutenFree")}
                   </label>
                 </div>
                 <div className="flex items-center space-x-2">
@@ -172,7 +176,7 @@ export default function Ingredients() {
                     data-testid="checkbox-filter-ingredient-lactose-free"
                   />
                   <label htmlFor="ingredient-lactose-free-filter" className="text-sm font-medium cursor-pointer">
-                    Bez laktozy
+                    {t("recipe.lactoseFree")}
                   </label>
                 </div>
               </div>
@@ -189,15 +193,15 @@ export default function Ingredients() {
           ) : filteredIngredients.length === 0 ? (
             <div className="text-center py-12">
               <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground text-lg">Brak składników</p>
+              <p className="text-muted-foreground text-lg">{t("ingredients.empty")}</p>
               <p className="text-muted-foreground text-sm mt-2">
-                {search ? "Spróbuj zmienić wyszukiwanie" : "Zacznij od dodania pierwszego składnika"}
+                {search ? t("ingredients.adjustSearch") : t("ingredients.addFirst")}
               </p>
               <AddIngredientDialog 
                 trigger={
                   <Button className="mt-4" data-testid="button-create-first-ingredient">
                     <Plus size={16} className="mr-2" />
-                    Dodaj składnik
+                    {t("ingredients.add")}
                   </Button>
                 }
               />
@@ -230,7 +234,7 @@ export default function Ingredients() {
                       {/* Ingredient Details */}
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <div className="text-muted-foreground">Kategoria</div>
+                          <div className="text-muted-foreground">{t("ingredients.category")}</div>
                           <div className="mt-1">
                             {ingredient.category ? (
                               <Badge variant="secondary" className="text-xs">{ingredient.category.name}</Badge>
@@ -240,19 +244,19 @@ export default function Ingredients() {
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Cena/kg</div>
+                          <div className="text-muted-foreground">{t("ingredients.pricePerKg")}</div>
                           <div className="mt-1 font-medium">
                             {Number(ingredient.costPerUnit).toFixed(2)} PLN
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Stan</div>
+                          <div className="text-muted-foreground">{t("ingredients.stock")}</div>
                           <div className="mt-1 font-medium">
                             {Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}
                           </div>
                         </div>
                         <div>
-                          <div className="text-muted-foreground">Min. stan</div>
+                          <div className="text-muted-foreground">{t("ingredients.minimumStock")}</div>
                           <div className="mt-1 font-medium">
                             {Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}
                           </div>
@@ -262,7 +266,7 @@ export default function Ingredients() {
                       {/* Supplier */}
                       {ingredient.supplier && (
                         <div>
-                          <div className="text-sm text-muted-foreground">Dostawca</div>
+                          <div className="text-sm text-muted-foreground">{t("ingredients.supplier")}</div>
                           <div className="mt-1 text-sm font-medium">{ingredient.supplier}</div>
                         </div>
                       )}
@@ -270,11 +274,11 @@ export default function Ingredients() {
                       {/* Allergens */}
                       {ingredient.allergens && ingredient.allergens.length > 0 && (
                         <div>
-                          <div className="text-sm text-muted-foreground mb-1">Alergeny</div>
+                           <div className="text-sm text-muted-foreground mb-1">{t("recipe.allergens")}</div>
                           <div className="flex flex-wrap gap-1">
                             {ingredient.allergens.slice(0, 3).map((allergen) => (
                               <Badge key={allergen} variant="destructive" className="text-xs">
-                                {allergen}
+                                {t(`allergens.${allergen}`)}
                               </Badge>
                             ))}
                             {ingredient.allergens.length > 3 && (
@@ -294,7 +298,7 @@ export default function Ingredients() {
                           trigger={
                             <Button size="default" variant="outline" className="flex-1 h-11" data-testid={`button-edit-mobile-${ingredient.id}`}>
                               <Edit size={16} className="mr-2" />
-                              Edytuj
+                              {t("common.edit")}
                             </Button>
                           }
                         />
@@ -306,18 +310,18 @@ export default function Ingredients() {
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Usuń składnik</AlertDialogTitle>
+                              <AlertDialogTitle>{t("ingredients.deleteTitle")}</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Usunąć „{ingredient.name}"? Tej operacji nie można cofnąć. Może to wpłynąć na przepisy korzystające z tego składnika.
+                                {t("ingredients.deleteDescription", { name: ingredient.name })}
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                              <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                               <AlertDialogAction 
                                 onClick={() => deleteIngredient.mutate(ingredient.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
-                                {deleteIngredient.isPending ? "Usuwanie..." : "Usuń"}
+                                {deleteIngredient.isPending ? t("ingredients.deleting") : t("common.delete")}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -334,15 +338,15 @@ export default function Ingredients() {
                   <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Składnik</TableHead>
-                    <TableHead>Kategoria</TableHead>
-                    <TableHead>Cena/kg</TableHead>
-                    <TableHead>Stan</TableHead>
-                    <TableHead>Min. stan</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Dostawca</TableHead>
-                    <TableHead>Alergeny</TableHead>
-                    <TableHead>Akcje</TableHead>
+                    <TableHead>{t("ingredients.name")}</TableHead>
+                    <TableHead>{t("ingredients.category")}</TableHead>
+                    <TableHead>{t("ingredients.pricePerKg")}</TableHead>
+                    <TableHead>{t("ingredients.stock")}</TableHead>
+                    <TableHead>{t("ingredients.minimumStock")}</TableHead>
+                    <TableHead>{t("ingredients.status")}</TableHead>
+                    <TableHead>{t("ingredients.supplier")}</TableHead>
+                    <TableHead>{t("recipe.allergens")}</TableHead>
+                    <TableHead>{t("recipes.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -387,7 +391,7 @@ export default function Ingredients() {
                           <div className="flex flex-wrap gap-1 max-w-32">
                             {ingredient.allergens.slice(0, 2).map((allergen) => (
                               <Badge key={allergen} variant="destructive" className="text-xs">
-                                {allergen}
+                                {t(`allergens.${allergen}`)}
                               </Badge>
                             ))}
                             {ingredient.allergens.length > 2 && (
@@ -419,18 +423,18 @@ export default function Ingredients() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Usuń składnik</AlertDialogTitle>
+                                <AlertDialogTitle>{t("ingredients.deleteTitle")}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Usunąć „{ingredient.name}"? Tej operacji nie można cofnąć. Może wpłynąć na przepisy korzystające z tego składnika.
+                                  {t("ingredients.deleteDescription", { name: ingredient.name })}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                                 <AlertDialogAction 
                                   onClick={() => deleteIngredient.mutate(ingredient.id)}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  {deleteIngredient.isPending ? "Usuwanie..." : "Usuń"}
+                                  {deleteIngredient.isPending ? t("ingredients.deleting") : t("common.delete")}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>

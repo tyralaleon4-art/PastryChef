@@ -10,6 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Plus, Send, Trash2, Sparkles, MessageSquare, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
+import { enAiAdmin, plAiAdmin } from "@/i18n/ai-admin";
 
 interface Message {
   id: string;
@@ -26,6 +28,9 @@ interface Conversation {
 }
 
 export default function AIChatPage() {
+  const { language } = useI18n();
+  const translations = language === "en" ? enAiAdmin : plAiAdmin;
+  const t = (key: string) => translations[key] as string;
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [streamingText, setStreamingText] = useState("");
@@ -47,7 +52,7 @@ export default function AIChatPage() {
   const createConversationMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/conversations", {
-        title: new Date().toLocaleString('pl-PL'),
+        title: new Date().toLocaleString(language === "en" ? "en-US" : "pl-PL"),
       });
       return res.json();
     },
@@ -164,13 +169,13 @@ export default function AIChatPage() {
           data-testid="button-new-chat"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Nowa rozmowa
+          {t("ai.newConversation")}
         </Button>
       </div>
       <ScrollArea className="flex-1">
         <div className="p-3 space-y-2">
           {conversations.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">Brak rozmów</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("ai.noConversations")}</p>
           )}
           {conversations.map((conv) => (
             <div
@@ -212,7 +217,7 @@ export default function AIChatPage() {
         </div>
 
         <div className="flex-1 flex flex-col min-h-0">
-          <Header title="Asystent AI" subtitle="Rozmawiaj z AI o przepisach, składnikach i kuchni" />
+          <Header title={t("ai.title")} subtitle={t("ai.subtitle")} />
 
           <div className="flex flex-1 overflow-hidden gap-0 md:gap-4 md:p-4 pb-16 md:pb-0">
             {/* Desktop sidebar */}
@@ -230,7 +235,7 @@ export default function AIChatPage() {
                       <span className="flex items-center gap-2 min-w-0">
                         <MessageSquare className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate text-left">
-                          {selectedTitle || "Wybierz rozmowę"}
+                           {selectedTitle || t("ai.selectConversation")}
                         </span>
                       </span>
                       <ChevronDown className="w-4 h-4 flex-shrink-0 ml-1" />
@@ -238,7 +243,7 @@ export default function AIChatPage() {
                   </SheetTrigger>
                   <SheetContent side="bottom" className="h-[70vh] flex flex-col p-0">
                     <SheetHeader className="px-4 pt-4 pb-2">
-                      <SheetTitle>Rozmowy</SheetTitle>
+                       <SheetTitle>{t("ai.conversations")}</SheetTitle>
                     </SheetHeader>
                     <div className="flex-1 overflow-hidden">
                       <ConversationList onSelect={() => setIsMobileSheetOpen(false)} />
@@ -298,7 +303,7 @@ export default function AIChatPage() {
                     <form onSubmit={handleSendMessage} className="flex gap-2">
                       <Input
                         type="text"
-                        placeholder="Zapytaj o przepis, składnik..."
+                         placeholder={t("ai.messagePlaceholder")}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         disabled={isLoading}
@@ -320,11 +325,11 @@ export default function AIChatPage() {
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
                   <Sparkles className="w-12 h-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-2 font-medium">Brak wybranej rozmowy</p>
-                  <p className="text-sm text-muted-foreground mb-6">Rozpocznij nową rozmowę lub wybierz istniejącą</p>
+                   <p className="text-muted-foreground mb-2 font-medium">{t("ai.noSelectedConversation")}</p>
+                   <p className="text-sm text-muted-foreground mb-6">{t("ai.noSelectedConversationDescription")}</p>
                   <Button onClick={() => createConversationMutation.mutate()} data-testid="button-create-first-chat">
                     <Plus className="w-4 h-4 mr-2" />
-                    Nowa rozmowa
+                     {t("ai.newConversation")}
                   </Button>
                 </div>
               )}

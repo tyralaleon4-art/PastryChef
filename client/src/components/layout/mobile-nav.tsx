@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useI18n } from "@/i18n";
+import { BRANDING } from "@/config/branding";
 import {
   ChartLine,
   BookOpen,
@@ -20,21 +22,17 @@ import {
   Settings,
 } from "lucide-react";
 
-const navigation = [
-  { name: "Pulpit", href: "/", icon: ChartLine },
-  { name: "Przepisy", href: "/recipes", icon: BookOpen },
-  { name: "Składniki", href: "/ingredients", icon: Sprout },
-  { name: "Kalkulator", href: "/calculator", icon: Calculator },
-  { name: "Plan produkcji", href: "/production-plan", icon: ClipboardList },
-  { name: "Magazyn", href: "/inventory", icon: Warehouse },
-  { name: "Raporty", href: "/reports", icon: ChartBar },
-  { name: "AI Asystent", href: "/ai-chat", icon: Sparkles },
-];
-
 export default function MobileNav() {
   const [location] = useLocation();
   const [open, setOpen] = useState(false);
   const { user, isAdmin, logout } = useAuth();
+  const { t } = useI18n();
+  const navigation = [
+    { name: t("nav.dashboard"), href: "/", icon: ChartLine }, { name: t("nav.recipes"), href: "/recipes", icon: BookOpen },
+    { name: t("nav.ingredients"), href: "/ingredients", icon: Sprout }, { name: t("nav.calculator"), href: "/calculator", icon: Calculator },
+    { name: t("nav.productionPlan"), href: "/production-plan", icon: ClipboardList }, { name: t("nav.inventory"), href: "/inventory", icon: Warehouse },
+    { name: t("nav.reports"), href: "/reports", icon: ChartBar }, { name: t("nav.ai"), href: "/ai-chat", icon: Sparkles },
+  ];
 
   const initials = user?.displayName
     ? user.displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
@@ -45,16 +43,16 @@ export default function MobileNav() {
       <SheetTrigger asChild>
         <Button variant="ghost" size="icon" className="md:hidden" data-testid="mobile-menu-trigger">
           <Menu className="h-5 w-5" />
-          <span className="sr-only">Otwórz menu</span>
+          <span className="sr-only">{t("nav.dashboard")}</span>
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0 flex flex-col bg-sidebar border-sidebar-border" data-testid="mobile-nav">
         <div className="p-5 border-b border-sidebar-border flex-shrink-0">
           <div className="flex items-center gap-3" data-testid="mobile-app-title">
-            <img src="/logo-ads.png" alt="Art de Sucre" className="w-9 h-9 object-contain rounded-lg bg-sidebar-accent p-0.5" />
+            <img src="/logo-ads.png" alt={BRANDING.productName} className="w-9 h-9 object-contain rounded-lg bg-sidebar-accent p-0.5" />
             <div>
-              <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">Art de Sucre</p>
-              <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by Leon Tyrała</p>
+              <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">{BRANDING.productName}</p>
+              <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by {BRANDING.creatorName}</p>
             </div>
           </div>
         </div>
@@ -98,7 +96,7 @@ export default function MobileNav() {
                     data-testid="mobile-nav-admin"
                   >
                     <Shield className="w-4 h-4 mr-3 flex-shrink-0" />
-                    Użytkownicy
+                    {t("nav.users")}
                   </Link>
                 </SheetClose>
               </li>
@@ -121,7 +119,7 @@ export default function MobileNav() {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate text-sidebar-foreground">{user.displayName || user.username}</p>
-                    <p className="text-xs text-sidebar-foreground/50">{isAdmin ? "Administrator" : "Pracownik"}</p>
+                    <p className="text-xs text-sidebar-foreground/50">{isAdmin ? t("role.admin") : t("role.employee")}</p>
                   </div>
                   <Settings size={14} className="text-sidebar-foreground/40 flex-shrink-0" />
                 </div>
@@ -134,7 +132,7 @@ export default function MobileNav() {
               onClick={() => { logout(); setOpen(false); }}
             >
               <LogOut size={15} className="mr-2" />
-              Wyloguj się
+              {t("auth.logout")}
             </Button>
           </div>
         )}

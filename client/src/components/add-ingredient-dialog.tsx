@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import IngredientCategoryDialog from "./ingredient-category-dialog";
+import { useI18n } from "@/i18n";
 import type { InsertIngredient, IngredientCategory, IngredientWithStock } from "@shared/schema";
 
 const POLISH_ALLERGENS = [
@@ -59,6 +60,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
   const [carbsPer100g, setCarbsPer100g] = useState("");
   const [fiberPer100g, setFiberPer100g] = useState("");
   const { toast } = useToast();
+  const { t } = useI18n();
   const queryClient = useQueryClient();
 
   const { data: categories = [] } = useQuery<IngredientCategory[]>({
@@ -70,8 +72,8 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
   const handleAIFill = async () => {
     if (!name.trim()) {
       toast({
-        title: "Wprowadź nazwę",
-        description: "Wpisz nazwę składnika, aby AI mogło go wyszukać.",
+        title: t("ingredientForm.enterName"),
+        description: t("ingredientForm.enterNameDescription"),
         variant: "destructive",
       });
       return;
@@ -124,13 +126,13 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       }
 
       toast({
-        title: "AI uzupełniło dane!",
-        description: `Znaleziono informacje o: ${data.name || name}`,
+        title: t("ingredientForm.aiFilled"),
+        description: t("ingredientForm.aiFound", { name: data.name || name }),
       });
     } catch (error) {
       toast({
-        title: "Błąd AI",
-        description: "Nie udało się pobrać danych z AI. Spróbuj ponownie.",
+        title: t("ingredients.aiError"),
+        description: t("ingredientForm.aiFailed"),
         variant: "destructive",
       });
     } finally {
@@ -180,16 +182,16 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       setOpen(false);
       resetForm();
       toast({
-        title: mode === "edit" ? "Składnik zaktualizowany" : "Składnik dodany",
+        title: mode === "edit" ? t("ingredientForm.updated") : t("ingredientForm.created"),
         description: mode === "edit" 
-          ? "Składnik został pomyślnie zaktualizowany." 
-          : "Składnik został pomyślnie dodany.",
+          ? t("ingredientForm.updatedDescription")
+          : t("ingredientForm.createdDescription"),
       });
     },
     onError: () => {
       toast({
-        title: "Błąd",
-        description: mode === "edit" ? "Nie udało się zaktualizować składnika." : "Nie udało się dodać składnika.",
+        title: t("common.error"),
+        description: mode === "edit" ? t("ingredientForm.updateFailed") : t("ingredientForm.createFailed"),
         variant: "destructive",
       });
     },
@@ -257,19 +259,20 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title={mode === "edit" ? "Edytuj składnik" : "Dodaj nowy składnik"}
+      title={mode === "edit" ? t("ingredientForm.edit") : t("ingredientForm.add")}
+      description={t("ingredientForm.dialogDescription")}
       className="sm:max-w-2xl max-h-[80vh] overflow-y-auto"
       testId="dialog-add-ingredient"
       trigger={trigger || (
         <Button data-testid="button-add-ingredient">
           <Plus size={16} className="mr-2" />
-          Dodaj składnik
+          {t("ingredients.add")}
         </Button>
       )}
       footer={
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={() => setOpen(false)} data-testid="button-cancel">
-            Anuluj
+            {t("common.cancel")}
           </Button>
           <Button 
             type="submit" 
@@ -278,8 +281,8 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
             data-testid="button-save-ingredient"
           >
             {createIngredient.isPending 
-              ? (mode === "edit" ? "Zapisywanie..." : "Dodawanie...") 
-              : (mode === "edit" ? "Zaktualizuj składnik" : "Dodaj składnik")
+              ? (mode === "edit" ? t("common.saving") : t("ingredientForm.adding"))
+              : (mode === "edit" ? t("ingredientForm.update") : t("ingredients.add"))
             }
           </Button>
         </div>
@@ -288,13 +291,13 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
       <form id="ingredient-form" onSubmit={handleSubmit} className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name">Nazwa składnika</Label>
+              <Label htmlFor="name">{t("ingredientForm.name")}</Label>
               <div className="flex gap-2">
                 <Input
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., Mąka pszenna typ 500"
+                  placeholder={t("ingredients.namePlaceholder")}
                   required
                   data-testid="input-ingredient-name"
                   className="flex-1"
@@ -305,7 +308,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                   size="icon"
                   onClick={handleAIFill}
                   disabled={isAILoading || !name.trim()}
-                  title="Wypełnij dane za pomocą AI"
+                  title={t("ingredientForm.aiFill")}
                   data-testid="button-ai-fill"
                 >
                   {isAILoading ? (
@@ -317,14 +320,14 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               </div>
             </div>
             <div>
-              <Label htmlFor="costPerUnit">Cena za kg (PLN)</Label>
+              <Label htmlFor="costPerUnit">{t("ingredientForm.pricePerKg")}</Label>
               <Input
                 id="costPerUnit"
                 type="number"
                 step="0.01"
                 value={costPerUnit}
                 onChange={(e) => setCostPerUnit(e.target.value)}
-                placeholder="e.g., 3.50"
+                placeholder={t("ingredients.pricePlaceholder")}
                 required
                 data-testid="input-price-per-kg"
               />
@@ -333,14 +336,14 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-2">
-              <Label htmlFor="category">Kategoria</Label>
+              <Label htmlFor="category">{t("ingredients.category")}</Label>
               <div className="flex space-x-2">
                 <Select value={categoryId} onValueChange={setCategoryId} data-testid="select-ingredient-category">
                   <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Wybierz kategorię" />
+                    <SelectValue placeholder={t("ingredients.selectCategory")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Bez kategorii</SelectItem>
+                    <SelectItem value="none">{t("ingredientCategories.noCategory")}</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
@@ -352,12 +355,12 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               </div>
             </div>
             <div>
-              <Label htmlFor="supplier">Dostawca</Label>
+              <Label htmlFor="supplier">{t("ingredients.supplier")}</Label>
               <Input
                 id="supplier"
                 value={supplier}
                 onChange={(e) => setSupplier(e.target.value)}
-                placeholder="np. Młyny Polskie"
+                placeholder={t("ingredientForm.supplierPlaceholder")}
                 data-testid="input-supplier"
               />
             </div>
@@ -366,7 +369,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
           {/* Allergens & Dietary Properties */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div>
-              <Label className="text-sm font-medium">Alergeny</Label>
+               <Label className="text-sm font-medium">{t("recipe.allergens")}</Label>
               <div className="grid grid-cols-2 gap-1 mt-2 max-h-32 overflow-y-auto">
                 {POLISH_ALLERGENS.map((allergen) => (
                   <div key={allergen} className="flex items-center space-x-1">
@@ -383,14 +386,14 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                       data-testid={`checkbox-allergen-${allergen.toLowerCase()}`}
                     />
                     <Label htmlFor={`allergen-${allergen}`} className="text-xs font-normal">
-                      {allergen}
+                       {t(`allergens.${allergen}`)}
                     </Label>
                   </div>
                 ))}
               </div>
             </div>
             <div>
-              <Label className="text-sm font-medium">Właściwości dietetyczne</Label>
+               <Label className="text-sm font-medium">{t("ingredientForm.dietaryProperties")}</Label>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -399,7 +402,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                     onCheckedChange={(checked) => setIsVegan(checked === true)}
                     data-testid="checkbox-ingredient-vegan"
                   />
-                  <Label htmlFor="ingredient-vegan" className="text-sm font-normal">Wegański</Label>
+                   <Label htmlFor="ingredient-vegan" className="text-sm font-normal">{t("recipe.vegan")}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -408,7 +411,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                     onCheckedChange={(checked) => setIsGlutenFree(checked === true)}
                     data-testid="checkbox-ingredient-gluten-free"
                   />
-                  <Label htmlFor="ingredient-glutenFree" className="text-sm font-normal">Bez glutenu</Label>
+                   <Label htmlFor="ingredient-glutenFree" className="text-sm font-normal">{t("recipe.glutenFree")}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox 
@@ -417,7 +420,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                     onCheckedChange={(checked) => setIsLactoseFree(checked === true)}
                     data-testid="checkbox-ingredient-lactose-free"
                   />
-                  <Label htmlFor="ingredient-lactoseFree" className="text-sm font-normal">Bez laktozy</Label>
+                   <Label htmlFor="ingredient-lactoseFree" className="text-sm font-normal">{t("recipe.lactoseFree")}</Label>
                 </div>
               </div>
             </div>
@@ -425,36 +428,36 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           {/* Recipe Scaling Metadata (Optional) */}
           <div className="border-t pt-4">
-            <Label className="text-sm font-medium mb-3 block">Parametry skalowania (opcjonalnie)</Label>
+             <Label className="text-sm font-medium mb-3 block">{t("ingredientForm.scalingParameters")}</Label>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="densityGPerMl">Gęstość (g/ml)</Label>
+                 <Label htmlFor="densityGPerMl">{t("ingredientForm.density")}</Label>
                 <Input
                   id="densityGPerMl"
                   type="number"
                   step="0.001"
                   value={densityGPerMl}
                   onChange={(e) => setDensityGPerMl(e.target.value)}
-                  placeholder="np. 1.000 woda, 0.915 olej"
+                   placeholder={t("ingredientForm.densityPlaceholder")}
                   data-testid="input-density-g-per-ml"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Do przeliczania ml/l na gramy przy skalowaniu przepisu
+                   {t("ingredientForm.densityHelp")}
                 </p>
               </div>
               <div>
-                <Label htmlFor="weightPerPieceG">Masa sztuki (g)</Label>
+                 <Label htmlFor="weightPerPieceG">{t("ingredientForm.pieceWeight")}</Label>
                 <Input
                   id="weightPerPieceG"
                   type="number"
                   step="0.1"
                   value={weightPerPieceG}
                   onChange={(e) => setWeightPerPieceG(e.target.value)}
-                  placeholder="np. 60 jajko duże, 2 migdał"
+                   placeholder={t("ingredientForm.pieceWeightPlaceholder")}
                   data-testid="input-weight-per-piece-g"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Do przeliczania sztuk na gramy przy skalowaniu przepisu
+                   {t("ingredientForm.pieceWeightHelp")}
                 </p>
               </div>
             </div>
@@ -462,10 +465,10 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           {/* Nutritional Values per 100g */}
           <div className="border-t pt-4">
-            <Label className="text-sm font-medium mb-3 block">Wartości odżywcze (na 100g)</Label>
+             <Label className="text-sm font-medium mb-3 block">{t("ingredientForm.nutrition")}</Label>
             <div className="grid grid-cols-5 gap-2">
               <div>
-                <Label htmlFor="caloriesPer100g" className="text-xs">Kalorie (kcal)</Label>
+                 <Label htmlFor="caloriesPer100g" className="text-xs">{t("ingredientForm.calories")}</Label>
                 <Input
                   id="caloriesPer100g"
                   type="number"
@@ -477,7 +480,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                 />
               </div>
               <div>
-                <Label htmlFor="proteinPer100g" className="text-xs">Białko (g)</Label>
+                 <Label htmlFor="proteinPer100g" className="text-xs">{t("ingredientForm.protein")}</Label>
                 <Input
                   id="proteinPer100g"
                   type="number"
@@ -489,7 +492,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                 />
               </div>
               <div>
-                <Label htmlFor="fatPer100g" className="text-xs">Tłuszcz (g)</Label>
+                 <Label htmlFor="fatPer100g" className="text-xs">{t("ingredientForm.fat")}</Label>
                 <Input
                   id="fatPer100g"
                   type="number"
@@ -501,7 +504,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                 />
               </div>
               <div>
-                <Label htmlFor="carbsPer100g" className="text-xs">Węglowodany (g)</Label>
+                 <Label htmlFor="carbsPer100g" className="text-xs">{t("ingredientForm.carbs")}</Label>
                 <Input
                   id="carbsPer100g"
                   type="number"
@@ -513,7 +516,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
                 />
               </div>
               <div>
-                <Label htmlFor="fiberPer100g" className="text-xs">Błonnik (g)</Label>
+                 <Label htmlFor="fiberPer100g" className="text-xs">{t("ingredientForm.fiber")}</Label>
                 <Input
                   id="fiberPer100g"
                   type="number"
@@ -529,7 +532,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="currentStock">Stan magazynowy (kg)</Label>
+              <Label htmlFor="currentStock">{t("ingredientForm.currentStock")}</Label>
               <Input
                 id="currentStock"
                 type="number"
@@ -541,7 +544,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               />
             </div>
             <div>
-              <Label htmlFor="minimumStock">Min. stan (kg)</Label>
+              <Label htmlFor="minimumStock">{t("ingredientForm.minimumStock")}</Label>
               <Input
                 id="minimumStock"
                 type="number"
@@ -553,7 +556,7 @@ export default function AddIngredientDialog({ trigger, ingredient, mode = "add" 
               />
             </div>
             <div>
-              <Label htmlFor="expiryDate">Data ważności</Label>
+              <Label htmlFor="expiryDate">{t("ingredientForm.expiryDate")}</Label>
               <Input
                 id="expiryDate"
                 type="date"

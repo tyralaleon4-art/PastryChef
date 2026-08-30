@@ -11,12 +11,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
-import { AlertTriangle, Clock, Package, Plus, RefreshCw } from "lucide-react";
+import { AlertTriangle, Clock, Package, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { IngredientWithStock, InventoryLog } from "@shared/schema";
+import { useI18n } from "@/i18n";
+import { enInventoryReports, plInventoryReports } from "@/i18n/inventory-reports";
 
 export default function Inventory() {
   const { toast } = useToast();
+  const { language } = useI18n();
+  const translations = language === "en" ? enInventoryReports : plInventoryReports;
+  const t = (key: string, values: Record<string, string | number> = {}) => {
+    const entry = translations[key];
+    return typeof entry === "function" ? entry(values) : entry ?? key;
+  };
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false);
   const [logForm, setLogForm] = useState({ ingredientId: "", quantity: "", type: "restock", notes: "" });
 
@@ -41,16 +49,16 @@ export default function Inventory() {
       queryClient.invalidateQueries({ queryKey: ["/api/inventory/low-stock"] });
       setIsLogDialogOpen(false);
       setLogForm({ ingredientId: "", quantity: "", type: "restock", notes: "" });
-      toast({ title: "Transakcja zapisana" });
+      toast({ title: t("inventory.saved") });
     },
     onError: () => {
-      toast({ title: "Błąd", description: "Nie udało się zapisać transakcji.", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("inventory.saveFailed"), variant: "destructive" });
     }
   });
 
   const handleLogSubmit = () => {
     if (!logForm.ingredientId || !logForm.quantity) {
-      toast({ title: "Wypełnij wymagane pola", variant: "destructive" });
+      toast({ title: t("inventory.requiredFields"), variant: "destructive" });
       return;
     }
     logMutation.mutate({
@@ -78,10 +86,10 @@ export default function Inventory() {
 
   const getLogTypeLabel = (type: string) => {
     switch (type) {
-      case "restock": return "Uzupełnienie";
-      case "usage": return "Użycie";
-      case "adjustment": return "Korekta";
-      case "expired": return "Przeterminowane";
+      case "restock": return t("inventory.restock");
+      case "usage": return t("inventory.usage");
+      case "adjustment": return t("inventory.adjustment");
+      case "expired": return t("inventory.expired");
       default: return type;
     }
   };
@@ -95,24 +103,24 @@ export default function Inventory() {
 
         <div className="flex-1 flex flex-col min-h-0">
           <Header
-            title="Magazyn"
-            subtitle="Poziomy zapasów, alerty i historia transakcji"
+            title={t("inventory.title")}
+            subtitle={t("inventory.subtitle")}
             action={
               <ResponsiveDialog
                 open={isLogDialogOpen}
                 onOpenChange={setIsLogDialogOpen}
-                title="Nowa transakcja"
+                title={t("inventory.newTransaction")}
                 trigger={
                   <Button data-testid="button-add-inventory-log">
                     <Plus size={16} className="mr-2" />
-                    Transakcja
+                    {t("inventory.transaction")}
                   </Button>
                 }
                 footer={
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsLogDialogOpen(false)}>Anuluj</Button>
+                    <Button variant="outline" onClick={() => setIsLogDialogOpen(false)}>{t("common.cancel")}</Button>
                     <Button onClick={handleLogSubmit} disabled={logMutation.isPending}>
-                      {logMutation.isPending ? "Zapisywanie..." : "Zapisz"}
+                      {logMutation.isPending ? t("common.saving") : t("common.save")}
                     </Button>
                   </div>
                 }
@@ -120,10 +128,10 @@ export default function Inventory() {
               >
                 <div className="space-y-4">
                   <div>
-                    <Label>Składnik</Label>
+                    <Label>{t("inventory.ingredient")}</Label>
                     <Select value={logForm.ingredientId} onValueChange={v => setLogForm(f => ({ ...f, ingredientId: v }))}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Wybierz składnik..." />
+                        <SelectValue placeholder={t("inventory.selectIngredient")} />
                       </SelectTrigger>
                       <SelectContent>
                         {ingredients.map((ing: any) => (
@@ -133,7 +141,7 @@ export default function Inventory() {
                     </Select>
                   </div>
                   <div>
-                    <Label>Ilość</Label>
+                    <Label>{t("inventory.quantity")}</Label>
                     <Input
                       type="number"
                       placeholder="0"
@@ -142,23 +150,23 @@ export default function Inventory() {
                     />
                   </div>
                   <div>
-                    <Label>Typ transakcji</Label>
+                    <Label>{t("inventory.transactionType")}</Label>
                     <Select value={logForm.type} onValueChange={v => setLogForm(f => ({ ...f, type: v }))}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="restock">Uzupełnienie</SelectItem>
-                        <SelectItem value="usage">Użycie</SelectItem>
-                        <SelectItem value="adjustment">Korekta</SelectItem>
-                        <SelectItem value="expired">Przeterminowane</SelectItem>
+                          <SelectItem value="restock">{t("inventory.restock")}</SelectItem>
+                          <SelectItem value="usage">{t("inventory.usage")}</SelectItem>
+                          <SelectItem value="adjustment">{t("inventory.adjustment")}</SelectItem>
+                          <SelectItem value="expired">{t("inventory.expired")}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
-                    <Label>Notatka (opcjonalnie)</Label>
+                    <Label>{t("inventory.notesOptional")}</Label>
                     <Textarea
-                      placeholder="Dodatkowe informacje..."
+                      placeholder={t("inventory.notesPlaceholder")}
                       value={logForm.notes}
                       onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))}
                     />
@@ -176,15 +184,15 @@ export default function Inventory() {
                 <div className="p-4 md:p-6 border-b border-border">
                   <h3 className="text-base md:text-lg font-semibold flex items-center">
                     <AlertTriangle className="text-orange-600 mr-2 flex-shrink-0" size={20} />
-                    Alerty ({lowStockIngredients.length})
+                    {t("inventory.alerts", { count: lowStockIngredients.length })}
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-1">Składniki wymagające uwagi</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t("inventory.alertsDescription")}</p>
                 </div>
                 <CardContent className="p-4 md:p-6">
                   {lowStockIngredients.length === 0 ? (
                     <div className="text-center py-8">
                       <Package className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                      <p className="text-muted-foreground text-sm">Wszystkie składniki mają odpowiedni poziom zapasów</p>
+                      <p className="text-muted-foreground text-sm">{t("inventory.allStockNormal")}</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -197,18 +205,18 @@ export default function Inventory() {
                                 <h4 className="font-medium text-sm md:text-base">{ingredient.name}</h4>
                                 <div className="flex items-center gap-2">
                                   <Badge variant="destructive" className="text-xs">
-                                    {ingredient.stockStatus === "expired" ? "Przeterminowane" : "Mały zapas"}
+                                    {ingredient.stockStatus === "expired" ? t("inventory.expired") : t("inventory.lowStock")}
                                   </Badge>
                                 </div>
                               </div>
                               <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                                Aktualnie: <strong>{Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}</strong>
+                                 {t("inventory.current")} <strong>{Number(ingredient.currentStock).toFixed(1)} {ingredient.unit}</strong>
                                 {" · "}
-                                Minimum: {Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}
+                                 {t("inventory.minimum")} {Number(ingredient.minimumStock).toFixed(1)} {ingredient.unit}
                               </p>
                               {ingredient.expiryDate && ingredient.stockStatus === "expired" && (
                                 <p className="text-xs text-red-600 mt-1">
-                                  Termin minął: {new Date(ingredient.expiryDate).toLocaleDateString('pl-PL')}
+                                   {t("inventory.expiryPassed")} {new Date(ingredient.expiryDate).toLocaleDateString(language === "en" ? "en-US" : "pl-PL")}
                                 </p>
                               )}
                             </div>
@@ -223,21 +231,21 @@ export default function Inventory() {
               {/* Historia transakcji */}
               <Card data-testid="inventory-logs">
                 <div className="p-4 md:p-6 border-b border-border">
-                  <h3 className="text-base md:text-lg font-semibold">Ostatnie transakcje</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Historia ruchów magazynowych</p>
+                  <h3 className="text-base md:text-lg font-semibold">{t("inventory.recentTransactions")}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{t("inventory.transactionsDescription")}</p>
                 </div>
                 <CardContent className="p-4 md:p-6">
                   {inventoryLogs.length === 0 ? (
                     <div className="text-center py-8">
                       <Package className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-                      <p className="text-muted-foreground text-sm">Brak historii transakcji</p>
+                      <p className="text-muted-foreground text-sm">{t("inventory.noTransactions")}</p>
                       <Button
                         className="mt-4"
                         onClick={() => setIsLogDialogOpen(true)}
                         data-testid="button-log-first-transaction"
                       >
                         <Plus size={16} className="mr-2" />
-                        Pierwsza transakcja
+                        {t("inventory.firstTransaction")}
                       </Button>
                     </div>
                   ) : (
@@ -252,11 +260,11 @@ export default function Inventory() {
                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
                                 <h4 className="font-medium text-sm">{log.ingredient.name}</h4>
                                 <p className="text-xs text-muted-foreground">
-                                  {log.createdAt ? new Date(log.createdAt).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
+                                   {log.createdAt ? new Date(log.createdAt).toLocaleString(language === "en" ? "en-US" : "pl-PL", { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}
                                 </p>
                               </div>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {log.type === "usage" ? "Użyto" : "Dodano"}{" "}
+                                 {log.type === "usage" ? t("inventory.used") : t("inventory.added")}{" "}
                                 <strong>{Number(log.quantity).toFixed(1)} {log.ingredient.unit}</strong>
                               </p>
                               {log.notes && (

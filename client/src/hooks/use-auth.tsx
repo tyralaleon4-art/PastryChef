@@ -2,12 +2,13 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
-interface User {
+export interface User {
   id: string;
   username: string;
   displayName: string | null;
   role: string;
   createdAt: string | null;
+  language: "pl" | "en" | null;
 }
 
 interface AuthContextType {

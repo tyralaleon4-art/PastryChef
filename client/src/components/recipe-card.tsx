@@ -4,12 +4,14 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Copy, Calculator, Utensils } from "lucide-react";
 import type { RecipeWithDetails } from "@shared/schema";
 import RecipeNutrition from "./recipe-nutrition";
+import { useI18n } from "@/i18n";
 
 interface RecipeCardProps {
   recipe: RecipeWithDetails;
 }
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
+  const { t } = useI18n();
   const convertToKg = (quantity: number, unit: string, ingredient: any): number => {
     switch (unit) {
       case 'g': return quantity / 1000;
@@ -63,14 +65,14 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
               {recipe.category.name}
             </Badge>
           )}
-          {recipe.isVegan && <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-300 bg-emerald-50">Wegański</Badge>}
-          {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700 border-blue-300 bg-blue-50">Bez glutenu</Badge>}
-          {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700 border-purple-300 bg-purple-50">Bez laktozy</Badge>}
+          {recipe.isVegan && <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-300 bg-emerald-50">{t("recipe.vegan")}</Badge>}
+          {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700 border-blue-300 bg-blue-50">{t("recipe.glutenFree")}</Badge>}
+          {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700 border-purple-300 bg-purple-50">{t("recipe.lactoseFree")}</Badge>}
         </div>
 
         {recipe.allergens && recipe.allergens.length > 0 && (
           <div className="mb-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Alergeny</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{t("recipe.allergens")}</div>
             <div className="flex flex-wrap gap-1">
               {recipe.allergens.map((allergen) => (
                 <Badge key={allergen} variant="destructive" className="text-[10px]">
@@ -87,7 +89,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
 
         <div className="flex items-center justify-between pt-2 border-t border-border/60">
           <div className="text-xs text-muted-foreground">
-            {recipe.recipeIngredients.length} {recipe.recipeIngredients.length === 1 ? 'składnik' : recipe.recipeIngredients.length < 5 ? 'składniki' : 'składników'}
+            {recipe.recipeIngredients.length} {recipe.recipeIngredients.length === 1 ? t("recipe.ingredientOne") : recipe.recipeIngredients.length < 5 ? t("recipe.ingredientFew") : t("recipe.ingredientMany")}
           </div>
           <div className="flex items-center gap-0.5">
             <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary" data-testid={`button-edit-recipe-${recipe.id}`}>

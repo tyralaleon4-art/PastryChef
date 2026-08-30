@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import type { RecipeWithDetails } from "@shared/schema";
+import { BRANDING } from "@/config/branding";
 
 interface ScaledIngredient {
   ingredientId: string;
@@ -14,6 +15,8 @@ interface ScaledIngredient {
 
 interface PrintableRecipeProps {
   recipe: RecipeWithDetails;
+  author: string;
+  language: string;
   targetWeight: string;
   targetUnit: string;
   originalWeight: number;
@@ -25,6 +28,8 @@ interface PrintableRecipeProps {
 
 const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
   recipe,
+  author,
+  language,
   targetWeight,
   targetUnit,
   originalWeight,
@@ -33,8 +38,67 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
   totalCost,
   totalWeight
 }, ref) => {
-  const currentDate = new Date().toLocaleDateString('pl-PL');
-  const currentTime = new Date().toLocaleTimeString('pl-PL', {hour: '2-digit', minute: '2-digit'});
+  const isPolish = language.toLowerCase().startsWith("pl");
+  const locale = isPolish ? "pl-PL" : "en-US";
+  const currentDate = new Date().toLocaleDateString(locale);
+  const currentTime = new Date().toLocaleTimeString(locale, {hour: '2-digit', minute: '2-digit'});
+  const authorLine = isPolish ? `Receptura: ${author}` : `Recipe by ${author}`;
+  const createdByLine = isPolish
+    ? `Utworzono w ${BRANDING.createdBy}`
+    : `Created by ${BRANDING.createdBy}`;
+  const labels = isPolish ? {
+    productSheet: "Karta produktu",
+    recipe: "przepis",
+    dietary: "Właściwości dietetyczne",
+    vegetarian: "WEGETARIAŃSKIE",
+    glutenFree: "BEZ GLUTENU",
+    vegan: "WEGAŃSKIE",
+    lactoseFree: "BEZ LAKTOZY",
+    basicInfo: "Informacje podstawowe",
+    name: "Nazwa:",
+    category: "Kategoria:",
+    totalWeight: "Całkowita waga składników:",
+    yield: "Wydajność:",
+    unspecified: "nie określono",
+    costs: "Kalkulacja kosztów",
+    ingredientCost: "Koszt składników:",
+    yieldAdjustedCost: "Koszt po uwzględnieniu wydajności:",
+    date: "Data:",
+    ingredient: "SKŁADNIK",
+    quantity: "ILOŚĆ",
+    unit: "JEDNOSTKA",
+    weightShare: "UDZIAŁ WAGOWY",
+    cost: "KOSZT",
+    total: "SUMA",
+    instructions: "Instrukcja wykonania",
+    allergens: "Alergeny",
+  } : {
+    productSheet: "Product sheet",
+    recipe: "recipe",
+    dietary: "Dietary properties",
+    vegetarian: "VEGETARIAN",
+    glutenFree: "GLUTEN-FREE",
+    vegan: "VEGAN",
+    lactoseFree: "LACTOSE-FREE",
+    basicInfo: "Basic information",
+    name: "Name:",
+    category: "Category:",
+    totalWeight: "Total ingredient weight:",
+    yield: "Yield:",
+    unspecified: "not specified",
+    costs: "Cost calculation",
+    ingredientCost: "Ingredient cost:",
+    yieldAdjustedCost: "Yield-adjusted cost:",
+    date: "Date:",
+    ingredient: "INGREDIENT",
+    quantity: "QUANTITY",
+    unit: "UNIT",
+    weightShare: "WEIGHT SHARE",
+    cost: "COST",
+    total: "TOTAL",
+    instructions: "Instructions",
+    allergens: "Allergens",
+  };
   
   // Calculate ingredient percentages and costs
   const finalTotalWeight = totalWeight || scaledIngredients.reduce((sum, ing) => {
@@ -236,58 +300,59 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
 
       <div className="header">
         <div>{currentDate}, {currentTime}</div>
-        <div>Karta Produktu - {recipe.category?.name || 'przepis'}</div>
+        <div>{labels.productSheet} - {recipe.category?.name || labels.recipe}</div>
       </div>
       
       <div className="company-info">
-        <div className="company-name">Recipe by Leon Tyrała</div>
+        <div className="company-name">{authorLine}</div>
+        <div>{createdByLine}</div>
       </div>
       
       <div className="recipe-title">{recipe.name}</div>
       
       {(hasVege || hasGlutenFree || hasVegan || hasLactoseFree) && (
         <div className="tags-section">
-          <div className="section-title">Właściwości dietetyczne</div>
-          {hasVege && <span className="tag">🌱 VEGE</span>}
-          {hasGlutenFree && <span className="tag gluten-free">🌾 BEZGLUTENOWE</span>}
-          {hasVegan && <span className="tag vegan">🌿 WEGAŃSKIE</span>}
-          {hasLactoseFree && <span className="tag lactose-free">🥛 BEZ LAKTOZY</span>}
+          <div className="section-title">{labels.dietary}</div>
+          {hasVege && <span className="tag">🌱 {labels.vegetarian}</span>}
+          {hasGlutenFree && <span className="tag gluten-free">🌾 {labels.glutenFree}</span>}
+          {hasVegan && <span className="tag vegan">🌿 {labels.vegan}</span>}
+          {hasLactoseFree && <span className="tag lactose-free">🥛 {labels.lactoseFree}</span>}
         </div>
       )}
       
       <div className="info-sections">
         <div className="info-section">
-          <div className="section-title">Informacje podstawowe</div>
+          <div className="section-title">{labels.basicInfo}</div>
           <div className="info-row">
-            <span className="info-label">Nazwa:</span>
+            <span className="info-label">{labels.name}</span>
             <span>{recipe.name}</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Kategoria:</span>
-            <span>{recipe.category?.name || 'nie określono'}</span>
+            <span className="info-label">{labels.category}</span>
+            <span>{recipe.category?.name || labels.unspecified}</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Całkowita waga składników:</span>
+            <span className="info-label">{labels.totalWeight}</span>
             <span>{finalTotalWeight.toFixed(0)} g</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Wydajność:</span>
-            <span>{recipe.totalYieldGrams ? `${recipe.totalYieldGrams} g` : 'nie określono'}</span>
+            <span className="info-label">{labels.yield}</span>
+            <span>{recipe.totalYieldGrams ? `${recipe.totalYieldGrams} g` : labels.unspecified}</span>
           </div>
         </div>
         
         <div className="info-section">
-          <div className="section-title">Kalkulacja kosztów</div>
+          <div className="section-title">{labels.costs}</div>
           <div className="info-row">
-            <span className="info-label">Koszt składników:</span>
+            <span className="info-label">{labels.ingredientCost}</span>
             <span>{finalTotalCost.toFixed(2)} zł</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Koszt po uwzględnieniu wydajności:</span>
+            <span className="info-label">{labels.yieldAdjustedCost}</span>
             <span>{finalTotalCost.toFixed(2)} zł</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Data:</span>
+            <span className="info-label">{labels.date}</span>
             <span>{currentDate}</span>
           </div>
         </div>
@@ -296,11 +361,11 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
       <table className="ingredients-table">
         <thead>
           <tr>
-            <th>SKŁADNIK</th>
-            <th>ILOŚĆ</th>
-            <th>JEDNOSTKA</th>
-            <th>UDZIAŁ WAGOWY</th>
-            <th>KOSZT</th>
+            <th>{labels.ingredient}</th>
+            <th>{labels.quantity}</th>
+            <th>{labels.unit}</th>
+            <th>{labels.weightShare}</th>
+            <th>{labels.cost}</th>
           </tr>
         </thead>
         <tbody>
@@ -314,7 +379,7 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
             </tr>
           ))}
           <tr className="total-row">
-            <td><strong>SUMA</strong></td>
+            <td><strong>{labels.total}</strong></td>
             <td><strong>{finalTotalWeight.toFixed(0)}</strong></td>
             <td><strong>g</strong></td>
             <td><strong>100.0%</strong></td>
@@ -325,7 +390,7 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
       
       {recipe.instructions && recipe.instructions.length > 0 && (
         <div className="instructions-section">
-          <div className="section-title">Instrukcja wykonania</div>
+          <div className="section-title">{labels.instructions}</div>
           <ol>
             {recipe.instructions.map((instruction, index) => (
               <li key={index}><strong>{index + 1}.</strong> {instruction}</li>
@@ -336,13 +401,13 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
       
       {allergens.length > 0 && (
         <div className="allergens-section">
-          <div className="section-title">Alergeny</div>
+          <div className="section-title">{labels.allergens}</div>
           <div>{allergens.join(', ')}</div>
         </div>
       )}
       
       <div className="footer">
-        Generated by Recipe by Leon Tyrała • {currentDate} {currentTime} • Strona 1 z 1
+        {createdByLine} • {currentDate} {currentTime}
       </div>
     </div>
   );

@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Search, Plus, Utensils, Calculator, Edit, Trash2, Eye, X, ChefHat, Leaf, Wheat, Milk, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/i18n";
 import type { RecipeWithDetails, Category } from "@shared/schema";
 
 const ROW_HEIGHT = 64;
@@ -52,6 +53,7 @@ function formatQty(qty: number, unit: string): string {
 
 // ─── Recipe Preview Sheet ──────────────────────────────────────────────────────
 function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetails | null; open: boolean; onClose: () => void }) {
+  const { t } = useI18n();
   if (!recipe) return null;
   const { totalCost, costPer1Kg, totalWeightKg } = calcCost(recipe);
   const instructions: string[] = Array.isArray(recipe.instructions) ? recipe.instructions : [];
@@ -82,17 +84,17 @@ function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetai
             )}
             {recipe.isVegan && (
               <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground/80 text-xs">
-                <Leaf size={10} className="mr-1" />Wegański
+                <Leaf size={10} className="mr-1" />{t("recipe.vegan")}
               </Badge>
             )}
             {recipe.isGlutenFree && (
               <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground/80 text-xs">
-                <Wheat size={10} className="mr-1" />Bez glutenu
+                <Wheat size={10} className="mr-1" />{t("recipe.glutenFree")}
               </Badge>
             )}
             {recipe.isLactoseFree && (
               <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground/80 text-xs">
-                <Milk size={10} className="mr-1" />Bez laktozy
+                <Milk size={10} className="mr-1" />{t("recipe.lactoseFree")}
               </Badge>
             )}
           </div>
@@ -102,17 +104,17 @@ function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetai
           {/* Cost Summary */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-accent rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Koszt całkowity</p>
+              <p className="text-xs text-muted-foreground mb-1">{t("recipes.totalCost")}</p>
               <p className="font-bold text-lg text-foreground">{totalCost.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground">PLN</p>
             </div>
             <div className="bg-accent rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Koszt / kg</p>
+              <p className="text-xs text-muted-foreground mb-1">{t("recipes.costPerKg")}</p>
               <p className="font-bold text-lg text-secondary">{costPer1Kg.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground">PLN/kg</p>
             </div>
             <div className="bg-accent rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Waga łączna</p>
+              <p className="text-xs text-muted-foreground mb-1">{t("recipes.totalWeight")}</p>
               <p className="font-bold text-lg text-foreground">{(totalWeightKg * 1000).toFixed(0)}</p>
               <p className="text-xs text-muted-foreground">g</p>
             </div>
@@ -123,7 +125,7 @@ function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetai
             <div>
               <h3 className="font-semibold text-base mb-3 flex items-center gap-2">
                 <ChefHat size={16} className="text-secondary" />
-                Składniki ({recipe.recipeIngredients.length})
+                {t("recipes.ingredients")} ({recipe.recipeIngredients.length})
               </h3>
               <div className="space-y-2">
                 {recipe.recipeIngredients.map((ri, i) => {
@@ -151,7 +153,7 @@ function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetai
           {instructions.length > 0 && (
             <div>
               <Separator className="mb-4" />
-              <h3 className="font-semibold text-base mb-3">Sposób wykonania</h3>
+              <h3 className="font-semibold text-base mb-3">{t("recipes.instructions")}</h3>
               <ol className="space-y-3">
                 {instructions.map((step, i) => (
                   <li key={i} className="flex gap-3">
@@ -171,7 +173,7 @@ function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetai
               <Separator className="mb-4" />
               <h3 className="font-semibold text-base mb-3 flex items-center gap-2 text-destructive">
                 <AlertTriangle size={16} />
-                Alergeny
+                {t("recipe.allergens")}
               </h3>
               <div className="flex flex-wrap gap-2">
                 {recipe.allergens.map(a => (
@@ -185,13 +187,13 @@ function RecipePreviewSheet({ recipe, open, onClose }: { recipe: RecipeWithDetai
           {(recipe.calories || recipe.protein || recipe.fat || recipe.carbs) && (
             <div>
               <Separator className="mb-4" />
-              <h3 className="font-semibold text-base mb-3">Wartości odżywcze (na 100g)</h3>
+              <h3 className="font-semibold text-base mb-3">{t("recipes.nutritionPer100g")}</h3>
               <div className="grid grid-cols-4 gap-2 text-center">
                 {[
-                  { label: "Kcal", val: recipe.calories },
-                  { label: "Białko", val: recipe.protein ? `${recipe.protein}g` : null },
-                  { label: "Tłuszcze", val: recipe.fat ? `${recipe.fat}g` : null },
-                  { label: "Węgl.", val: recipe.carbs ? `${recipe.carbs}g` : null },
+                  { label: t("recipes.calories"), val: recipe.calories },
+                  { label: t("recipes.protein"), val: recipe.protein ? `${recipe.protein}g` : null },
+                  { label: t("recipes.fat"), val: recipe.fat ? `${recipe.fat}g` : null },
+                  { label: t("recipes.carbs"), val: recipe.carbs ? `${recipe.carbs}g` : null },
                 ].map(({ label, val }) => val ? (
                   <div key={label} className="bg-accent rounded-lg p-2">
                     <p className="text-xs text-muted-foreground">{label}</p>
@@ -218,6 +220,7 @@ function useVirtualScroll(totalItems: number, itemHeight: number, containerHeigh
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function Recipes() {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [dietaryFilters, setDietaryFilters] = useState({ vegan: false, glutenFree: false, lactoseFree: false });
@@ -237,10 +240,10 @@ export default function Recipes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-      toast({ title: "Przepis usunięty" });
+      toast({ title: t("recipes.deleted") });
     },
     onError: () => {
-      toast({ title: "Błąd", description: "Nie udało się usunąć przepisu.", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("recipes.deleteFailed"), variant: "destructive" });
     },
   });
 
@@ -278,13 +281,13 @@ export default function Recipes() {
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden pb-16 md:pb-0">
         <Header
-          title="Przepisy"
-          subtitle={`Zarządzaj i organizuj przepisy${filteredRecipes.length !== recipes.length ? ` (${filteredRecipes.length} z ${recipes.length})` : ` (${recipes.length})`}`}
+          title={t("recipes.title")}
+          subtitle={`${t("recipes.subtitle")}${filteredRecipes.length !== recipes.length ? ` (${t("recipes.filteredCount", { filtered: filteredRecipes.length, total: recipes.length })})` : ` (${recipes.length})`}`}
           action={
             <AddRecipeDialog
               trigger={
                 <Button data-testid="button-add-recipe">
-                  <Plus size={16} className="mr-2" />Nowy przepis
+                  <Plus size={16} className="mr-2" />{t("recipes.new")}
                 </Button>
               }
             />
@@ -297,7 +300,7 @@ export default function Recipes() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
               <Input
                 className="pl-10"
-                placeholder="Szukaj przepisów..."
+                placeholder={t("recipes.search")}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 data-testid="input-search-recipes"
@@ -306,10 +309,10 @@ export default function Recipes() {
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-48" data-testid="select-category-filter">
-                <SelectValue placeholder="Wszystkie kategorie" />
+                <SelectValue placeholder={t("recipes.allCategories")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Wszystkie kategorie</SelectItem>
+                <SelectItem value="all">{t("recipes.allCategories")}</SelectItem>
                 {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
@@ -317,9 +320,9 @@ export default function Recipes() {
             </Select>
             <div className="flex flex-wrap items-center gap-4">
               {[
-                { id: "vegan", label: "Wegański", key: "vegan" },
-                { id: "gluten-free", label: "Bez glutenu", key: "glutenFree" },
-                { id: "lactose-free", label: "Bez laktozy", key: "lactoseFree" },
+                { id: "vegan", label: t("recipe.vegan"), key: "vegan" },
+                { id: "gluten-free", label: t("recipe.glutenFree"), key: "glutenFree" },
+                { id: "lactose-free", label: t("recipe.lactoseFree"), key: "lactoseFree" },
               ].map(({ id, label, key }) => (
                 <div key={id} className="flex items-center space-x-2">
                   <Checkbox
@@ -344,14 +347,14 @@ export default function Recipes() {
         ) : filteredRecipes.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center py-12">
             <Utensils className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-lg">Brak przepisów</p>
+            <p className="text-muted-foreground text-lg">{t("recipes.none")}</p>
             <p className="text-muted-foreground text-sm mt-2">
-              {search || categoryFilter ? "Spróbuj zmienić wyszukiwanie lub filtr" : "Zacznij od dodania pierwszego przepisu"}
+              {search || categoryFilter ? t("recipes.adjustFilters") : t("recipes.addFirst")}
             </p>
             <AddRecipeDialog
               trigger={
                 <Button className="mt-4" data-testid="button-create-first-recipe">
-                  <Plus size={16} className="mr-2" />Dodaj przepis
+                  <Plus size={16} className="mr-2" />{t("recipes.add")}
                 </Button>
               }
             />
@@ -384,20 +387,20 @@ export default function Recipes() {
                             </div>
                             <div className="grid grid-cols-2 gap-3 text-sm">
                               <div>
-                                <div className="text-muted-foreground text-xs">Kategoria</div>
+                                <div className="text-muted-foreground text-xs">{t("recipes.category")}</div>
                                 <div className="mt-1">
                                   {recipe.category ? <Badge variant="secondary" className="text-xs">{recipe.category.name}</Badge> : <span className="text-muted-foreground">-</span>}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground text-xs">Koszt/kg</div>
+                                <div className="text-muted-foreground text-xs">{t("recipes.costPerKg")}</div>
                                 <div className="mt-1 font-bold text-secondary">{costPer1Kg.toFixed(2)} PLN/kg</div>
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-1">
-                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-700">Wegański</Badge>}
-                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700">Bez gl.</Badge>}
-                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">Bez lak.</Badge>}
+                              {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-700">{t("recipe.vegan")}</Badge>}
+                              {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700">{t("recipes.glutenFreeShort")}</Badge>}
+                              {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">{t("recipes.lactoseFreeShort")}</Badge>}
                               {recipe.allergens?.slice(0, 2).map(a => <Badge key={a} variant="destructive" className="text-xs">{a}</Badge>)}
                             </div>
                             <div className="flex items-center gap-2 pt-2 border-t">
@@ -408,11 +411,11 @@ export default function Recipes() {
                                 onClick={() => setPreviewRecipe(recipe)}
                                 data-testid={`button-preview-recipe-mobile-${recipe.id}`}
                               >
-                                <Eye size={14} className="mr-1" />Podgląd
+                                 <Eye size={14} className="mr-1" />{t("recipes.preview")}
                               </Button>
                               <AddRecipeDialog recipe={recipe} mode="edit" trigger={
                                 <Button size="sm" variant="outline" className="flex-1" data-testid={`button-edit-recipe-mobile-${recipe.id}`}>
-                                  <Edit size={14} className="mr-1" />Edytuj
+                                   <Edit size={14} className="mr-1" />{t("recipes.edit")}
                                 </Button>
                               } />
                               <AlertDialog>
@@ -423,13 +426,13 @@ export default function Recipes() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                   <AlertDialogHeader>
-                                    <AlertDialogTitle>Usuń przepis</AlertDialogTitle>
-                                    <AlertDialogDescription>Usunąć „{recipe.name}"? Tej operacji nie można cofnąć.</AlertDialogDescription>
+                                    <AlertDialogTitle>{t("recipes.deleteTitle")}</AlertDialogTitle>
+                                    <AlertDialogDescription>{t("recipes.deleteDescription", { name: recipe.name })}</AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
-                                    <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                    <AlertDialogCancel>{t("recipes.cancel")}</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => deleteRecipe.mutate(recipe.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                      Usuń
+                                      {t("recipes.delete")}
                                     </AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
@@ -455,13 +458,13 @@ export default function Recipes() {
                   <Table>
                     <TableHeader className="sticky top-0 z-10 bg-card">
                       <TableRow className="border-border">
-                        <TableHead>Przepis</TableHead>
-                        <TableHead>Kategoria</TableHead>
-                        <TableHead>Składniki</TableHead>
-                        <TableHead>Koszt / 1 kg</TableHead>
-                        <TableHead>Dieta</TableHead>
-                        <TableHead>Alergeny</TableHead>
-                        <TableHead>Akcje</TableHead>
+                        <TableHead>{t("recipes.title")}</TableHead>
+                        <TableHead>{t("recipes.category")}</TableHead>
+                        <TableHead>{t("recipes.ingredients")}</TableHead>
+                        <TableHead>{t("recipes.costPerKg")}</TableHead>
+                        <TableHead>{t("recipes.diet")}</TableHead>
+                        <TableHead>{t("recipe.allergens")}</TableHead>
+                        <TableHead>{t("recipes.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -500,16 +503,16 @@ export default function Recipes() {
                             </TableCell>
                             <TableCell>
                               <span className="font-medium">{recipe.recipeIngredients.length}</span>
-                              <span className="text-muted-foreground text-sm"> skł.</span>
+                              <span className="text-muted-foreground text-sm"> {t("recipes.ingredientsShort")}</span>
                             </TableCell>
                             <TableCell>
                               <span className="font-bold text-secondary">{costPer1Kg.toFixed(2)} PLN/kg</span>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-wrap gap-1">
-                                {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-700">V</Badge>}
-                                {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700">GF</Badge>}
-                                {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">BL</Badge>}
+                                {recipe.isVegan && <Badge variant="outline" className="text-xs text-green-700">{t("recipe.vegan")}</Badge>}
+                                {recipe.isGlutenFree && <Badge variant="outline" className="text-xs text-blue-700">{t("recipe.glutenFree")}</Badge>}
+                                {recipe.isLactoseFree && <Badge variant="outline" className="text-xs text-purple-700">{t("recipe.lactoseFree")}</Badge>}
                                 {!recipe.isVegan && !recipe.isGlutenFree && !recipe.isLactoseFree && <span className="text-muted-foreground text-sm">-</span>}
                               </div>
                             </TableCell>
@@ -531,35 +534,35 @@ export default function Recipes() {
                                   className="text-secondary hover:text-secondary hover:bg-secondary/10"
                                   onClick={() => setPreviewRecipe(recipe)}
                                   data-testid={`button-preview-recipe-${recipe.id}`}
-                                  title="Podgląd receptury"
+                                   title={t("recipes.preview")}
                                 >
                                   <Eye size={14} />
                                 </Button>
                                 <RecipeScaleDialog recipe={recipe} trigger={
-                                  <Button size="sm" variant="ghost" data-testid={`button-scale-recipe-${recipe.id}`} title="Skaluj przepis">
+                                  <Button size="sm" variant="ghost" data-testid={`button-scale-recipe-${recipe.id}`} title={t("recipes.scale")}>
                                     <Calculator size={14} />
                                   </Button>
                                 } />
                                 <AddRecipeDialog recipe={recipe} mode="edit" trigger={
-                                  <Button size="sm" variant="ghost" data-testid={`button-edit-recipe-${recipe.id}`} title="Edytuj przepis">
+                                  <Button size="sm" variant="ghost" data-testid={`button-edit-recipe-${recipe.id}`} title={t("recipes.edit")}>
                                     <Edit size={14} />
                                   </Button>
                                 } />
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
-                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" data-testid={`button-delete-recipe-${recipe.id}`} title="Usuń przepis">
+                                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" data-testid={`button-delete-recipe-${recipe.id}`} title={t("recipes.deleteTitle")}>
                                       <Trash2 size={14} />
                                     </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
                                     <AlertDialogHeader>
-                                      <AlertDialogTitle>Usuń przepis</AlertDialogTitle>
-                                      <AlertDialogDescription>Usunąć „{recipe.name}"? Tej operacji nie można cofnąć.</AlertDialogDescription>
+                                      <AlertDialogTitle>{t("recipes.deleteTitle")}</AlertDialogTitle>
+                                      <AlertDialogDescription>{t("recipes.deleteDescription", { name: recipe.name })}</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                      <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                      <AlertDialogCancel>{t("recipes.cancel")}</AlertDialogCancel>
                                       <AlertDialogAction onClick={() => deleteRecipe.mutate(recipe.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                        Usuń
+                                        {t("recipes.delete")}
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
                                   </AlertDialogContent>

@@ -16,21 +16,19 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-const navigation = [
-  { name: "Pulpit", href: "/", icon: ChartLine },
-  { name: "Przepisy", href: "/recipes", icon: BookOpen },
-  { name: "Składniki", href: "/ingredients", icon: Sprout },
-  { name: "Kalkulator", href: "/calculator", icon: Calculator },
-  { name: "Plan produkcji", href: "/production-plan", icon: ClipboardList },
-  { name: "Magazyn", href: "/inventory", icon: Warehouse },
-  { name: "Raporty", href: "/reports", icon: ChartBar },
-  { name: "AI Asystent", href: "/ai-chat", icon: Sparkles },
-];
+import { useI18n } from "@/i18n";
+import { BRANDING } from "@/config/branding";
 
 export default function Sidebar() {
   const [location] = useLocation();
   const { user, isAdmin, logout } = useAuth();
+  const { t } = useI18n();
+  const navigation = [
+    { name: t("nav.dashboard"), href: "/", icon: ChartLine }, { name: t("nav.recipes"), href: "/recipes", icon: BookOpen },
+    { name: t("nav.ingredients"), href: "/ingredients", icon: Sprout }, { name: t("nav.calculator"), href: "/calculator", icon: Calculator },
+    { name: t("nav.productionPlan"), href: "/production-plan", icon: ClipboardList }, { name: t("nav.inventory"), href: "/inventory", icon: Warehouse },
+    { name: t("nav.reports"), href: "/reports", icon: ChartBar }, { name: t("nav.ai"), href: "/ai-chat", icon: Sparkles },
+  ];
 
   const initials = user?.displayName
     ? user.displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
@@ -40,10 +38,10 @@ export default function Sidebar() {
     <aside className="hidden md:flex flex-col sidebar-nav bg-sidebar border-r border-sidebar-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3" data-testid="app-title">
-          <img src="/logo-ads.png" alt="Art de Sucre" className="w-10 h-10 object-contain rounded-lg bg-sidebar-accent p-0.5" />
+          <img src="/logo-ads.png" alt={BRANDING.productName} className="w-10 h-10 object-contain rounded-lg bg-sidebar-accent p-0.5" />
           <div>
-            <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">Art de Sucre</p>
-            <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by Leon Tyrała</p>
+            <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">{BRANDING.productName}</p>
+            <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by {BRANDING.creatorName}</p>
           </div>
         </div>
       </div>
@@ -75,7 +73,7 @@ export default function Sidebar() {
                   : "text-sidebar-primary/80 hover:bg-sidebar-accent hover:text-sidebar-primary"
               )} data-testid="nav-admin">
                 <Shield className="w-4 h-4 mr-3" />
-                Użytkownicy
+                {t("nav.users")}
               </Link>
             </li>
           )}
@@ -99,7 +97,7 @@ export default function Sidebar() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate text-sidebar-foreground">{user.displayName || user.username}</p>
                 <p className="text-xs text-sidebar-foreground/50 truncate">
-                  {isAdmin ? "Administrator" : "Pracownik"}
+                  {isAdmin ? t("role.admin") : t("role.employee")}
                 </p>
               </div>
               <Settings size={14} className="text-sidebar-foreground/40 flex-shrink-0" />
@@ -112,7 +110,7 @@ export default function Sidebar() {
             onClick={logout}
           >
             <LogOut size={15} className="mr-2" />
-            Wyloguj się
+            {t("auth.logout")}
           </Button>
         </div>
       )}

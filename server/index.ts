@@ -10,6 +10,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const PgSession = connectPgSimple(session);
+const sessionSecret = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === "production" && !sessionSecret) {
+  throw new Error("SESSION_SECRET must be configured in production.");
+}
 
 app.use(session({
   store: new PgSession({
@@ -17,7 +21,8 @@ app.use(session({
     tableName: "session",
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || "pastrypro-secret-key-change-in-production",
+  // This fallback is intentionally limited to local development.
+  secret: sessionSecret || "development-only-session-secret-not-for-production",
   resave: false,
   saveUninitialized: false,
   cookie: {

@@ -13,6 +13,7 @@ export function registerAIRoutes(app: Express): void {
   // AI ingredient info - auto-fill with price, allergens, etc.
   app.post("/api/ai/ingredient-info", async (req: Request, res: Response) => {
     try {
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
       const { name } = req.body;
       
       if (!name || typeof name !== 'string') {
@@ -69,7 +70,9 @@ Zwróć JSON:
   // AI bulk fill nutrition for all ingredients missing values
   app.post("/api/ai/fill-nutrition", async (req: Request, res: Response) => {
     try {
-      const allIngredients = await storage.getIngredients();
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const userId = req.session.userId;
+      const allIngredients = await storage.getIngredients(userId);
       const missing = allIngredients.filter(
         i => !i.caloriesPer100g && !i.proteinPer100g && !i.fatPer100g && !i.carbsPer100g
       );
@@ -116,7 +119,7 @@ Zwróć dokładnie ten JSON (liczby całkowite lub z jednym miejscem po przecink
                 fatPer100g: data.fatPer100g !== undefined ? String(data.fatPer100g) : undefined,
                 carbsPer100g: data.carbsPer100g !== undefined ? String(data.carbsPer100g) : undefined,
                 fiberPer100g: data.fiberPer100g !== undefined ? String(data.fiberPer100g) : undefined,
-              });
+              }, userId);
               updated++;
             }
           } catch (err) {
@@ -147,8 +150,9 @@ Zwróć dokładnie ten JSON (liczby całkowite lub z jednym miejscem po przecink
       }
 
       // Get all recipes with their ingredients for context
-      const recipes: RecipeWithDetails[] = await storage.getRecipes();
-      const ingredients = await storage.getIngredients();
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const recipes: RecipeWithDetails[] = await storage.getRecipes(req.session.userId);
+      const ingredients = await storage.getIngredients(req.session.userId);
       
       // Build compact context from recipes (minimize tokens)
       const recipeContext = recipes.map((r: RecipeWithDetails) => {
@@ -219,7 +223,8 @@ Odpowiadaj po polsku, konkretnie. Przy nowych przepisach podaj dokładne ilości
   app.get("/api/production-plans/:id/export", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const plan: ProductionPlanWithDetails | undefined = await storage.getProductionPlan(id);
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const plan: ProductionPlanWithDetails | undefined = await storage.getProductionPlan(id, req.session.userId);
       
       if (!plan) {
         return res.status(404).json({ error: "Production plan not found" });
@@ -326,14 +331,15 @@ Odpowiadaj po polsku, konkretnie. Przy nowych przepisach podaj dokładne ilości
   app.get("/api/recipes/:id/nutrition", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const recipes: RecipeWithDetails[] = await storage.getRecipes();
+      if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+      const recipes: RecipeWithDetails[] = await storage.getRecipes(req.session.userId);
       const recipe = recipes.find(r => r.id === id);
       
       if (!recipe) {
         return res.status(404).json({ error: "Recipe not found" });
       }
 
-      const ingredients = await storage.getIngredients();
+      const ingredients = await storage.getIngredients(req.session.userId);
       
       let totalCalories = 0;
       let totalProtein = 0;

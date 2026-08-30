@@ -16,6 +16,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, Shield, User, ChefHat, Loader2, BookOpen, Utensils, Tag, Download, CheckCircle2 } from "lucide-react";
+import { useI18n } from "@/i18n";
+import { enAiAdmin, plAiAdmin } from "@/i18n/ai-admin";
 
 interface AdminUser {
   id: string;
@@ -45,6 +47,9 @@ interface UserData {
 }
 
 function UserFormDialog({ user, onClose }: { user?: AdminUser; onClose: () => void }) {
+  const { language, t: commonT } = useI18n();
+  const translations = language === "en" ? enAiAdmin : plAiAdmin;
+  const t = (key: string) => translations[key] as string;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [form, setForm] = useState({
@@ -68,21 +73,21 @@ function UserFormDialog({ user, onClose }: { user?: AdminUser; onClose: () => vo
 
       if (user) {
         await apiRequest("PUT", `/api/admin/users/${user.id}`, payload);
-        toast({ title: "Zaktualizowano użytkownika" });
+        toast({ title: t("admin.userUpdated") });
       } else {
         if (!form.password) {
-          toast({ title: "Hasło jest wymagane", variant: "destructive" });
+          toast({ title: t("admin.passwordRequired"), variant: "destructive" });
           setIsLoading(false);
           return;
         }
         await apiRequest("POST", `/api/admin/users`, payload);
-        toast({ title: "Utworzono użytkownika" });
+        toast({ title: t("admin.userCreated") });
       }
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       onClose();
     } catch (err: any) {
-      const msg = err.message?.includes("409") ? "Nazwa użytkownika jest zajęta" : "Operacja nie powiodła się";
-      toast({ title: "Błąd", description: msg, variant: "destructive" });
+      const msg = err.message?.includes("409") ? t("admin.usernameTaken") : t("admin.operationFailed");
+      toast({ title: commonT("common.error"), description: msg, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -91,27 +96,27 @@ function UserFormDialog({ user, onClose }: { user?: AdminUser; onClose: () => vo
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label>Imię i nazwisko</Label>
+        <Label>{t("admin.fullName")}</Label>
         <Input
-          placeholder="Imię i nazwisko (opcjonalnie)"
+          placeholder={t("admin.fullNamePlaceholder")}
           value={form.displayName}
           onChange={e => setForm(f => ({ ...f, displayName: e.target.value }))}
         />
       </div>
       <div className="space-y-2">
-        <Label>Nazwa użytkownika *</Label>
+        <Label>{t("admin.username")} *</Label>
         <Input
-          placeholder="Login"
+          placeholder={t("admin.usernamePlaceholder")}
           value={form.username}
           onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label>{user ? "Nowe hasło (zostaw puste aby nie zmieniać)" : "Hasło *"}</Label>
+        <Label>{user ? t("admin.newPassword") : `${t("admin.password")} *`}</Label>
         <Input
           type="password"
-          placeholder="Min. 6 znaków"
+          placeholder={t("admin.passwordPlaceholder")}
           value={form.password}
           onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
           required={!user}
@@ -119,28 +124,34 @@ function UserFormDialog({ user, onClose }: { user?: AdminUser; onClose: () => vo
         />
       </div>
       <div className="space-y-2">
-        <Label>Rola</Label>
+        <Label>{t("admin.role")}</Label>
         <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="user">Pracownik</SelectItem>
-            <SelectItem value="admin">Administrator</SelectItem>
+            <SelectItem value="user">{t("admin.employee")}</SelectItem>
+            <SelectItem value="admin">{t("admin.administrator")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       <div className="flex gap-2 pt-2">
         <Button type="submit" className="flex-1" disabled={isLoading}>
-          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Zapisuję...</> : user ? "Zapisz zmiany" : "Utwórz użytkownika"}
+          {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("admin.saving")}</> : user ? t("admin.saveChanges") : t("admin.createUser")}
         </Button>
-        <Button type="button" variant="outline" onClick={onClose}>Anuluj</Button>
+        <Button type="button" variant="outline" onClick={onClose}>{t("admin.cancel")}</Button>
       </div>
     </form>
   );
 }
 
 function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: boolean; onClose: () => void }) {
+  const { language } = useI18n();
+  const translations = language === "en" ? enAiAdmin : plAiAdmin;
+  const t = (key: string, values?: Record<string, string | number>) => {
+    const entry = translations[key];
+    return typeof entry === "function" ? entry(values ?? {}) : entry;
+  };
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -163,23 +174,23 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       if (result.imported === 0) {
-        toast({ title: "Nic do zaimportowania", description: "Wszystkie przepisy już istnieją na Twoim koncie." });
+        toast({ title: t("admin.nothingToImport"), description: t("admin.allRecipesExist") });
       } else {
         toast({
-          title: `Zaimportowano ${result.imported} przepis${result.imported === 1 ? "" : result.imported < 5 ? "y" : "ów"}`,
-          description: result.skipped > 0 ? `Pominięto ${result.skipped} (duplikaty)` : undefined,
+          title: t("admin.recipesImported", { count: result.imported }),
+          description: result.skipped > 0 ? t("admin.duplicatesSkipped", { count: result.skipped }) : undefined,
         });
       }
     },
-    onError: () => toast({ title: "Błąd importu", variant: "destructive" }),
+    onError: () => toast({ title: t("admin.importError"), variant: "destructive" }),
   });
 
   const categoryMap = Object.fromEntries((data?.categories ?? []).map(c => [c.id, c.name]));
 
   const difficultyLabel: Record<string, string> = {
-    easy: "łatwy",
-    medium: "średni",
-    hard: "trudny",
+    easy: t("admin.easy"),
+    medium: t("admin.medium"),
+    hard: t("admin.hard"),
   };
 
   return (
@@ -188,11 +199,11 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
         <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2">
             <BookOpen size={20} className="text-primary" />
-            Przepisy — {user.displayName || user.username}
+            {t("admin.recipesForUser", { name: user.displayName || user.username })}
           </SheetTitle>
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Wczytuję..." : `${data?.recipes.length ?? 0} przepisów · ${data?.ingredients.length ?? 0} składników`}
+              {isLoading ? t("admin.loading") : t("admin.recipeIngredientCount", { recipes: data?.recipes.length ?? 0, ingredients: data?.ingredients.length ?? 0 })}
             </p>
             {!isLoading && (data?.recipes.length ?? 0) > 0 && (
               <Button
@@ -202,11 +213,11 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
                 className="flex-shrink-0"
               >
                 {importAll.isPending ? (
-                  <><Loader2 size={14} className="mr-2 animate-spin" />Importuję...</>
+                   <><Loader2 size={14} className="mr-2 animate-spin" />{t("admin.importing")}</>
                 ) : importAll.isSuccess ? (
-                  <><CheckCircle2 size={14} className="mr-2 text-green-500" />Zaimportowano</>
+                   <><CheckCircle2 size={14} className="mr-2 text-green-500" />{t("admin.imported")}</>
                 ) : (
-                  <><Download size={14} className="mr-2" />Importuj wszystkie</>
+                   <><Download size={14} className="mr-2" />{t("admin.importAll")}</>
                 )}
               </Button>
             )}
@@ -220,7 +231,7 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
         ) : !data?.recipes.length ? (
           <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
             <Utensils size={40} className="text-muted-foreground/40" />
-            <p className="text-muted-foreground">Ten użytkownik nie ma jeszcze żadnych przepisów</p>
+             <p className="text-muted-foreground">{t("admin.noUserRecipes")}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -232,9 +243,9 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
                     <span className="font-medium truncate">{recipe.name}</span>
                   </div>
                   <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
-                    {recipe.isVegan && <Badge variant="outline" className="text-green-600 text-xs">Vegan</Badge>}
-                    {recipe.isGlutenFree && <Badge variant="outline" className="text-blue-600 text-xs">Bez glutenu</Badge>}
-                    {recipe.isLactoseFree && <Badge variant="outline" className="text-purple-600 text-xs">Bez laktozy</Badge>}
+                     {recipe.isVegan && <Badge variant="outline" className="text-green-600 text-xs">{t("admin.vegan")}</Badge>}
+                     {recipe.isGlutenFree && <Badge variant="outline" className="text-blue-600 text-xs">{t("admin.glutenFree")}</Badge>}
+                     {recipe.isLactoseFree && <Badge variant="outline" className="text-purple-600 text-xs">{t("admin.lactoseFree")}</Badge>}
                   </div>
                 </div>
 
@@ -250,7 +261,7 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
                     </span>
                   )}
                   {recipe.servings && (
-                    <span>{recipe.servings} porcji</span>
+                     <span>{recipe.servings} {t("admin.servings")}</span>
                   )}
                   {recipe.prepTimeMinutes && (
                     <span>{recipe.prepTimeMinutes} min</span>
@@ -259,7 +270,7 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
                     <span className="capitalize">{difficultyLabel[recipe.difficulty] ?? recipe.difficulty}</span>
                   )}
                   {recipe.allergens && recipe.allergens.length > 0 && (
-                    <span className="text-amber-600">Alergeny: {recipe.allergens.join(", ")}</span>
+                     <span className="text-amber-600">{t("admin.allergens", { allergens: recipe.allergens.join(", ") })}</span>
                   )}
                 </div>
               </div>
@@ -272,6 +283,12 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
 }
 
 export default function Admin() {
+  const { language, t: commonT } = useI18n();
+  const translations = language === "en" ? enAiAdmin : plAiAdmin;
+  const t = (key: string, values?: Record<string, string | number>) => {
+    const entry = translations[key];
+    return typeof entry === "function" ? entry(values ?? {}) : entry;
+  };
   const { user: currentUser, isAdmin } = useAuth();
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -297,11 +314,11 @@ export default function Admin() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({ title: "Użytkownik usunięty" });
+      toast({ title: t("admin.userDeleted") });
     },
     onError: (err: any) => {
-      const msg = err.message?.includes("400") ? "Nie można usunąć własnego konta" : "Nie udało się usunąć użytkownika";
-      toast({ title: "Błąd", description: msg, variant: "destructive" });
+      const msg = err.message?.includes("400") ? t("admin.cannotDeleteOwnAccount") : t("admin.deleteUserFailed");
+      toast({ title: commonT("common.error"), description: msg, variant: "destructive" });
     },
   });
 
@@ -313,16 +330,16 @@ export default function Admin() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <Header
-          title="Zarządzanie użytkownikami"
-          subtitle="Zarządzaj kontami pracowników i uprawnieniami"
+          title={t("admin.title")}
+          subtitle={t("admin.subtitle")}
           action={
             <Dialog open={createOpen} onOpenChange={setCreateOpen}>
               <DialogTrigger asChild>
-                <Button><Plus size={16} className="mr-2" />Dodaj użytkownika</Button>
+                <Button><Plus size={16} className="mr-2" />{t("admin.addUser")}</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Utwórz nowego użytkownika</DialogTitle>
+                  <DialogTitle>{t("admin.createNewUser")}</DialogTitle>
                 </DialogHeader>
                 <UserFormDialog onClose={() => setCreateOpen(false)} />
               </DialogContent>
@@ -339,7 +356,7 @@ export default function Admin() {
                   <div className="bg-primary/10 rounded-full p-2"><User className="text-primary" size={20} /></div>
                   <div>
                     <p className="text-2xl font-bold">{users.length}</p>
-                    <p className="text-sm text-muted-foreground">Wszyscy użytkownicy</p>
+                     <p className="text-sm text-muted-foreground">{t("admin.allUsers")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -350,7 +367,7 @@ export default function Admin() {
                   <div className="bg-blue-500/10 rounded-full p-2"><ChefHat className="text-blue-500" size={20} /></div>
                   <div>
                     <p className="text-2xl font-bold">{regularUsers.length}</p>
-                    <p className="text-sm text-muted-foreground">Pracownicy</p>
+                     <p className="text-sm text-muted-foreground">{t("admin.employees")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -361,7 +378,7 @@ export default function Admin() {
                   <div className="bg-amber-500/10 rounded-full p-2"><Shield className="text-amber-500" size={20} /></div>
                   <div>
                     <p className="text-2xl font-bold">{admins.length}</p>
-                    <p className="text-sm text-muted-foreground">Administratorzy</p>
+                     <p className="text-sm text-muted-foreground">{t("admin.administrators")}</p>
                   </div>
                 </div>
               </CardContent>
@@ -371,7 +388,7 @@ export default function Admin() {
           {/* User Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Wszystkie konta</CardTitle>
+               <CardTitle>{t("admin.allAccounts")}</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -379,7 +396,7 @@ export default function Admin() {
                   <Loader2 className="animate-spin text-muted-foreground" size={24} />
                 </div>
               ) : users.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">Brak użytkowników</p>
+                 <p className="text-center text-muted-foreground py-8">{t("admin.noUsers")}</p>
               ) : (
                 <div className="space-y-2">
                   {users.map(u => (
@@ -399,20 +416,20 @@ export default function Admin() {
                           <p className="font-medium truncate">
                             {u.displayName || u.username}
                             {u.id === currentUser?.id && (
-                              <span className="ml-2 text-xs text-muted-foreground">(ty)</span>
+                               <span className="ml-2 text-xs text-muted-foreground">({t("admin.you")})</span>
                             )}
                           </p>
                           <p className="text-sm text-muted-foreground">@{u.username}</p>
                         </div>
                         <Badge variant={u.role === "admin" ? "default" : "secondary"} className="ml-2 hidden sm:inline-flex">
-                          {u.role === "admin" ? "Admin" : "Pracownik"}
+                           {u.role === "admin" ? t("admin.administrator") : t("admin.employee")}
                         </Badge>
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Pokaż przepisy"
+                           title={t("admin.showRecipes")}
                           onClick={() => { setRecipesUser(u); setRecipesOpen(true); }}
                         >
                           <BookOpen size={16} className="text-primary" />
@@ -420,7 +437,7 @@ export default function Admin() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          title="Edytuj użytkownika"
+                           title={t("admin.editUser")}
                           onClick={() => { setEditUser(u); setEditOpen(true); }}
                         >
                           <Edit size={16} />
@@ -428,24 +445,24 @@ export default function Admin() {
                         {u.id !== currentUser?.id && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title="Usuń użytkownika">
+                               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" title={t("admin.deleteUser")}>
                                 <Trash2 size={16} />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Usunąć użytkownika?</AlertDialogTitle>
+                                 <AlertDialogTitle>{t("admin.deleteUserQuestion")}</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Spowoduje to trwałe usunięcie konta <strong>{u.displayName || u.username}</strong> wraz ze wszystkimi danymi (przepisy, składniki, plany produkcji). Tej operacji nie można cofnąć.
+                                   {t("admin.deleteUserDescription", { name: u.displayName || u.username })}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
-                                <AlertDialogCancel>Anuluj</AlertDialogCancel>
+                                 <AlertDialogCancel>{t("admin.cancel")}</AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   onClick={() => deleteUser.mutate(u.id)}
                                 >
-                                  Usuń
+                                   {t("admin.delete")}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -465,7 +482,7 @@ export default function Admin() {
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edytuj użytkownika</DialogTitle>
+             <DialogTitle>{t("admin.editUser")}</DialogTitle>
           </DialogHeader>
           {editUser && (
             <UserFormDialog user={editUser} onClose={() => { setEditOpen(false); setEditUser(null); }} />

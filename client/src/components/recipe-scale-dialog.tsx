@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calculator, Copy, FileText, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { calculateRecipeWeight, scaleQuantity, formatQuantity } from "@shared/unitConversion";
 import PrintableRecipe from "./printable-recipe";
 import type { RecipeWithDetails, Ingredient } from "@shared/schema";
+import { BRANDING } from "@/config/branding";
 
 interface RecipeScaleDialogProps {
   trigger?: React.ReactNode;
@@ -36,7 +38,90 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   const [targetWeight, setTargetWeight] = useState("");
   const [targetUnit, setTargetUnit] = useState("g");
   const { toast } = useToast();
+  const { user } = useAuth();
   const printRef = useRef<HTMLDivElement>(null);
+  const isPolish = user?.language?.toLowerCase().startsWith("pl") ?? false;
+  const language = isPolish ? "pl" : "en";
+  const author = user?.displayName || user?.username || "";
+  const messages = isPolish ? {
+    dialogTitle: "Kalkulator skalowania receptury",
+    dialogDescription: "Wybierz recepturę i docelową wagę, aby przeliczyć ilości składników.",
+    scaleRecipe: "Skaluj recepturę",
+    selectRecipe: "Wybierz recepturę",
+    chooseRecipe: "Wybierz recepturę do przeskalowania",
+    targetWeight: "Docelowa waga",
+    originalWeight: "Waga początkowa:",
+    scale: "Skala:",
+    vegan: "Wegańskie",
+    glutenFree: "Bez glutenu",
+    lactoseFree: "Bez laktozy",
+    missingConversionData: "Brak danych przeliczeniowych — użyto obliczeń zastępczych",
+    additionalMissingData: (count: number) => `... i ${count} więcej`,
+    scaledIngredients: "Przeskalowane składniki",
+    copy: "Kopiuj",
+    downloadPdf: "Pobierz PDF",
+    ingredient: "Składnik",
+    original: "Początkowo",
+    scaled: "Po przeskalowaniu",
+    percentage: "Procent",
+    estimatedCost: "Szacowany koszt:",
+    unableToCalculate: "Nie można obliczyć skalowania tej receptury.",
+    unableToCalculateHint: "Sprawdź dane składników lub dodaj do receptury całkowitą wagę wydajności.",
+    unknownIngredient: "Nieznany składnik",
+    recipeClipboardLabel: "Receptura",
+    targetWeightClipboardLabel: "Docelowa waga",
+    originalWeightClipboardLabel: "Waga początkowa",
+    scaleFactorClipboardLabel: "Współczynnik skalowania",
+    scaledIngredientsClipboardLabel: "Przeskalowane składniki",
+    copiedTitle: "Skopiowano do schowka",
+    copiedDescription: "Przeskalowana receptura została skopiowana do schowka.",
+    copyFailedTitle: "Kopiowanie nie powiodło się",
+    copyFailedDescription: "Nie udało się skopiować przeskalowanej receptury do schowka.",
+    pdfDownloadedTitle: "Pobrano PDF",
+    pdfDownloadedDescription: "Przeskalowana receptura została pobrana jako plik PDF.",
+    downloadFailedTitle: "Pobieranie nie powiodło się",
+    downloadFailedDescription: "Wystąpił błąd podczas generowania PDF. Spróbuj ponownie.",
+    scaledRecipe: "Przeskalowana receptura",
+  } : {
+    dialogTitle: "Recipe Scale Calculator",
+    dialogDescription: "Select a recipe and target weight to recalculate ingredient quantities.",
+    scaleRecipe: "Scale Recipe",
+    selectRecipe: "Select Recipe",
+    chooseRecipe: "Choose a recipe to scale",
+    targetWeight: "Target Weight",
+    originalWeight: "Original:",
+    scale: "Scale:",
+    vegan: "Vegan",
+    glutenFree: "Gluten-free",
+    lactoseFree: "Lactose-free",
+    missingConversionData: "Missing conversion data — using fallback calculations",
+    additionalMissingData: (count: number) => `... and ${count} more`,
+    scaledIngredients: "Scaled Ingredients",
+    copy: "Copy",
+    downloadPdf: "Download PDF",
+    ingredient: "Ingredient",
+    original: "Original",
+    scaled: "Scaled",
+    percentage: "Percentage",
+    estimatedCost: "Estimated cost:",
+    unableToCalculate: "Unable to calculate scaling for this recipe.",
+    unableToCalculateHint: "Please check the ingredient data or add a total yield weight to the recipe.",
+    unknownIngredient: "Unknown ingredient",
+    recipeClipboardLabel: "Recipe",
+    targetWeightClipboardLabel: "Target Weight",
+    originalWeightClipboardLabel: "Original Weight",
+    scaleFactorClipboardLabel: "Scale Factor",
+    scaledIngredientsClipboardLabel: "Scaled Ingredients",
+    copiedTitle: "Copied to clipboard",
+    copiedDescription: "Scaled recipe has been copied to your clipboard.",
+    copyFailedTitle: "Copy Failed",
+    copyFailedDescription: "Unable to copy the scaled recipe to your clipboard.",
+    pdfDownloadedTitle: "PDF Downloaded",
+    pdfDownloadedDescription: "The scaled recipe has been downloaded as a PDF file.",
+    downloadFailedTitle: "Download Failed",
+    downloadFailedDescription: "There was an error generating the PDF. Please try again.",
+    scaledRecipe: "Scaled Recipe",
+  };
 
   const { data: recipes = [] } = useQuery<RecipeWithDetails[]>({
     queryKey: ["/api/recipes"],
@@ -101,7 +186,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
 
       return {
         ingredientId: ri.ingredientId,
-        ingredientName: ingredient?.name || "Unknown",
+        ingredientName: ingredient?.name || messages.unknownIngredient,
         originalQuantity: originalQty,
         originalUnit: ri.unit,
         scaledQuantity: scaledQty,
@@ -116,29 +201,37 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
       missingData: weightResult.missingData,
       canScale: true
     };
-  }, [selectedRecipe, ingredients, targetWeight, targetUnit]);
+  }, [selectedRecipe, ingredients, targetWeight, targetUnit, messages.unknownIngredient]);
 
   const handleCopyToClipboard = () => {
     if (!selectedRecipe || !canScale) return;
 
-    const text = [
-      `Recipe: ${selectedRecipe.name}`,
-      `Target Weight: ${targetWeight}${targetUnit}`,
-      `Original Weight: ${Math.round(originalWeight)}g`,
-      `Scale Factor: ${(parseFloat(targetWeight) / (originalWeight / (targetUnit === "kg" ? 1000 : 1))).toFixed(3)}x`,
+    const clipboardText = [
+      `${messages.recipeClipboardLabel}: ${selectedRecipe.name}`,
+      `${messages.targetWeightClipboardLabel}: ${targetWeight}${targetUnit}`,
+      `${messages.originalWeightClipboardLabel}: ${Math.round(originalWeight)}g`,
+      `${messages.scaleFactorClipboardLabel}: ${(parseFloat(targetWeight) / (originalWeight / (targetUnit === "kg" ? 1000 : 1))).toFixed(3)}x`,
       "",
-      "Scaled Ingredients:",
+      `${messages.scaledIngredientsClipboardLabel}:`,
       ...scaledIngredients.map(si => 
         `• ${formatQuantity(si.scaledQuantity, si.scaledUnit)} ${si.scaledUnit} ${si.ingredientName}`
       )
     ].join("\n");
 
-    navigator.clipboard.writeText(text).then(() => {
-      toast({
-        title: "Copied to clipboard",
-        description: "Scaled recipe has been copied to your clipboard."
+    navigator.clipboard.writeText(clipboardText)
+      .then(() => {
+        toast({
+          title: messages.copiedTitle,
+          description: messages.copiedDescription,
+        });
+      })
+      .catch(() => {
+        toast({
+          title: messages.copyFailedTitle,
+          description: messages.copyFailedDescription,
+          variant: "destructive",
+        });
       });
-    });
   };
 
   const totalCost = useMemo(() => {
@@ -184,9 +277,13 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     });
   }, [scaledIngredients, canScale]);
 
+  const documentTitle = selectedRecipe
+    ? `${selectedRecipe.name} - ${messages.scaledRecipe} - ${BRANDING.productName}`
+    : `${messages.scaledRecipe} - ${BRANDING.productName}`;
+
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: selectedRecipe ? `${selectedRecipe.name} - Scaled Recipe` : 'Scaled Recipe',
+    documentTitle,
     print: async (printIframe) => {
       // Custom PDF download function instead of print dialog
       try {
@@ -204,42 +301,63 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
         });
 
         // Create PDF
-        const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({
           orientation: 'portrait',
           unit: 'mm',
           format: 'a4'
         });
 
-        // Calculate dimensions to fit A4 page
-        const imgProperties = pdf.getImageProperties(imgData);
+        // Split the rendered canvas into A4-sized slices so content below the
+        // first page is retained rather than clipped.
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProperties.height * pdfWidth) / imgProperties.width;
-        
-        // Add margins
+        const pdfHeight = pdf.internal.pageSize.getHeight();
         const margin = 10;
         const availableWidth = pdfWidth - (margin * 2);
-        const availableHeight = (imgProperties.height * availableWidth) / imgProperties.width;
+        const availableHeight = pdfHeight - (margin * 2);
+        const canvasPixelsPerPage = Math.floor((availableHeight * canvas.width) / availableWidth);
 
-        // Add image to PDF with margins
-        pdf.addImage(imgData, 'PNG', margin, margin, availableWidth, availableHeight);
+        for (let sourceY = 0; sourceY < canvas.height; sourceY += canvasPixelsPerPage) {
+          const sliceHeight = Math.min(canvasPixelsPerPage, canvas.height - sourceY);
+          const pageCanvas = document.createElement("canvas");
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sliceHeight;
+          const context = pageCanvas.getContext("2d");
+          if (!context) {
+            throw new Error("Unable to create PDF page");
+          }
+          context.drawImage(
+            canvas,
+            0, sourceY, canvas.width, sliceHeight,
+            0, 0, canvas.width, sliceHeight,
+          );
+
+          if (sourceY > 0) pdf.addPage();
+          pdf.addImage(
+            pageCanvas.toDataURL("image/jpeg", 0.88),
+            "JPEG",
+            margin,
+            margin,
+            availableWidth,
+            (sliceHeight * availableWidth) / canvas.width,
+            undefined,
+            "FAST",
+          );
+        }
 
         // Download the PDF
-        const fileName = selectedRecipe 
-          ? `${selectedRecipe.name.replace(/[^a-z0-9]/gi, '_')}_Scaled_Recipe.pdf`
-          : 'Scaled_Recipe.pdf';
+        const fileName = `${documentTitle.replace(/[^a-z0-9]+/gi, "_")}.pdf`;
         
         pdf.save(fileName);
 
         toast({
-          title: "PDF Downloaded",
-          description: "The scaled recipe has been downloaded as a PDF file."
+          title: messages.pdfDownloadedTitle,
+          description: messages.pdfDownloadedDescription,
         });
       } catch (error) {
         console.error('Error generating PDF:', error);
         toast({
-          title: "Download Failed",
-          description: "There was an error generating the PDF. Please try again.",
+          title: messages.downloadFailedTitle,
+          description: messages.downloadFailedDescription,
           variant: "destructive"
         });
       }
@@ -250,13 +368,14 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     <ResponsiveDialog
       open={open}
       onOpenChange={setOpen}
-      title="Recipe Scale Calculator"
+      title={messages.dialogTitle}
+      description={messages.dialogDescription}
       className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
       testId="dialog-recipe-scale"
       trigger={trigger || (
         <Button variant="outline" data-testid="button-recipe-scale">
           <Calculator size={16} className="mr-2" />
-          Scale Recipe
+          {messages.scaleRecipe}
         </Button>
       )}
     >
@@ -264,14 +383,14 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
           {/* Recipe Selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="recipe-select">Select Recipe</Label>
+              <Label htmlFor="recipe-select">{messages.selectRecipe}</Label>
               <Select
                 value={selectedRecipeId}
                 onValueChange={setSelectedRecipeId}
                 data-testid="select-recipe-for-scaling"
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose a recipe to scale" />
+                  <SelectValue placeholder={messages.chooseRecipe} />
                 </SelectTrigger>
                 <SelectContent>
                   {recipes.map((recipe) => (
@@ -284,7 +403,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
             </div>
 
             <div>
-              <Label htmlFor="target-weight">Target Weight</Label>
+              <Label htmlFor="target-weight">{messages.targetWeight}</Label>
               <div className="flex space-x-2">
                 <Input
                   id="target-weight"
@@ -318,17 +437,17 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                     <p className="text-sm text-muted-foreground mt-1">{selectedRecipe.description}</p>
                   )}
                   <div className="flex gap-2 mt-2">
-                    {selectedRecipe.isVegan && <Badge variant="secondary">V</Badge>}
-                    {selectedRecipe.isGlutenFree && <Badge variant="secondary">GF</Badge>}
-                    {selectedRecipe.isLactoseFree && <Badge variant="secondary">LF</Badge>}
+                    {selectedRecipe.isVegan && <Badge variant="secondary">{messages.vegan}</Badge>}
+                    {selectedRecipe.isGlutenFree && <Badge variant="secondary">{messages.glutenFree}</Badge>}
+                    {selectedRecipe.isLactoseFree && <Badge variant="secondary">{messages.lactoseFree}</Badge>}
                   </div>
                 </div>
                 {canScale && (
                   <div className="text-right text-sm">
-                    <div>Original: <strong>{Math.round(originalWeight)}g</strong></div>
+                     <div>{messages.originalWeight} <strong>{Math.round(originalWeight)}g</strong></div>
                     {targetWeight && (
                       <div className="text-primary">
-                        Scale: <strong>
+                         {messages.scale} <strong>
                           {(parseFloat(targetWeight) / (originalWeight / (targetUnit === "kg" ? 1000 : 1))).toFixed(2)}x
                         </strong>
                       </div>
@@ -346,13 +465,13 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                 <AlertTriangle className="text-yellow-600 dark:text-yellow-400 mt-0.5" size={16} />
                 <div>
                   <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                    Missing conversion data - using fallback calculations
+                     {messages.missingConversionData}
                   </p>
                   <ul className="text-xs text-yellow-700 dark:text-yellow-300 mt-1 ml-2">
                     {missingData.slice(0, 3).map((item, index) => (
                       <li key={index}>• {item}</li>
                     ))}
-                    {missingData.length > 3 && <li>• ... and {missingData.length - 3} more</li>}
+                     {missingData.length > 3 && <li>• {messages.additionalMissingData(missingData.length - 3)}</li>}
                   </ul>
                 </div>
               </div>
@@ -363,7 +482,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
           {canScale && scaledIngredients.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold">Scaled Ingredients</h4>
+                <h4 className="font-semibold">{messages.scaledIngredients}</h4>
                 <div className="flex space-x-2">
                   <Button
                     variant="outline"
@@ -372,7 +491,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                     data-testid="button-copy-scaled-recipe"
                   >
                     <Copy size={14} className="mr-1" />
-                    Copy
+                    {messages.copy}
                   </Button>
                   <Button
                     variant="outline"
@@ -381,7 +500,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                     data-testid="button-print-scaled-recipe"
                   >
                     <FileText size={14} className="mr-1" />
-                    Download PDF
+                    {messages.downloadPdf}
                   </Button>
                 </div>
               </div>
@@ -390,10 +509,10 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-left p-3">Ingredient</th>
-                      <th className="text-right p-3">Original</th>
-                      <th className="text-right p-3">Scaled</th>
-                      <th className="text-right p-3">Percentage</th>
+                      <th className="text-left p-3">{messages.ingredient}</th>
+                      <th className="text-right p-3">{messages.original}</th>
+                      <th className="text-right p-3">{messages.scaled}</th>
+                      <th className="text-right p-3">{messages.percentage}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -417,7 +536,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
 
               {totalCost > 0 && (
                 <div className="mt-3 text-right text-sm">
-                  <span className="text-muted-foreground">Estimated cost: </span>
+                  <span className="text-muted-foreground">{messages.estimatedCost} </span>
                   <span className="font-semibold">{totalCost.toFixed(2)} PLN</span>
                 </div>
               )}
@@ -428,8 +547,8 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
           {(!selectedRecipe || !canScale) && selectedRecipeId && targetWeight && (
             <div className="text-center py-8 text-muted-foreground">
               <Calculator className="mx-auto mb-2" size={48} />
-              <p>Unable to calculate scaling for this recipe.</p>
-              <p className="text-sm">Please check the ingredient data or add a total yield weight to the recipe.</p>
+              <p>{messages.unableToCalculate}</p>
+              <p className="text-sm">{messages.unableToCalculateHint}</p>
             </div>
           )}
         </div>
@@ -440,6 +559,8 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
             <PrintableRecipe
               ref={printRef}
               recipe={selectedRecipe}
+              author={author}
+              language={language}
               targetWeight={targetWeight}
               targetUnit={targetUnit}
               originalWeight={originalWeight}

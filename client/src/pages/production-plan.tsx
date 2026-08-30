@@ -38,6 +38,8 @@ type ProductionPlanRecipeWithDetails = ProductionPlanRecipe & {
 };
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
+import { useI18n } from "@/i18n";
+import { enProduction, plProduction } from "@/i18n/production";
 
 interface ScaledIngredientRequirement {
   ingredientId: string;
@@ -53,6 +55,12 @@ interface ScaledIngredientRequirement {
 
 
 export default function ProductionPlan() {
+  const { language } = useI18n();
+  const translations = language === "en" ? enProduction : plProduction;
+  const t = (key: string, values: Record<string, string | number> = {}) => {
+    const entry = translations[key] ?? key;
+    return typeof entry === "function" ? entry(values) : entry;
+  };
   const [selectedPlanId, setSelectedPlanId] = useState("");
   const [selectedPlan, setSelectedPlan] = useState<ProductionPlanWithDetails | null>(null);
   const [newPlanName, setNewPlanName] = useState("");
@@ -136,10 +144,10 @@ export default function ProductionPlan() {
       setNewPlanName("");
       setNewPlanDescription("");
       setIsNewPlanDialogOpen(false);
-      toast({ title: "Plan utworzony pomyślnie" });
+      toast({ title: t("planCreated") });
     },
     onError: () => {
-      toast({ title: "Błąd podczas tworzenia planu", variant: "destructive" });
+      toast({ title: t("planCreateFailed"), variant: "destructive" });
     }
   });
 
@@ -154,10 +162,10 @@ export default function ProductionPlan() {
       setTargetWeight("");
       setTargetUnit("g");
       setIsAddRecipeDialogOpen(false);
-      toast({ title: "Przepis dodany do planu" });
+      toast({ title: t("recipeAdded") });
     },
     onError: () => {
-      toast({ title: "Błąd podczas dodawania przepisu", variant: "destructive" });
+      toast({ title: t("recipeAddFailed"), variant: "destructive" });
     }
   });
 
@@ -180,10 +188,10 @@ export default function ProductionPlan() {
       queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
       setSelectedPlanId("");
       setSelectedPlan(null);
-      toast({ title: "Plan został zarchiwizowany" });
+      toast({ title: t("planArchived") });
     },
     onError: () => {
-      toast({ title: "Błąd podczas archiwizacji planu", variant: "destructive" });
+      toast({ title: t("planArchiveFailed"), variant: "destructive" });
     }
   });
 
@@ -194,10 +202,10 @@ export default function ProductionPlan() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/production-plans"] });
-      toast({ title: "Przepis usunięty", description: "Przepis został pomyślnie usunięty z planu." });
+      toast({ title: t("recipeRemoved"), description: t("recipeRemovedDescription") });
     },
     onError: () => {
-      toast({ title: "Błąd", description: "Nie udało się usunąć przepisu z planu.", variant: "destructive" });
+      toast({ title: t("error"), description: t("recipeRemoveFailed"), variant: "destructive" });
     }
   });
 
@@ -277,7 +285,7 @@ export default function ProductionPlan() {
 
   const handleCreatePlan = () => {
     if (!newPlanName.trim()) {
-      toast({ title: "Nazwa planu jest wymagana", variant: "destructive" });
+      toast({ title: t("planNameRequired"), variant: "destructive" });
       return;
     }
 
@@ -290,7 +298,7 @@ export default function ProductionPlan() {
 
   const handleAddRecipe = () => {
     if (!selectedRecipeId || !targetWeight || !selectedPlanId) {
-      toast({ title: "Wypełnij wszystkie pola", variant: "destructive" });
+      toast({ title: t("fillAllFields"), variant: "destructive" });
       return;
     }
 
@@ -329,8 +337,8 @@ export default function ProductionPlan() {
         
         <div className="flex-1 flex flex-col min-h-0">
           <Header 
-            title="Plan produkcji" 
-            subtitle="Planowanie wielu przepisów i obliczanie zapotrzebowania na surowce"
+            title={t("title")}
+            subtitle={t("subtitle")}
           />
           
           <main className="flex-1 overflow-y-auto px-4 md:px-6 pb-16 md:pb-0">
@@ -341,25 +349,25 @@ export default function ProductionPlan() {
                   <CardTitle className="flex items-center justify-between">
                     <span className="flex items-center">
                       <ClipboardList className="mr-2" size={20} />
-                      Zarządzanie planami
+                       {t("managePlans")}
                     </span>
                     <ResponsiveDialog 
                       open={isNewPlanDialogOpen} 
                       onOpenChange={setIsNewPlanDialogOpen}
-                      title="Nowy plan produkcji"
+                       title={t("newPlanTitle")}
                       trigger={
                         <Button data-testid="button-create-plan">
                           <Plus className="mr-2" size={16} />
-                          Nowy plan
+                           {t("newPlan")}
                         </Button>
                       }
                       footer={
                         <div className="flex justify-end space-x-2">
                           <Button variant="outline" onClick={() => setIsNewPlanDialogOpen(false)}>
-                            Anuluj
+                             {t("cancel")}
                           </Button>
                           <Button onClick={handleCreatePlan} disabled={createPlanMutation.isPending} data-testid="button-save-plan">
-                            {createPlanMutation.isPending ? "Tworzenie..." : "Utwórz"}
+                             {createPlanMutation.isPending ? t("creating") : t("create")}
                           </Button>
                         </div>
                       }
@@ -367,22 +375,22 @@ export default function ProductionPlan() {
                     >
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="plan-name">Nazwa planu</Label>
+                          <Label htmlFor="plan-name">{t("planName")}</Label>
                           <Input
                             id="plan-name"
                             value={newPlanName}
                             onChange={(e) => setNewPlanName(e.target.value)}
-                            placeholder="Wprowadź nazwę planu"
+                            placeholder={t("planNamePlaceholder")}
                             data-testid="input-plan-name"
                           />
                         </div>
                         <div>
-                          <Label htmlFor="plan-description">Opis (opcjonalny)</Label>
+                          <Label htmlFor="plan-description">{t("planDescription")}</Label>
                           <Textarea
                             id="plan-description"
                             value={newPlanDescription}
                             onChange={(e) => setNewPlanDescription(e.target.value)}
-                            placeholder="Wprowadź opis planu"
+                            placeholder={t("planDescriptionPlaceholder")}
                             data-testid="input-plan-description"
                           />
                         </div>
@@ -393,10 +401,10 @@ export default function ProductionPlan() {
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="plan-select">Wybierz plan produkcji</Label>
+                      <Label htmlFor="plan-select">{t("selectPlan")}</Label>
                       <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
                         <SelectTrigger data-testid="select-plan">
-                          <SelectValue placeholder="Wybierz plan..." />
+                          <SelectValue placeholder={t("selectPlanPlaceholder")} />
                         </SelectTrigger>
                         <SelectContent>
                           {productionPlans.map(plan => (
@@ -430,7 +438,7 @@ export default function ProductionPlan() {
                           )}
                         </div>
                         <Badge variant={selectedPlan.status === "active" ? "default" : "secondary"}>
-                          {selectedPlan.status === "active" ? "Aktywny" : selectedPlan.status === "completed" ? "Ukończony" : "Zarchiwizowany"}
+                           {selectedPlan.status === "active" ? t("active") : selectedPlan.status === "completed" ? t("completed") : t("archived")}
                         </Badge>
                       </CardTitle>
                     </CardHeader>
@@ -438,10 +446,10 @@ export default function ProductionPlan() {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="text-sm text-muted-foreground">
-                            Liczba przepisów: {selectedPlan.productionPlanRecipes.length}
+                             {t("recipeCount", { count: selectedPlan.productionPlanRecipes.length })}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Ukończone: {selectedPlan.productionPlanRecipes.filter(r => r.completed).length}
+                             {t("completedCount", { count: selectedPlan.productionPlanRecipes.filter(r => r.completed).length })}
                           </p>
                         </div>
                         <div className="flex space-x-2 flex-wrap gap-2">
@@ -451,7 +459,7 @@ export default function ProductionPlan() {
                             data-testid="button-export-plan"
                           >
                             <Printer className="mr-2" size={16} />
-                            Drukuj / PDF
+                             {t("print")}
                           </Button>
                           <Button 
                             variant="outline" 
@@ -460,25 +468,25 @@ export default function ProductionPlan() {
                             data-testid="button-archive-plan"
                           >
                             <Archive className="mr-2" size={16} />
-                            {archivePlanMutation.isPending ? "Archiwizowanie..." : "Archiwizuj"}
+                             {archivePlanMutation.isPending ? t("archiving") : t("archive")}
                           </Button>
                           <ResponsiveDialog 
                             open={isAddRecipeDialogOpen} 
                             onOpenChange={setIsAddRecipeDialogOpen}
-                            title="Dodaj przepis do planu"
+                             title={t("addRecipeTitle")}
                             trigger={
                               <Button data-testid="button-add-recipe">
                                 <Plus className="mr-2" size={16} />
-                                Dodaj przepis
+                                 {t("addRecipe")}
                               </Button>
                             }
                             footer={
                               <div className="flex justify-end space-x-2">
                                 <Button variant="outline" onClick={() => setIsAddRecipeDialogOpen(false)}>
-                                  Anuluj
+                                   {t("cancel")}
                                 </Button>
                                 <Button onClick={handleAddRecipe} disabled={addRecipeMutation.isPending} data-testid="button-save-recipe">
-                                  {addRecipeMutation.isPending ? "Dodawanie..." : "Dodaj"}
+                                   {addRecipeMutation.isPending ? t("adding") : t("add")}
                                 </Button>
                               </div>
                             }
@@ -486,10 +494,10 @@ export default function ProductionPlan() {
                           >
                             <div className="space-y-4">
                               <div>
-                                <Label htmlFor="recipe-select">Przepis</Label>
+                                 <Label htmlFor="recipe-select">{t("recipe")}</Label>
                                 <Select value={selectedRecipeId} onValueChange={setSelectedRecipeId}>
                                   <SelectTrigger data-testid="select-recipe">
-                                    <SelectValue placeholder="Wybierz przepis..." />
+                                     <SelectValue placeholder={t("selectRecipePlaceholder")} />
                                   </SelectTrigger>
                                   <SelectContent className="z-50">
                                     {recipes.map(recipe => (
@@ -502,7 +510,7 @@ export default function ProductionPlan() {
                               </div>
                               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                 <div className="sm:col-span-2">
-                                  <Label htmlFor="target-weight">Docelowa waga</Label>
+                                   <Label htmlFor="target-weight">{t("targetWeight")}</Label>
                                   <Input
                                     id="target-weight"
                                     type="number"
@@ -513,7 +521,7 @@ export default function ProductionPlan() {
                                   />
                                 </div>
                                 <div>
-                                  <Label htmlFor="target-unit">Jednostka</Label>
+                                   <Label htmlFor="target-unit">{t("unit")}</Label>
                                   <Select value={targetUnit} onValueChange={setTargetUnit}>
                                     <SelectTrigger data-testid="select-unit">
                                       <SelectValue />
@@ -538,7 +546,7 @@ export default function ProductionPlan() {
                       <CardHeader>
                         <CardTitle className="flex items-center">
                           <ChefHat className="mr-2" size={20} />
-                          Przepisy w planie
+                           {t("recipesInPlan")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -559,7 +567,7 @@ export default function ProductionPlan() {
                                       {planRecipe.recipe.name}
                                     </h4>
                                     <p className="text-sm text-muted-foreground">
-                                      Docelowa waga: {planRecipe.targetWeight} {planRecipe.targetUnit}
+                                       {t("targetWeight")}: {planRecipe.targetWeight} {planRecipe.targetUnit}
                                     </p>
                                   </div>
                                 </div>
@@ -571,7 +579,7 @@ export default function ProductionPlan() {
                                     data-testid={`button-start-recipe-production-${planRecipe.id}`}
                                   >
                                     <Factory className="mr-1" size={14} />
-                                    Rozpocznij
+                                     {t("start")}
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -581,10 +589,10 @@ export default function ProductionPlan() {
                                     data-testid={`button-remove-recipe-${planRecipe.id}`}
                                   >
                                     <Trash2 className="mr-1" size={14} />
-                                    {removeRecipeMutation.isPending ? "Usuwanie..." : "Usuń"}
+                                     {removeRecipeMutation.isPending ? t("removing") : t("remove")}
                                   </Button>
                                   <Badge variant={planRecipe.completed ? "default" : "secondary"}>
-                                    {planRecipe.completed ? "Ukończone" : "W trakcie"}
+                                     {planRecipe.completed ? t("completed") : t("inProgress")}
                                   </Badge>
                                 </div>
                               </div>
@@ -601,7 +609,7 @@ export default function ProductionPlan() {
                       <CardHeader>
                         <CardTitle className="flex items-center">
                           <Calculator className="mr-2" size={20} />
-                          Łączne zapotrzebowanie na surowce
+                           {t("totalIngredientRequirements")}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
@@ -623,13 +631,13 @@ export default function ProductionPlan() {
                                       {ingredient.ingredientName}
                                     </h4>
                                     <p className="text-sm text-muted-foreground">
-                                      Łącznie: <strong>{ingredient.totalQuantity.toFixed(2)} {ingredient.unit}</strong>
+                                       {t("total")} <strong>{ingredient.totalQuantity.toFixed(2)} {ingredient.unit}</strong>
                                     </p>
                                   </div>
                                 </div>
                               </div>
                               <div className="ml-6">
-                                <p className="text-xs text-muted-foreground mb-1">Szczegóły według przepisów:</p>
+                                 <p className="text-xs text-muted-foreground mb-1">{t("recipeDetails")}</p>
                                 {ingredient.recipes.map((recipeDetail, index) => (
                                   <p key={index} className="text-xs text-muted-foreground">
                                     • {recipeDetail.recipeName}: {recipeDetail.quantity.toFixed(2)} {ingredient.unit}
@@ -650,9 +658,9 @@ export default function ProductionPlan() {
                 <Card>
                   <CardContent className="text-center py-8">
                     <ClipboardList className="mx-auto mb-4 text-muted-foreground" size={48} />
-                    <h3 className="text-lg font-medium mb-2">Brak wybranego planu</h3>
+                     <h3 className="text-lg font-medium mb-2">{t("noPlan")}</h3>
                     <p className="text-muted-foreground mb-4">
-                      Wybierz istniejący plan produkcji lub utwórz nowy, aby zacząć planowanie.
+                       {t("noPlanDescription")}
                     </p>
                   </CardContent>
                 </Card>
@@ -667,11 +675,11 @@ export default function ProductionPlan() {
         open={isRecipeProductionDialogOpen} 
         onOpenChange={setIsRecipeProductionDialogOpen}
         title={selectedRecipeForProduction ? 
-          `Produkcja: ${selectedRecipeForProduction.recipe.name}` : 
-          "Produkcja"
+          t("productionTitle", { name: selectedRecipeForProduction.recipe.name }) :
+          t("production")
         }
         description={selectedRecipeForProduction ? 
-          `Docelowa waga: ${selectedRecipeForProduction.targetWeight} ${selectedRecipeForProduction.targetUnit}` : 
+          t("productionTarget", { weight: selectedRecipeForProduction.targetWeight, unit: selectedRecipeForProduction.targetUnit }) :
           undefined
         }
         trigger={<></>}
@@ -684,19 +692,19 @@ export default function ProductionPlan() {
                 data-testid="button-cancel-production"
                 className="w-full sm:w-auto"
               >
-                Zamknij
+                {t("close")}
               </Button>
               <Button
                 onClick={() => {
                   handleToggleRecipeComplete(selectedRecipeForProduction.id, true);
                   setIsRecipeProductionDialogOpen(false);
-                  toast({ title: "Produkcja ukończona", description: "Przepis został oznaczony jako ukończony." });
+                  toast({ title: t("productionCompleted"), description: t("productionCompletedDescription") });
                 }}
                 data-testid="button-complete-production"
                 className="w-full sm:w-auto"
               >
                 <CheckCircle className="mr-2" size={16} />
-                Ukończ produkcję
+                {t("completeProduction")}
               </Button>
             </div>
           )
@@ -709,7 +717,7 @@ export default function ProductionPlan() {
               {/* Production Progress */}
               <div className="border-b pb-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Postęp produkcji</span>
+                  <span className="font-medium">{t("productionProgress")}</span>
                   <span className="text-sm text-muted-foreground">
                     {calculateRecipeProgress()}%
                   </span>
@@ -722,7 +730,7 @@ export default function ProductionPlan() {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Utensils className="mr-2" size={18} />
-                    Składniki
+                    {t("ingredients")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -765,7 +773,7 @@ export default function ProductionPlan() {
                 <CardHeader>
                   <CardTitle className="flex items-center">
                     <Clock className="mr-2" size={18} />
-                    Instrukcje
+                    {t("instructions")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -796,19 +804,19 @@ export default function ProductionPlan() {
                   onClick={() => setIsRecipeProductionDialogOpen(false)}
                   data-testid="button-cancel-production"
                 >
-                  Zamknij
+                  {t("close")}
                 </Button>
                 <Button
                   onClick={() => {
                     // TODO: Mark recipe as completed and close dialog
                     handleToggleRecipeComplete(selectedRecipeForProduction.id, true);
                     setIsRecipeProductionDialogOpen(false);
-                    toast({ title: "Produkcja ukończona", description: "Przepis został oznaczony jako ukończony." });
+                    toast({ title: t("productionCompleted"), description: t("productionCompletedDescription") });
                   }}
                   data-testid="button-complete-production"
                 >
                   <CheckCircle className="mr-2" size={16} />
-                  Ukończ produkcję
+                  {t("completeProduction")}
                 </Button>
               </div>
             </div>

@@ -7,8 +7,10 @@ import YieldCalculator from "@/components/yield-calculator";
 import RecipeScaleDialog from "@/components/recipe-scale-dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calculator as CalculatorIcon } from "lucide-react";
+import { useI18n } from "@/i18n";
 
 export default function Calculator() {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen bg-background">
       <div className="flex min-h-screen md:h-screen flex-col md:flex-row md:overflow-hidden">
@@ -18,8 +20,8 @@ export default function Calculator() {
 
         <div className="flex-1 flex flex-col min-h-0">
           <Header
-            title="Kalkulatory"
-            subtitle="Narzędzia do przeliczania porcji, kosztów i jednostek"
+            title={t("calculator.title")}
+            subtitle={t("calculator.subtitle")}
           />
 
           <main className="flex-1 overflow-y-auto px-4 md:px-6 pb-16 md:pb-0">
@@ -34,15 +36,15 @@ export default function Calculator() {
                   <CardHeader className="p-0 mb-4">
                     <CardTitle className="flex items-center space-x-2 text-base md:text-lg">
                       <CalculatorIcon size={20} />
-                      <span>Skaler przepisu</span>
+                      <span>{t("calculator.recipeScale")}</span>
                     </CardTitle>
                     <CardDescription className="text-sm mt-1">
-                      Przelicz przepis na dowolną wagę z precyzyjnymi ilościami składników
+                      {t("calculator.recipeScaleDescription")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
                     <p className="text-sm text-muted-foreground mb-4">
-                      Wybierz przepis i docelową wagę, aby automatycznie wyliczyć proporcje składników.
+                      {t("calculator.recipeScaleHelp")}
                     </p>
                     <RecipeScaleDialog data-testid="button-open-recipe-scale-calculator" />
                   </CardContent>

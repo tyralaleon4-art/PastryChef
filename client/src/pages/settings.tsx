@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, type User as AuthUser } from "@/hooks/use-auth";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
@@ -13,11 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { User, Lock, ChefHat, Loader2, Save, Shield } from "lucide-react";
+import { useI18n, Language } from "@/i18n";
+import { BRANDING } from "@/config/branding";
 
 export default function Settings() {
   const { user, isAdmin } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const initials = user?.displayName
     ? user.displayName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
@@ -39,12 +42,23 @@ export default function Settings() {
     mutationFn: (displayName: string) =>
       apiRequest("PUT", "/api/auth/profile", { displayName }),
     onSuccess: () => {
-      toast({ title: "Profil zaktualizowany" });
+      toast({ title: t("settings.profileUpdated") });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
     },
     onError: () => {
-      toast({ title: "Błąd", description: "Nie udało się zaktualizować profilu", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("settings.profileUpdateFailed"), variant: "destructive" });
     },
+  });
+
+  const languageMutation = useMutation({
+    mutationFn: (language: Language) => apiRequest("PUT", "/api/auth/profile", { language }),
+    onSuccess: (_response, language) => {
+      queryClient.setQueryData<AuthUser | null>(["/api/auth/me"], (current) =>
+        current ? { ...current, language } : current,
+      );
+      toast({ title: t("settings.languageUpdated") });
+    },
+    onError: () => toast({ title: t("common.error"), description: t("settings.languageUpdateFailed"), variant: "destructive" }),
   });
 
   const passwordMutation = useMutation({
@@ -52,13 +66,13 @@ export default function Settings() {
       apiRequest("PUT", "/api/auth/profile", { currentPassword, newPassword }),
     onSuccess: () => {
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-      toast({ title: "Hasło zmienione pomyślnie" });
+      toast({ title: t("settings.passwordChanged") });
     },
     onError: (err: any) => {
       const msg = err?.message?.includes("nieprawidłowe")
-        ? "Aktualne hasło jest nieprawidłowe"
-        : "Nie udało się zmienić hasła";
-      toast({ title: "Błąd", description: msg, variant: "destructive" });
+        ? t("settings.currentPasswordInvalid")
+        : t("settings.changePasswordFailed");
+      toast({ title: t("common.error"), description: msg, variant: "destructive" });
     },
   });
 
@@ -70,11 +84,11 @@ export default function Settings() {
   const handlePasswordSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast({ title: "Błąd", description: "Nowe hasła nie są identyczne", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("settings.passwordsDiffer"), variant: "destructive" });
       return;
     }
     if (passwordForm.newPassword.length < 6) {
-      toast({ title: "Błąd", description: "Hasło musi mieć min. 6 znaków", variant: "destructive" });
+      toast({ title: t("common.error"), description: t("settings.passwordMin"), variant: "destructive" });
       return;
     }
     passwordMutation.mutate({
@@ -88,8 +102,8 @@ export default function Settings() {
       <Sidebar />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <Header
-          title="Ustawienia konta"
-          subtitle="Zarządzaj profilem i preferencjami aplikacji"
+          title={t("settings.title")}
+          subtitle={t("settings.subtitle")}
         />
 
         <div className="p-4 md:p-6 space-y-6 max-w-2xl">
@@ -107,7 +121,7 @@ export default function Settings() {
                   <p className="text-xl font-semibold">{user?.displayName || user?.username}</p>
                   <p className="text-sm text-muted-foreground">@{user?.username}</p>
                   <Badge variant={isAdmin ? "default" : "secondary"} className="mt-1">
-                    {isAdmin ? <><Shield size={12} className="mr-1" />Administrator</> : <><ChefHat size={12} className="mr-1" />Pracownik</>}
+                    {isAdmin ? <><Shield size={12} className="mr-1" />{t("role.admin")}</> : <><ChefHat size={12} className="mr-1" />{t("role.employee")}</>}
                   </Badge>
                 </div>
               </div>
@@ -119,30 +133,48 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User size={18} className="text-primary" />
-                Dane profilu
+                {t("settings.profile")}
               </CardTitle>
-              <CardDescription>Zmień swoje imię i nazwisko wyświetlane w aplikacji</CardDescription>
+              <CardDescription>{t("settings.profileDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleProfileSave} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Imię i nazwisko</Label>
+                  <Label>{t("settings.displayName")}</Label>
                   <Input
-                    placeholder="Twoje imię i nazwisko"
+                    placeholder={t("settings.displayNamePlaceholder")}
                     value={profileForm.displayName}
                     onChange={e => setProfileForm(f => ({ ...f, displayName: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">Ta nazwa jest widoczna w pasku bocznym i panelu admina</p>
+                  <p className="text-xs text-muted-foreground">{t("settings.displayNameHelp")}</p>
                 </div>
                 <div className="space-y-2">
-                  <Label>Nazwa użytkownika (login)</Label>
+                  <Label>{t("settings.username")}</Label>
                   <Input value={user?.username || ""} disabled className="bg-muted/50" />
-                  <p className="text-xs text-muted-foreground">Login można zmienić tylko przez administratora</p>
+                  <p className="text-xs text-muted-foreground">{t("settings.usernameHelp")}</p>
                 </div>
                 <Button type="submit" disabled={profileMutation.isPending}>
-                  {profileMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Zapisuję...</> : <><Save size={16} className="mr-2" />Zapisz dane</>}
+                  {profileMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("common.saving")}</> : <><Save size={16} className="mr-2" />{t("settings.saveProfile")}</>}
                 </Button>
               </form>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("settings.language")}</CardTitle>
+              <CardDescription>{t("settings.languageDescription")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <select
+                aria-label={t("settings.language")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={user?.language === "en" ? "en" : "pl"}
+                disabled={languageMutation.isPending}
+                onChange={(event) => languageMutation.mutate(event.target.value as Language)}
+              >
+                <option value="pl">{t("settings.polish")}</option>
+                <option value="en">{t("settings.english")}</option>
+              </select>
             </CardContent>
           </Card>
 
@@ -151,17 +183,18 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock size={18} className="text-primary" />
-                Zmiana hasła
+                {t("settings.changePassword")}
               </CardTitle>
-              <CardDescription>Ustaw nowe hasło do swojego konta</CardDescription>
+              <CardDescription>{t("settings.changePasswordDescription")}</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordSave} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Aktualne hasło</Label>
+                  <Label>{t("settings.currentPassword")}</Label>
                   <Input
                     type="password"
-                    placeholder="Wpisz aktualne hasło"
+                    placeholder={t("settings.enterCurrentPassword")}
+                    autoComplete="current-password"
                     value={passwordForm.currentPassword}
                     onChange={e => setPasswordForm(f => ({ ...f, currentPassword: e.target.value }))}
                     required
@@ -169,10 +202,11 @@ export default function Settings() {
                 </div>
                 <Separator />
                 <div className="space-y-2">
-                  <Label>Nowe hasło</Label>
+                  <Label>{t("settings.newPassword")}</Label>
                   <Input
                     type="password"
-                    placeholder="Min. 6 znaków"
+                    placeholder={t("settings.newPasswordPlaceholder")}
+                    autoComplete="new-password"
                     value={passwordForm.newPassword}
                     onChange={e => setPasswordForm(f => ({ ...f, newPassword: e.target.value }))}
                     required
@@ -180,17 +214,18 @@ export default function Settings() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Powtórz nowe hasło</Label>
+                  <Label>{t("settings.repeatPassword")}</Label>
                   <Input
                     type="password"
-                    placeholder="Wpisz nowe hasło ponownie"
+                    placeholder={t("settings.repeatNewPassword")}
+                    autoComplete="new-password"
                     value={passwordForm.confirmPassword}
                     onChange={e => setPasswordForm(f => ({ ...f, confirmPassword: e.target.value }))}
                     required
                   />
                 </div>
                 <Button type="submit" disabled={passwordMutation.isPending}>
-                  {passwordMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Zmieniam...</> : <><Lock size={16} className="mr-2" />Zmień hasło</>}
+                  {passwordMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t("settings.changing")}</> : <><Lock size={16} className="mr-2" />{t("settings.changePassword")}</>}
                 </Button>
               </form>
             </CardContent>
@@ -201,18 +236,18 @@ export default function Settings() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ChefHat size={18} className="text-primary" />
-                O aplikacji
+                {t("settings.about")}
               </CardTitle>
-              <CardDescription>Art de Sucre — system zarządzania recepturami</CardDescription>
+              <CardDescription>{BRANDING.productName} — {t("settings.aboutDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <div className="flex justify-between">
-                <span>Wersja</span>
+                <span>{t("settings.version")}</span>
                 <span className="font-medium text-foreground">1.0</span>
               </div>
               <Separator />
               <div className="flex justify-between">
-                <span>Zalogowano jako</span>
+                <span>{t("settings.loggedInAs")}</span>
                 <span className="font-medium text-foreground">{user?.displayName || user?.username}</span>
               </div>
             </CardContent>
