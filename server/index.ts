@@ -3,6 +3,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { ensureRuntimeSchema } from "./ensure-schema";
 
 const app = express();
 app.set("trust proxy", 1); // Required for Render/Heroku reverse proxy (secure cookies)
@@ -64,6 +65,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await ensureRuntimeSchema();
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
