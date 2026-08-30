@@ -38,7 +38,7 @@ export default function Sidebar() {
     <aside className="hidden md:flex flex-col sidebar-nav bg-sidebar border-r border-sidebar-border w-64 flex-shrink-0 overflow-y-auto" data-testid="sidebar">
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3" data-testid="app-title">
-          <img src="/logo-ads.png" alt={BRANDING.productName} className="w-10 h-10 object-contain rounded-lg bg-sidebar-accent p-0.5" />
+          <img src="/logo-art-de-sucre.png" alt="Art de Sucre" className="w-10 h-10 object-cover rounded-lg bg-sidebar-accent" />
           <div>
             <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">{BRANDING.productName}</p>
             <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by {BRANDING.creatorName}</p>

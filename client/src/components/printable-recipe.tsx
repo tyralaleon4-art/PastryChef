@@ -160,6 +160,14 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
           text-align: center;
           margin-bottom: 30px;
         }
+
+        .company-logo {
+          display: block;
+          width: 34mm;
+          height: 34mm;
+          object-fit: cover;
+          margin: 0 auto 8px;
+        }
         
         .company-name {
           font-size: 14px;
@@ -304,6 +312,7 @@ const PrintableRecipe = forwardRef<HTMLDivElement, PrintableRecipeProps>(({
       </div>
       
       <div className="company-info">
+        <img className="company-logo" src="/logo-art-de-sucre.png" alt="Art de Sucre" />
         <div className="company-name">{authorLine}</div>
         <div>{createdByLine}</div>
       </div>

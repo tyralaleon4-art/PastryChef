@@ -78,6 +78,14 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
           border-bottom: 2px solid #1a1a1a;
           padding-bottom: 15px;
         }
+
+        .brand-logo {
+          display: block;
+          width: 30mm;
+          height: 30mm;
+          object-fit: cover;
+          margin: 0 auto 8px;
+        }
         
         .plan-title {
           font-size: 24px;
@@ -255,6 +263,7 @@ const PrintableProductionPlan = forwardRef<HTMLDivElement, PrintableProductionPl
       
       <div className="print-container">
         <div className="header">
+          <img className="brand-logo" src="/logo-art-de-sucre.png" alt="Art de Sucre" />
           <div className="plan-title">{planName}</div>
           {planDescription && (
             <div className="plan-description">{planDescription}</div>

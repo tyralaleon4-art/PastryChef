@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -47,9 +47,11 @@ export default function MobileNav() {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-72 p-0 flex flex-col bg-sidebar border-sidebar-border" data-testid="mobile-nav">
+        <SheetTitle className="sr-only">{BRANDING.productName}</SheetTitle>
+        <SheetDescription className="sr-only">{t("nav.dashboard")}</SheetDescription>
         <div className="p-5 border-b border-sidebar-border flex-shrink-0">
           <div className="flex items-center gap-3" data-testid="mobile-app-title">
-            <img src="/logo-ads.png" alt={BRANDING.productName} className="w-9 h-9 object-contain rounded-lg bg-sidebar-accent p-0.5" />
+            <img src="/logo-art-de-sucre.png" alt="Art de Sucre" className="w-9 h-9 object-cover rounded-lg bg-sidebar-accent" />
             <div>
               <p className="ads-logo-text text-sm font-bold text-sidebar-foreground tracking-widest uppercase leading-tight">{BRANDING.productName}</p>
               <p className="text-[10px] text-sidebar-primary tracking-wider font-medium">by {BRANDING.creatorName}</p>

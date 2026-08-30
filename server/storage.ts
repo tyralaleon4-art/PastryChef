@@ -70,6 +70,7 @@ export interface IStorage {
   createRecipeWithIngredients(recipe: InsertRecipe, recipeIngredients: InsertRecipeIngredient[], userId: string): Promise<RecipeWithDetails>;
   updateRecipeWithIngredients(id: string, recipe: Partial<InsertRecipe>, recipeIngredients: InsertRecipeIngredient[] | undefined, userId: string): Promise<RecipeWithDetails | undefined>;
   deleteRecipe(id: string, userId: string): Promise<boolean>;
+  transferRecipes(sourceUserId: string, targetUserId: string): Promise<{ imported: number; skipped: number; total: number }>;
 
   // Recipe Ingredients
   getRecipeIngredients(recipeId: string, userId: string): Promise<(RecipeIngredient & { ingredient: Ingredient })[]>;
@@ -443,6 +444,155 @@ export class DatabaseStorage implements IStorage {
   async deleteRecipe(id: string, userId: string): Promise<boolean> {
     const [updated] = await db.update(recipes).set({ isActive: false }).where(and(eq(recipes.id, id), eq(recipes.userId, userId))).returning();
     return !!updated;
+  }
+
+  async transferRecipes(sourceUserId: string, targetUserId: string): Promise<{ imported: number; skipped: number; total: number }> {
+    return db.transaction(async tx => {
+      const sourceUser = await tx.query.users.findFirst({ where: eq(users.id, sourceUserId) });
+      const targetUser = await tx.query.users.findFirst({ where: eq(users.id, targetUserId) });
+      if (!sourceUser || !targetUser) throw new Error("Source or target user not found");
+      if (sourceUserId === targetUserId) throw new Error("Source and target users must be different");
+
+      const sourceRecipes = await tx.query.recipes.findMany({
+        where: and(eq(recipes.userId, sourceUserId), eq(recipes.isActive, true)),
+        with: {
+          category: true,
+          recipeIngredients: { with: { ingredient: { with: { category: true } } } },
+        },
+        orderBy: asc(recipes.createdAt),
+      });
+      const targetRecipes = await tx.select({ name: recipes.name }).from(recipes)
+        .where(and(eq(recipes.userId, targetUserId), eq(recipes.isActive, true)));
+      const targetRecipeNames = new Set<string>(targetRecipes.map((recipe: { name: string }) => recipe.name.toLocaleLowerCase()));
+
+      const targetRecipeCategories = await tx.select().from(categories).where(eq(categories.userId, targetUserId));
+      const recipeCategoryBySignature = new Map<string, string>(targetRecipeCategories.map((category: Category) => [
+        `${category.name.toLocaleLowerCase()}\u0000${category.description ?? ""}`,
+        category.id,
+      ]));
+      const recipeCategoryNames = new Set<string>(targetRecipeCategories.map((category: Category) => category.name.toLocaleLowerCase()));
+      const copiedRecipeCategoryIds = new Map<string, string>();
+      const targetIngredientCategories = await tx.select().from(ingredientCategories).where(eq(ingredientCategories.userId, targetUserId));
+      const ingredientCategoryBySignature = new Map<string, string>(targetIngredientCategories.map((category: IngredientCategory) => [
+        `${category.name.toLocaleLowerCase()}\u0000${category.description ?? ""}`,
+        category.id,
+      ]));
+      const ingredientCategoryNames = new Set<string>(targetIngredientCategories.map((category: IngredientCategory) => category.name.toLocaleLowerCase()));
+      const copiedIngredientCategoryIds = new Map<string, string>();
+      const copiedIngredientIds = new Map<string, string>();
+      const uniqueName = (baseName: string, existingNames: Set<string>): string => {
+        if (!existingNames.has(baseName.toLocaleLowerCase())) return baseName;
+        const sourceLabel = sourceUser.displayName || sourceUser.username;
+        let candidate = `${baseName} (${sourceLabel})`;
+        let suffix = 2;
+        while (existingNames.has(candidate.toLocaleLowerCase())) {
+          candidate = `${baseName} (${sourceLabel} ${suffix++})`;
+        }
+        return candidate;
+      };
+
+      let imported = 0;
+      let skipped = 0;
+
+      for (const sourceRecipe of sourceRecipes) {
+        const targetName = sourceRecipe.name;
+        if (targetRecipeNames.has(targetName.toLocaleLowerCase())) {
+          skipped++;
+          continue;
+        }
+
+        let targetCategoryId: string | null = null;
+        if (sourceRecipe.category) {
+          targetCategoryId = copiedRecipeCategoryIds.get(sourceRecipe.category.id) ?? null;
+          if (!targetCategoryId) {
+            const signature = `${sourceRecipe.category.name.toLocaleLowerCase()}\u0000${sourceRecipe.category.description ?? ""}`;
+            targetCategoryId = recipeCategoryBySignature.get(signature) ?? null;
+            if (!targetCategoryId) {
+              const categoryName = uniqueName(sourceRecipe.category.name, recipeCategoryNames);
+              const [createdCategory] = await tx.insert(categories).values({
+                userId: targetUserId,
+                name: categoryName,
+                description: sourceRecipe.category.description,
+              }).returning();
+              targetCategoryId = createdCategory.id;
+              recipeCategoryBySignature.set(`${categoryName.toLocaleLowerCase()}\u0000${sourceRecipe.category.description ?? ""}`, createdCategory.id);
+              recipeCategoryNames.add(categoryName.toLocaleLowerCase());
+            }
+            if (!targetCategoryId) throw new Error("Target recipe category could not be resolved");
+            copiedRecipeCategoryIds.set(sourceRecipe.category.id, targetCategoryId);
+          }
+        }
+
+        const [createdRecipe] = await tx.insert(recipes).values({
+          userId: targetUserId,
+          name: targetName,
+          description: sourceRecipe.description,
+          categoryId: targetCategoryId,
+          instructions: sourceRecipe.instructions ?? [],
+          imageUrl: sourceRecipe.imageUrl,
+          allergens: sourceRecipe.allergens ?? [],
+          isVegan: sourceRecipe.isVegan,
+          isGlutenFree: sourceRecipe.isGlutenFree,
+          isLactoseFree: sourceRecipe.isLactoseFree,
+          isActive: true,
+          totalYieldGrams: sourceRecipe.totalYieldGrams,
+        }).returning();
+
+        const copiedRecipeIngredients: (typeof recipeIngredients.$inferInsert)[] = [];
+        for (const sourceItem of sourceRecipe.recipeIngredients) {
+          let targetIngredientId = copiedIngredientIds.get(sourceItem.ingredientId);
+          const sourceIngredient = sourceItem.ingredient;
+
+          if (!targetIngredientId) {
+            let targetIngredientCategoryId: string | null = null;
+            if (sourceIngredient.category) {
+              targetIngredientCategoryId = copiedIngredientCategoryIds.get(sourceIngredient.category.id) ?? null;
+              if (!targetIngredientCategoryId) {
+                const signature = `${sourceIngredient.category.name.toLocaleLowerCase()}\u0000${sourceIngredient.category.description ?? ""}`;
+                targetIngredientCategoryId = ingredientCategoryBySignature.get(signature) ?? null;
+                if (!targetIngredientCategoryId) {
+                  const categoryName = uniqueName(sourceIngredient.category.name, ingredientCategoryNames);
+                  const [createdCategory] = await tx.insert(ingredientCategories).values({
+                    userId: targetUserId,
+                    name: categoryName,
+                    description: sourceIngredient.category.description,
+                  }).returning();
+                  targetIngredientCategoryId = createdCategory.id;
+                  ingredientCategoryBySignature.set(`${categoryName.toLocaleLowerCase()}\u0000${sourceIngredient.category.description ?? ""}`, createdCategory.id);
+                  ingredientCategoryNames.add(categoryName.toLocaleLowerCase());
+                }
+                if (!targetIngredientCategoryId) throw new Error("Target ingredient category could not be resolved");
+                copiedIngredientCategoryIds.set(sourceIngredient.category.id, targetIngredientCategoryId);
+              }
+            }
+            const { id: _id, userId: _userId, createdAt: _createdAt, category: _category, stockStatus: _stockStatus, ...copy } = sourceIngredient as typeof sourceIngredient & { stockStatus?: string };
+            const [createdIngredient] = await tx.insert(ingredients).values({
+              ...copy,
+              userId: targetUserId,
+              categoryId: targetIngredientCategoryId,
+              allergens: sourceIngredient.allergens ?? [],
+            }).returning();
+            targetIngredientId = createdIngredient.id;
+          }
+          if (!targetIngredientId) throw new Error("Target ingredient could not be resolved");
+          copiedIngredientIds.set(sourceItem.ingredientId, targetIngredientId);
+          copiedRecipeIngredients.push({
+            recipeId: createdRecipe.id,
+            ingredientId: targetIngredientId,
+            quantity: sourceItem.quantity,
+            unit: sourceItem.unit,
+            notes: sourceItem.notes,
+          });
+        }
+        if (copiedRecipeIngredients.length) {
+          await tx.insert(recipeIngredients).values(copiedRecipeIngredients);
+        }
+        targetRecipeNames.add(targetName.toLocaleLowerCase());
+        imported++;
+      }
+
+      return { imported, skipped, total: sourceRecipes.length };
+    });
   }
 
   async getRecipeIngredients(recipeId: string, userId: string): Promise<(RecipeIngredient & { ingredient: Ingredient })[]> {

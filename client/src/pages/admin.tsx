@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -145,7 +145,13 @@ function UserFormDialog({ user, onClose }: { user?: AdminUser; onClose: () => vo
   );
 }
 
-function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: boolean; onClose: () => void }) {
+function UserRecipesSheet({ user, users, currentUserId, open, onClose }: {
+  user: AdminUser;
+  users: AdminUser[];
+  currentUserId: string;
+  open: boolean;
+  onClose: () => void;
+}) {
   const { language } = useI18n();
   const translations = language === "en" ? enAiAdmin : plAiAdmin;
   const t = (key: string, values?: Record<string, string | number>) => {
@@ -154,6 +160,7 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
   };
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [targetUserId, setTargetUserId] = useState(currentUserId);
 
   const { data, isLoading } = useQuery<UserData>({
     queryKey: ["/api/admin/users", user.id, "data"],
@@ -167,17 +174,18 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
 
   const importAll = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/admin/users/${user.id}/import-recipes`);
+      const res = await apiRequest("POST", `/api/admin/users/${user.id}/import-recipes`, { targetUserId });
       return res.json() as Promise<{ imported: number; skipped: number; total: number }>;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/recipes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users", targetUserId, "data"] });
       if (result.imported === 0) {
-        toast({ title: t("admin.nothingToImport"), description: t("admin.allRecipesExist") });
+        toast({ title: t("admin.nothingToImport"), description: t("admin.allRecipesExistOnTarget") });
       } else {
         toast({
-          title: t("admin.recipesImported", { count: result.imported }),
+          title: t("admin.recipesCopied", { count: result.imported }),
           description: result.skipped > 0 ? t("admin.duplicatesSkipped", { count: result.skipped }) : undefined,
         });
       }
@@ -186,6 +194,8 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
   });
 
   const categoryMap = Object.fromEntries((data?.categories ?? []).map(c => [c.id, c.name]));
+  const availableTargets = users.filter(candidate => candidate.id !== user.id);
+  const selectedTarget = availableTargets.find(candidate => candidate.id === targetUserId);
 
   const difficultyLabel: Record<string, string> = {
     easy: t("admin.easy"),
@@ -201,25 +211,49 @@ function UserRecipesSheet({ user, open, onClose }: { user: AdminUser; open: bool
             <BookOpen size={20} className="text-primary" />
             {t("admin.recipesForUser", { name: user.displayName || user.username })}
           </SheetTitle>
-          <div className="flex items-center justify-between gap-3">
+          <SheetDescription>{t("admin.copyHint")}</SheetDescription>
+          <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {isLoading ? t("admin.loading") : t("admin.recipeIngredientCount", { recipes: data?.recipes.length ?? 0, ingredients: data?.ingredients.length ?? 0 })}
             </p>
             {!isLoading && (data?.recipes.length ?? 0) > 0 && (
-              <Button
-                size="sm"
-                onClick={() => importAll.mutate()}
-                disabled={importAll.isPending}
-                className="flex-shrink-0"
-              >
-                {importAll.isPending ? (
-                   <><Loader2 size={14} className="mr-2 animate-spin" />{t("admin.importing")}</>
-                ) : importAll.isSuccess ? (
-                   <><CheckCircle2 size={14} className="mr-2 text-green-500" />{t("admin.imported")}</>
-                ) : (
-                   <><Download size={14} className="mr-2" />{t("admin.importAll")}</>
-                )}
-              </Button>
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <Label htmlFor="recipe-transfer-target">{t("admin.copyToAccount")}</Label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Select value={targetUserId} onValueChange={(value) => {
+                    setTargetUserId(value);
+                    importAll.reset();
+                  }}>
+                    <SelectTrigger id="recipe-transfer-target" data-testid="select-recipe-transfer-target" className="flex-1">
+                      <SelectValue placeholder={t("admin.selectTargetAccount")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTargets.map(candidate => (
+                        <SelectItem key={candidate.id} value={candidate.id}>
+                          {candidate.displayName || candidate.username}
+                          {candidate.id === currentUserId ? ` (${t("admin.you")})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={() => importAll.mutate()}
+                    disabled={importAll.isPending || !selectedTarget}
+                    className="flex-shrink-0"
+                    data-testid="button-copy-all-recipes"
+                  >
+                    {importAll.isPending ? (
+                      <><Loader2 size={14} className="mr-2 animate-spin" />{t("admin.copying")}</>
+                    ) : importAll.isSuccess ? (
+                      <><CheckCircle2 size={14} className="mr-2 text-green-500" />{t("admin.copied")}</>
+                    ) : (
+                      <><Download size={14} className="mr-2" />{t("admin.copyAll")}</>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{t("admin.copyHint")}</p>
+              </div>
             )}
           </div>
         </SheetHeader>
@@ -494,6 +528,8 @@ export default function Admin() {
       {recipesUser && (
         <UserRecipesSheet
           user={recipesUser}
+          users={users}
+          currentUserId={currentUser?.id ?? ""}
           open={recipesOpen}
           onClose={() => { setRecipesOpen(false); setRecipesUser(null); }}
         />

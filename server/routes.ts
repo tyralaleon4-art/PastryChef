@@ -218,101 +218,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin: import all recipes from a user to the calling admin's account
+  // Admin: copy all recipes from one account to another account.
   app.post("/api/admin/users/:id/import-recipes", requireAuth, requireAdmin, async (req, res) => {
     try {
       const { id: sourceUserId } = req.params;
-      const adminUserId = req.session.userId!;
-
-      if (sourceUserId === adminUserId) {
-        return res.status(400).json({ message: "Cannot import from your own account" });
+      const body = z.object({ targetUserId: z.string().min(1) }).parse(req.body);
+      if (sourceUserId === body.targetUserId) {
+        return res.status(400).json({ message: "Source and target accounts must be different" });
       }
-
       const sourceUser = await storage.getUser(sourceUserId);
-      if (!sourceUser) return res.status(404).json({ message: "User not found" });
-
-      const sourceRecipes = await storage.getRecipes(sourceUserId);
-      const adminRecipes = await storage.getRecipes(adminUserId);
-      const adminRecipeNames = new Set(adminRecipes.map(r => r.name));
-
-      let imported = 0;
-      let skipped = 0;
-
-      for (const recipe of sourceRecipes) {
-        let targetName = recipe.name;
-        if (adminRecipeNames.has(targetName)) {
-          targetName = `${targetName} (${sourceUser.displayName || sourceUser.username})`;
-        }
-        // If still clashes, skip
-        if (adminRecipeNames.has(targetName)) {
-          skipped++;
-          continue;
-        }
-
-        const newRecipe = await storage.createRecipe({
-          name: targetName,
-          description: recipe.description,
-          categoryId: null, // Categories are user-scoped, don't copy
-          servings: recipe.servings,
-          prepTimeMinutes: recipe.prepTimeMinutes,
-          difficulty: recipe.difficulty,
-          instructions: recipe.instructions,
-          allergens: recipe.allergens,
-          isVegan: recipe.isVegan,
-          isGlutenFree: recipe.isGlutenFree,
-          isLactoseFree: recipe.isLactoseFree,
-          targetWeight: recipe.targetWeight,
-          targetUnit: recipe.targetUnit,
-          isActive: true,
-        }, adminUserId);
-
-        // Ingredient records are private. Copy the source ingredients rather
-        // than creating recipe_ingredients that point into another account.
-        const importedIngredients = new Map<string, string>();
-        for (const ri of recipe.recipeIngredients) {
-          let ingredientId = importedIngredients.get(ri.ingredientId);
-          if (!ingredientId) {
-            const sourceIngredient = ri.ingredient;
-            const ingredientCopy = await storage.createIngredient({
-              name: sourceIngredient.name,
-              categoryId: null,
-              unit: sourceIngredient.unit,
-              costPerUnit: sourceIngredient.costPerUnit,
-              supplier: sourceIngredient.supplier,
-              currentStock: sourceIngredient.currentStock,
-              minimumStock: sourceIngredient.minimumStock,
-              allergens: sourceIngredient.allergens ?? [],
-              isVegan: sourceIngredient.isVegan,
-              isGlutenFree: sourceIngredient.isGlutenFree,
-              isLactoseFree: sourceIngredient.isLactoseFree,
-              densityGPerMl: sourceIngredient.densityGPerMl,
-              weightPerPieceG: sourceIngredient.weightPerPieceG,
-              caloriesPer100g: sourceIngredient.caloriesPer100g,
-              proteinPer100g: sourceIngredient.proteinPer100g,
-              fatPer100g: sourceIngredient.fatPer100g,
-              carbsPer100g: sourceIngredient.carbsPer100g,
-              fiberPer100g: sourceIngredient.fiberPer100g,
-              expiryDate: sourceIngredient.expiryDate,
-            }, adminUserId);
-            ingredientId = ingredientCopy.id;
-            importedIngredients.set(ri.ingredientId, ingredientId);
-          }
-          await storage.addRecipeIngredient({
-            recipeId: newRecipe.id,
-            ingredientId,
-            quantity: ri.quantity,
-            unit: ri.unit,
-            notes: ri.notes,
-          }, adminUserId);
-        }
-
-        adminRecipeNames.add(targetName);
-        imported++;
-      }
-
-      res.json({ imported, skipped, total: sourceRecipes.length });
+      const targetUser = await storage.getUser(body.targetUserId);
+      if (!sourceUser || !targetUser) return res.status(404).json({ message: "User not found" });
+      res.json(await storage.transferRecipes(sourceUserId, body.targetUserId));
     } catch (error) {
       console.error("Error importing recipes:", error);
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "targetUserId is required" });
       res.status(500).json({ message: "Failed to import recipes" });
     }
   });

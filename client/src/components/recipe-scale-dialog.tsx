@@ -37,9 +37,12 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   const [selectedRecipeId, setSelectedRecipeId] = useState(recipe?.id || "");
   const [targetWeight, setTargetWeight] = useState("");
   const [targetUnit, setTargetUnit] = useState("g");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
   const printRef = useRef<HTMLDivElement>(null);
+  const pendingPdfWindowRef = useRef<Window | null>(null);
   const isPolish = user?.language?.toLowerCase().startsWith("pl") ?? false;
   const language = isPolish ? "pl" : "en";
   const author = user?.displayName || user?.username || "";
@@ -79,6 +82,10 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     copyFailedDescription: "Nie udało się skopiować przeskalowanej receptury do schowka.",
     pdfDownloadedTitle: "Pobrano PDF",
     pdfDownloadedDescription: "Przeskalowana receptura została pobrana jako plik PDF.",
+    pdfOpenedTitle: "PDF jest gotowy",
+    pdfOpenedDescription: "PDF otwarto w nowej karcie. Użyj Udostępnij, aby zapisać go w aplikacji Pliki.",
+    pdfSharedTitle: "PDF jest gotowy",
+    pdfSharedDescription: "Wybierz „Zapisz w Plikach” lub inną aplikację.",
     downloadFailedTitle: "Pobieranie nie powiodło się",
     downloadFailedDescription: "Wystąpił błąd podczas generowania PDF. Spróbuj ponownie.",
     scaledRecipe: "Przeskalowana receptura",
@@ -118,6 +125,10 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     copyFailedDescription: "Unable to copy the scaled recipe to your clipboard.",
     pdfDownloadedTitle: "PDF Downloaded",
     pdfDownloadedDescription: "The scaled recipe has been downloaded as a PDF file.",
+    pdfOpenedTitle: "PDF is ready",
+    pdfOpenedDescription: "The PDF opened in a new tab. Use Share to save it to the Files app.",
+    pdfSharedTitle: "PDF is ready",
+    pdfSharedDescription: "Choose “Save to Files” or another app.",
     downloadFailedTitle: "Download Failed",
     downloadFailedDescription: "There was an error generating the PDF. Please try again.",
     scaledRecipe: "Scaled Recipe",
@@ -280,12 +291,73 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   const documentTitle = selectedRecipe
     ? `${selectedRecipe.name} - ${messages.scaledRecipe} - ${BRANDING.productName}`
     : `${messages.scaledRecipe} - ${BRANDING.productName}`;
+  const isIOSDevice = typeof navigator !== "undefined" && (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+
+  const deliverPdf = async (pdf: jsPDF, fileName: string) => {
+    const blob = pdf.output("blob");
+    const file = new File([blob], fileName, { type: "application/pdf" });
+    const shareData: ShareData = { files: [file], title: documentTitle };
+
+    if (isIOSDevice && navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+      try {
+        setExportStatus(messages.pdfSharedDescription);
+        toast({ title: messages.pdfSharedTitle, description: messages.pdfSharedDescription });
+        await navigator.share(shareData);
+        pendingPdfWindowRef.current?.close();
+        pendingPdfWindowRef.current = null;
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          pendingPdfWindowRef.current?.close();
+          pendingPdfWindowRef.current = null;
+          return;
+        }
+        // Safari can lose transient activation while the PDF is being rendered.
+        // In that case, fall through to an inline PDF tab with the native Share button.
+      }
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+    if (isIOSDevice) {
+      const pendingWindow = pendingPdfWindowRef.current;
+      pendingPdfWindowRef.current = null;
+      if (pendingWindow && !pendingWindow.closed) {
+        pendingWindow.location.replace(objectUrl);
+      } else {
+        // Last-resort iOS path: same-tab navigation cannot be popup-blocked.
+        window.location.assign(objectUrl);
+      }
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+      toast({ title: messages.pdfOpenedTitle, description: messages.pdfOpenedDescription });
+      setExportStatus(messages.pdfOpenedDescription);
+      return;
+    }
+
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.rel = "noopener";
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+
+    toast({
+      title: messages.pdfDownloadedTitle,
+      description: messages.pdfDownloadedDescription,
+    });
+    setExportStatus(messages.pdfDownloadedDescription);
+  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle,
     print: async (printIframe) => {
-      // Custom PDF download function instead of print dialog
+      setIsExporting(true);
+      setExportStatus("");
       try {
         if (!printIframe.contentDocument) {
           throw new Error('Content document not available');
@@ -294,9 +366,10 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
         
         // Generate canvas from HTML
         const canvas = await html2canvas(element, {
-          scale: 2, // Higher quality
+          // iOS WebKit has much tighter canvas memory limits.
+          scale: isIOSDevice ? 1.25 : 2,
           useCORS: true,
-          allowTaint: true,
+          allowTaint: false,
           backgroundColor: '#ffffff'
         });
 
@@ -342,17 +415,14 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
             undefined,
             "FAST",
           );
+          pageCanvas.width = 1;
+          pageCanvas.height = 1;
         }
 
         // Download the PDF
         const fileName = `${documentTitle.replace(/[^a-z0-9]+/gi, "_")}.pdf`;
         
-        pdf.save(fileName);
-
-        toast({
-          title: messages.pdfDownloadedTitle,
-          description: messages.pdfDownloadedDescription,
-        });
+        await deliverPdf(pdf, fileName);
       } catch (error) {
         console.error('Error generating PDF:', error);
         toast({
@@ -360,9 +430,27 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
           description: messages.downloadFailedDescription,
           variant: "destructive"
         });
+        setExportStatus(messages.downloadFailedDescription);
+      } finally {
+        setIsExporting(false);
       }
     }
   });
+
+  const handlePdfExport = () => {
+    if (isIOSDevice) {
+      const pendingWindow = window.open("", "_blank");
+      if (pendingWindow) {
+        pendingWindow.document.title = documentTitle;
+        pendingWindow.document.body.innerHTML = `<p style="font-family: -apple-system, sans-serif; padding: 2rem;">${
+          isPolish ? "Przygotowuję PDF…" : "Preparing PDF…"
+        }</p>`;
+        pendingWindow.opener = null;
+        pendingPdfWindowRef.current = pendingWindow;
+      }
+    }
+    handlePrint();
+  };
 
   return (
     <ResponsiveDialog
@@ -496,14 +584,20 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handlePrint}
+                    onClick={handlePdfExport}
+                    disabled={isExporting}
                     data-testid="button-print-scaled-recipe"
                   >
                     <FileText size={14} className="mr-1" />
-                    {messages.downloadPdf}
+                    {isExporting ? `${messages.downloadPdf}…` : messages.downloadPdf}
                   </Button>
                 </div>
               </div>
+              {exportStatus && (
+                <p className="mb-3 text-xs text-muted-foreground" role="status" data-testid="pdf-export-status">
+                  {exportStatus}
+                </p>
+              )}
 
               <div className="border rounded-lg overflow-hidden">
                 <table className="w-full text-sm">

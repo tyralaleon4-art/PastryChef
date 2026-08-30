@@ -57,17 +57,14 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center login-bg p-4">
       <div className="w-full max-w-md">
 
-        {/* Brand Header — typograficzne logo bez obrazka */}
+        {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="h-px w-12 bg-secondary/60" />
-            <span className="text-secondary text-xs tracking-[0.3em] uppercase font-medium">{BRANDING.productName}</span>
-            <div className="h-px w-12 bg-secondary/60" />
-          </div>
-          <h1 className="ads-logo-text text-4xl font-bold text-foreground tracking-[0.12em] uppercase leading-tight">
-            {BRANDING.productName}
-          </h1>
-          <p className="text-secondary font-medium tracking-[0.2em] text-sm mt-2 uppercase">by {BRANDING.creatorName}</p>
+          <img
+            src="/logo-art-de-sucre.png"
+            alt="Art de Sucre by Leon Tyrała"
+            className="mx-auto h-40 w-40 rounded-2xl object-cover shadow-sm"
+          />
+          <p className="text-secondary text-xs tracking-[0.3em] uppercase font-medium mt-4">{BRANDING.productName}</p>
           <p className="text-muted-foreground text-sm mt-4 leading-relaxed">
             {t("login.tagline")}
           </p>
