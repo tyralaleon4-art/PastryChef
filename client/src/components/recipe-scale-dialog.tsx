@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReactToPrint } from "react-to-print";
 import html2canvas from "html2canvas";
@@ -39,10 +39,10 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   const [targetUnit, setTargetUnit] = useState("g");
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState("");
+  const [readyPdfFile, setReadyPdfFile] = useState<File | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const printRef = useRef<HTMLDivElement>(null);
-  const pendingPdfWindowRef = useRef<Window | null>(null);
   const isPolish = user?.language?.toLowerCase().startsWith("pl") ?? false;
   const language = isPolish ? "pl" : "en";
   const author = user?.displayName || user?.username || "";
@@ -63,6 +63,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     scaledIngredients: "Przeskalowane składniki",
     copy: "Kopiuj",
     downloadPdf: "Pobierz PDF",
+    savePdf: "Zapisz PDF",
     ingredient: "Składnik",
     original: "Początkowo",
     scaled: "Po przeskalowaniu",
@@ -82,8 +83,8 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     copyFailedDescription: "Nie udało się skopiować przeskalowanej receptury do schowka.",
     pdfDownloadedTitle: "Pobrano PDF",
     pdfDownloadedDescription: "Przeskalowana receptura została pobrana jako plik PDF.",
-    pdfOpenedTitle: "PDF jest gotowy",
-    pdfOpenedDescription: "PDF otwarto w nowej karcie. Użyj Udostępnij, aby zapisać go w aplikacji Pliki.",
+    pdfReadyTitle: "PDF jest gotowy",
+    pdfReadyDescription: "Dotknij teraz „Zapisz PDF”, a następnie wybierz „Zapisz w Plikach”.",
     pdfSharedTitle: "PDF jest gotowy",
     pdfSharedDescription: "Wybierz „Zapisz w Plikach” lub inną aplikację.",
     downloadFailedTitle: "Pobieranie nie powiodło się",
@@ -106,6 +107,7 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     scaledIngredients: "Scaled Ingredients",
     copy: "Copy",
     downloadPdf: "Download PDF",
+    savePdf: "Save PDF",
     ingredient: "Ingredient",
     original: "Original",
     scaled: "Scaled",
@@ -125,8 +127,8 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     copyFailedDescription: "Unable to copy the scaled recipe to your clipboard.",
     pdfDownloadedTitle: "PDF Downloaded",
     pdfDownloadedDescription: "The scaled recipe has been downloaded as a PDF file.",
-    pdfOpenedTitle: "PDF is ready",
-    pdfOpenedDescription: "The PDF opened in a new tab. Use Share to save it to the Files app.",
+    pdfReadyTitle: "PDF is ready",
+    pdfReadyDescription: "Tap “Save PDF”, then choose “Save to Files”.",
     pdfSharedTitle: "PDF is ready",
     pdfSharedDescription: "Choose “Save to Files” or another app.",
     downloadFailedTitle: "Download Failed",
@@ -296,46 +298,26 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
   );
 
+  useEffect(() => {
+    setReadyPdfFile(null);
+    setExportStatus("");
+  }, [selectedRecipeId, targetWeight, targetUnit]);
+
   const deliverPdf = async (pdf: jsPDF, fileName: string) => {
     const blob = pdf.output("blob");
     const file = new File([blob], fileName, { type: "application/pdf" });
-    const shareData: ShareData = { files: [file], title: documentTitle };
 
-    if (isIOSDevice && navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
-      try {
-        setExportStatus(messages.pdfSharedDescription);
-        toast({ title: messages.pdfSharedTitle, description: messages.pdfSharedDescription });
-        await navigator.share(shareData);
-        pendingPdfWindowRef.current?.close();
-        pendingPdfWindowRef.current = null;
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          pendingPdfWindowRef.current?.close();
-          pendingPdfWindowRef.current = null;
-          return;
-        }
-        // Safari can lose transient activation while the PDF is being rendered.
-        // In that case, fall through to an inline PDF tab with the native Share button.
-      }
-    }
-
-    const objectUrl = URL.createObjectURL(blob);
     if (isIOSDevice) {
-      const pendingWindow = pendingPdfWindowRef.current;
-      pendingPdfWindowRef.current = null;
-      if (pendingWindow && !pendingWindow.closed) {
-        pendingWindow.location.replace(objectUrl);
-      } else {
-        // Last-resort iOS path: same-tab navigation cannot be popup-blocked.
-        window.location.assign(objectUrl);
-      }
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-      toast({ title: messages.pdfOpenedTitle, description: messages.pdfOpenedDescription });
-      setExportStatus(messages.pdfOpenedDescription);
+      // iOS requires navigator.share() to be called directly from a user click.
+      // Rendering the PDF first loses that activation, so expose a second,
+      // explicit Save button once the file is ready.
+      setReadyPdfFile(file);
+      toast({ title: messages.pdfReadyTitle, description: messages.pdfReadyDescription });
+      setExportStatus(messages.pdfReadyDescription);
       return;
     }
 
+    const objectUrl = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = objectUrl;
     link.rel = "noopener";
@@ -350,6 +332,46 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
       description: messages.pdfDownloadedDescription,
     });
     setExportStatus(messages.pdfDownloadedDescription);
+  };
+
+  const saveReadyPdf = () => {
+    if (!readyPdfFile) return;
+
+    const shareNavigator = navigator as unknown as {
+      share?: (data?: ShareData) => Promise<void>;
+      canShare?: (data?: ShareData) => boolean;
+    };
+    const shareData: ShareData = { files: [readyPdfFile], title: documentTitle };
+    const canShareFile = Boolean(
+      shareNavigator.share
+      && (!shareNavigator.canShare || shareNavigator.canShare(shareData))
+    );
+
+    if (canShareFile && shareNavigator.share) {
+      // Keep this call synchronous with the button click for iOS Safari.
+      shareNavigator.share(shareData)
+        .then(() => {
+          setExportStatus(messages.pdfSharedDescription);
+          toast({ title: messages.pdfSharedTitle, description: messages.pdfSharedDescription });
+        })
+        .catch((error) => {
+          if (!(error instanceof DOMException && error.name === "AbortError")) {
+            console.error("Error sharing PDF:", error);
+            toast({
+              title: messages.downloadFailedTitle,
+              description: messages.downloadFailedDescription,
+              variant: "destructive",
+            });
+          }
+        });
+      return;
+    }
+
+    // Fallback for browsers without file sharing. This navigation is triggered
+    // directly by the Save button, so it is not treated as a blocked popup.
+    const objectUrl = URL.createObjectURL(readyPdfFile);
+    window.location.assign(objectUrl);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
   };
 
   const handlePrint = useReactToPrint({
@@ -438,16 +460,9 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
   });
 
   const handlePdfExport = () => {
-    if (isIOSDevice) {
-      const pendingWindow = window.open("", "_blank");
-      if (pendingWindow) {
-        pendingWindow.document.title = documentTitle;
-        pendingWindow.document.body.innerHTML = `<p style="font-family: -apple-system, sans-serif; padding: 2rem;">${
-          isPolish ? "Przygotowuję PDF…" : "Preparing PDF…"
-        }</p>`;
-        pendingWindow.opener = null;
-        pendingPdfWindowRef.current = pendingWindow;
-      }
+    if (readyPdfFile) {
+      saveReadyPdf();
+      return;
     }
     handlePrint();
   };
@@ -589,7 +604,11 @@ export default function RecipeScaleDialog({ trigger, recipe }: RecipeScaleDialog
                     data-testid="button-print-scaled-recipe"
                   >
                     <FileText size={14} className="mr-1" />
-                    {isExporting ? `${messages.downloadPdf}…` : messages.downloadPdf}
+                    {isExporting
+                      ? `${messages.downloadPdf}…`
+                      : readyPdfFile
+                        ? messages.savePdf
+                        : messages.downloadPdf}
                   </Button>
                 </div>
               </div>
