@@ -33,6 +33,22 @@ export async function ensureRuntimeSchema(): Promise<void> {
       ALTER TABLE "users"
       ADD COLUMN IF NOT EXISTS "language" text NOT NULL DEFAULT 'pl'
     `);
+    await migrationPool.query(`
+      ALTER TABLE "ingredients" ALTER COLUMN "user_id" DROP NOT NULL;
+      ALTER TABLE "ingredient_categories" ALTER COLUMN "user_id" DROP NOT NULL;
+
+      ALTER TABLE "ingredients"
+        DROP CONSTRAINT IF EXISTS "ingredients_user_id_fkey";
+      ALTER TABLE "ingredient_categories"
+        DROP CONSTRAINT IF EXISTS "ingredient_categories_user_id_fkey";
+
+      ALTER TABLE "ingredients"
+        ADD CONSTRAINT "ingredients_user_id_fkey"
+        FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL;
+      ALTER TABLE "ingredient_categories"
+        ADD CONSTRAINT "ingredient_categories_user_id_fkey"
+        FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL;
+    `);
     console.log("[schema] Runtime schema is ready");
   } finally {
     await migrationPool.end();

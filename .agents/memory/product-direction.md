@@ -18,8 +18,9 @@ accounts are the delivery mechanism.
 - Each account chooses **Polish or English** in its profile, with Polish as the
   default. Never mix interface languages; user-entered content is not translated.
 - Currency remains **PLN** in both language versions.
-- Ingredients and ingredient categories belong to one user. Keep all related
-  recipe, inventory, and production-plan access isolated to that same account.
+- Ingredients and ingredient categories are one shared catalog visible and
+  editable by every authenticated user. Keep recipes, inventory logs, and
+  production plans isolated to their owning account.
 - Owner communicates in Polish — respond in simple Polish.
 - Keep the premium visual identity (cream palette, dark sidebar
   with gold accents, Playfair Display headings). Don't reintroduce the old

@@ -48,14 +48,14 @@ export interface IStorage {
   updateCategory(id: string, category: Partial<InsertCategory>, userId: string): Promise<Category | undefined>;
   deleteCategory(id: string, userId: string): Promise<boolean>;
 
-  // Ingredient Categories
+  // Ingredient Categories (shared across all users; userId records the creator)
   getIngredientCategories(userId: string): Promise<IngredientCategory[]>;
   createIngredientCategory(category: InsertIngredientCategory, userId: string): Promise<IngredientCategory>;
   updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, userId: string): Promise<IngredientCategory | undefined>;
   getIngredientCategoryUsage(id: string, userId: string): Promise<number | undefined>;
   deleteIngredientCategory(id: string, userId: string, replacementCategoryId?: string | null): Promise<boolean>;
 
-  // Ingredients
+  // Ingredients (shared across all users; userId records the creator)
   getIngredients(userId: string, search?: string): Promise<IngredientWithStock[]>;
   getIngredient(id: string, userId: string): Promise<Ingredient | undefined>;
   createIngredient(ingredient: InsertIngredient, userId: string): Promise<Ingredient>;
@@ -164,9 +164,8 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount ?? 0) > 0;
   }
 
-  async getIngredientCategories(userId: string): Promise<IngredientCategory[]> {
+  async getIngredientCategories(_userId: string): Promise<IngredientCategory[]> {
     return await db.select().from(ingredientCategories)
-      .where(eq(ingredientCategories.userId, userId))
       .orderBy(asc(ingredientCategories.name));
   }
 
@@ -175,37 +174,37 @@ export class DatabaseStorage implements IStorage {
     return newCategory;
   }
 
-  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, userId: string): Promise<IngredientCategory | undefined> {
+  async updateIngredientCategory(id: string, category: Partial<InsertIngredientCategory>, _userId: string): Promise<IngredientCategory | undefined> {
     const [updated] = await db.update(ingredientCategories).set(category)
-      .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)))
+      .where(eq(ingredientCategories.id, id))
       .returning();
     return updated || undefined;
   }
 
-  async getIngredientCategoryUsage(id: string, userId: string): Promise<number | undefined> {
+  async getIngredientCategoryUsage(id: string, _userId: string): Promise<number | undefined> {
     const [category] = await db.select({ id: ingredientCategories.id })
       .from(ingredientCategories)
-      .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)));
+      .where(eq(ingredientCategories.id, id));
     if (!category) return undefined;
     const [result] = await db.select({ count: sql<number>`count(*)` }).from(ingredients)
-      .where(and(eq(ingredients.categoryId, id), eq(ingredients.userId, userId)));
+      .where(eq(ingredients.categoryId, id));
     return Number(result?.count ?? 0);
   }
 
-  async deleteIngredientCategory(id: string, userId: string, replacementCategoryId?: string | null): Promise<boolean> {
+  async deleteIngredientCategory(id: string, _userId: string, replacementCategoryId?: string | null): Promise<boolean> {
     return await db.transaction(async (tx) => {
       const [category] = await tx.select({ id: ingredientCategories.id }).from(ingredientCategories)
-        .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)));
+        .where(eq(ingredientCategories.id, id));
       if (!category) return false;
       if (replacementCategoryId) {
         const [replacement] = await tx.select({ id: ingredientCategories.id }).from(ingredientCategories)
-          .where(and(eq(ingredientCategories.id, replacementCategoryId), eq(ingredientCategories.userId, userId)));
+          .where(eq(ingredientCategories.id, replacementCategoryId));
         if (!replacement) return false;
       }
       await tx.update(ingredients).set({ categoryId: replacementCategoryId ?? null })
-        .where(and(eq(ingredients.categoryId, id), eq(ingredients.userId, userId)));
+        .where(eq(ingredients.categoryId, id));
       const result = await tx.delete(ingredientCategories)
-        .where(and(eq(ingredientCategories.id, id), eq(ingredientCategories.userId, userId)));
+        .where(eq(ingredientCategories.id, id));
       return (result.rowCount ?? 0) > 0;
     });
   }
@@ -228,11 +227,11 @@ export class DatabaseStorage implements IStorage {
   }
   // ───────────────────────────────────────────────────────────────────────────
 
-  private async assertOwnedIngredientCategory(categoryId: string | null | undefined, userId: string): Promise<void> {
+  private async assertSharedIngredientCategory(categoryId: string | null | undefined): Promise<void> {
     if (!categoryId) return;
     const [category] = await db.select({ id: ingredientCategories.id }).from(ingredientCategories)
-      .where(and(eq(ingredientCategories.id, categoryId), eq(ingredientCategories.userId, userId)));
-    if (!category) throw new Error("Ingredient category does not belong to user");
+      .where(eq(ingredientCategories.id, categoryId));
+    if (!category) throw new Error("Ingredient category not found");
   }
   private async assertOwnedRecipeCategory(categoryId: string | null | undefined, userId: string): Promise<void> {
     if (!categoryId) return;
@@ -241,11 +240,9 @@ export class DatabaseStorage implements IStorage {
     if (!category) throw new Error("Recipe category does not belong to user");
   }
 
-  async getIngredients(userId: string, search?: string): Promise<IngredientWithStock[]> {
+  async getIngredients(_userId: string, search?: string): Promise<IngredientWithStock[]> {
     const results = await db.query.ingredients.findMany({
-      where: search
-        ? and(eq(ingredients.userId, userId), ilike(ingredients.name, `%${search}%`))
-        : eq(ingredients.userId, userId),
+      where: search ? ilike(ingredients.name, `%${search}%`) : undefined,
       with: {
         category: true
       },
@@ -268,13 +265,13 @@ export class DatabaseStorage implements IStorage {
     return "normal";
   }
 
-  async getIngredient(id: string, userId: string): Promise<Ingredient | undefined> {
-    const [ingredient] = await db.select().from(ingredients).where(and(eq(ingredients.id, id), eq(ingredients.userId, userId)));
+  async getIngredient(id: string, _userId: string): Promise<Ingredient | undefined> {
+    const [ingredient] = await db.select().from(ingredients).where(eq(ingredients.id, id));
     return ingredient ? this.normalizeIngredient(ingredient) : undefined;
   }
 
   async createIngredient(ingredient: InsertIngredient, userId: string): Promise<Ingredient> {
-    await this.assertOwnedIngredientCategory(ingredient.categoryId, userId);
+    await this.assertSharedIngredientCategory(ingredient.categoryId);
     const [newIngredient] = await db.insert(ingredients).values({
       ...ingredient,
       userId,
@@ -283,19 +280,19 @@ export class DatabaseStorage implements IStorage {
     return newIngredient;
   }
 
-  async updateIngredient(id: string, ingredient: Partial<InsertIngredient>, userId: string): Promise<Ingredient | undefined> {
+  async updateIngredient(id: string, ingredient: Partial<InsertIngredient>, _userId: string): Promise<Ingredient | undefined> {
     if (ingredient.categoryId !== undefined) {
-      await this.assertOwnedIngredientCategory(ingredient.categoryId, userId);
+      await this.assertSharedIngredientCategory(ingredient.categoryId);
     }
     const updateData: Partial<typeof ingredients.$inferInsert> = { ...ingredient };
     if (ingredient.allergens !== undefined) updateData.allergens = ingredient.allergens;
     const [updated] = await db.update(ingredients).set(updateData)
-      .where(and(eq(ingredients.id, id), eq(ingredients.userId, userId))).returning();
+      .where(eq(ingredients.id, id)).returning();
     return updated || undefined;
   }
 
-  async deleteIngredient(id: string, userId: string): Promise<boolean> {
-    const result = await db.delete(ingredients).where(and(eq(ingredients.id, id), eq(ingredients.userId, userId)));
+  async deleteIngredient(id: string, _userId: string): Promise<boolean> {
+    const result = await db.delete(ingredients).where(eq(ingredients.id, id));
     return (result.rowCount ?? 0) > 0;
   }
 
@@ -384,8 +381,8 @@ export class DatabaseStorage implements IStorage {
       }
       for (const item of ingredientsList) {
         const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients)
-          .where(and(eq(ingredients.id, item.ingredientId), eq(ingredients.userId, userId)));
-        if (!ingredient) throw new Error("Ingredient does not belong to user");
+          .where(eq(ingredients.id, item.ingredientId));
+        if (!ingredient) throw new Error("Ingredient not found");
       }
       const [created] = await tx.insert(recipes).values({
         ...recipe,
@@ -419,8 +416,8 @@ export class DatabaseStorage implements IStorage {
       if (ingredientsList) {
         for (const item of ingredientsList) {
           const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients)
-            .where(and(eq(ingredients.id, item.ingredientId), eq(ingredients.userId, userId)));
-          if (!ingredient) throw new Error("Ingredient does not belong to user");
+            .where(eq(ingredients.id, item.ingredientId));
+          if (!ingredient) throw new Error("Ingredient not found");
         }
       }
       const updateData: Partial<typeof recipes.$inferInsert> = { ...recipe, updatedAt: new Date() };
@@ -472,14 +469,6 @@ export class DatabaseStorage implements IStorage {
       ]));
       const recipeCategoryNames = new Set<string>(targetRecipeCategories.map((category: Category) => category.name.toLocaleLowerCase()));
       const copiedRecipeCategoryIds = new Map<string, string>();
-      const targetIngredientCategories = await tx.select().from(ingredientCategories).where(eq(ingredientCategories.userId, targetUserId));
-      const ingredientCategoryBySignature = new Map<string, string>(targetIngredientCategories.map((category: IngredientCategory) => [
-        `${category.name.toLocaleLowerCase()}\u0000${category.description ?? ""}`,
-        category.id,
-      ]));
-      const ingredientCategoryNames = new Set<string>(targetIngredientCategories.map((category: IngredientCategory) => category.name.toLocaleLowerCase()));
-      const copiedIngredientCategoryIds = new Map<string, string>();
-      const copiedIngredientIds = new Map<string, string>();
       const uniqueName = (baseName: string, existingNames: Set<string>): string => {
         if (!existingNames.has(baseName.toLocaleLowerCase())) return baseName;
         const sourceLabel = sourceUser.displayName || sourceUser.username;
@@ -540,45 +529,9 @@ export class DatabaseStorage implements IStorage {
 
         const copiedRecipeIngredients: (typeof recipeIngredients.$inferInsert)[] = [];
         for (const sourceItem of sourceRecipe.recipeIngredients) {
-          let targetIngredientId = copiedIngredientIds.get(sourceItem.ingredientId);
-          const sourceIngredient = sourceItem.ingredient;
-
-          if (!targetIngredientId) {
-            let targetIngredientCategoryId: string | null = null;
-            if (sourceIngredient.category) {
-              targetIngredientCategoryId = copiedIngredientCategoryIds.get(sourceIngredient.category.id) ?? null;
-              if (!targetIngredientCategoryId) {
-                const signature = `${sourceIngredient.category.name.toLocaleLowerCase()}\u0000${sourceIngredient.category.description ?? ""}`;
-                targetIngredientCategoryId = ingredientCategoryBySignature.get(signature) ?? null;
-                if (!targetIngredientCategoryId) {
-                  const categoryName = uniqueName(sourceIngredient.category.name, ingredientCategoryNames);
-                  const [createdCategory] = await tx.insert(ingredientCategories).values({
-                    userId: targetUserId,
-                    name: categoryName,
-                    description: sourceIngredient.category.description,
-                  }).returning();
-                  targetIngredientCategoryId = createdCategory.id;
-                  ingredientCategoryBySignature.set(`${categoryName.toLocaleLowerCase()}\u0000${sourceIngredient.category.description ?? ""}`, createdCategory.id);
-                  ingredientCategoryNames.add(categoryName.toLocaleLowerCase());
-                }
-                if (!targetIngredientCategoryId) throw new Error("Target ingredient category could not be resolved");
-                copiedIngredientCategoryIds.set(sourceIngredient.category.id, targetIngredientCategoryId);
-              }
-            }
-            const { id: _id, userId: _userId, createdAt: _createdAt, category: _category, stockStatus: _stockStatus, ...copy } = sourceIngredient as typeof sourceIngredient & { stockStatus?: string };
-            const [createdIngredient] = await tx.insert(ingredients).values({
-              ...copy,
-              userId: targetUserId,
-              categoryId: targetIngredientCategoryId,
-              allergens: sourceIngredient.allergens ?? [],
-            }).returning();
-            targetIngredientId = createdIngredient.id;
-          }
-          if (!targetIngredientId) throw new Error("Target ingredient could not be resolved");
-          copiedIngredientIds.set(sourceItem.ingredientId, targetIngredientId);
           copiedRecipeIngredients.push({
             recipeId: createdRecipe.id,
-            ingredientId: targetIngredientId,
+            ingredientId: sourceItem.ingredientId,
             quantity: sourceItem.quantity,
             unit: sourceItem.unit,
             notes: sourceItem.notes,
@@ -612,8 +565,8 @@ export class DatabaseStorage implements IStorage {
   async addRecipeIngredient(recipeIngredient: InsertRecipeIngredient, userId: string): Promise<RecipeIngredient> {
     return db.transaction(async tx => {
       const [recipe] = await tx.select({ id: recipes.id }).from(recipes).where(and(eq(recipes.id, recipeIngredient.recipeId), eq(recipes.userId, userId)));
-      const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients).where(and(eq(ingredients.id, recipeIngredient.ingredientId), eq(ingredients.userId, userId)));
-      if (!recipe || !ingredient) throw new Error("Recipe or ingredient does not belong to user");
+      const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.id, recipeIngredient.ingredientId));
+      if (!recipe || !ingredient) throw new Error("Recipe does not belong to user or ingredient was not found");
       const [created] = await tx.insert(recipeIngredients).values(recipeIngredient).returning();
       return created;
     });
@@ -628,8 +581,8 @@ export class DatabaseStorage implements IStorage {
       const [recipe] = await tx.select({ id: recipes.id }).from(recipes).where(and(eq(recipes.id, targetRecipeId), eq(recipes.userId, userId)));
       if (!recipe) throw new Error("Recipe does not belong to user");
       if (recipeIngredient.ingredientId) {
-        const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients).where(and(eq(ingredients.id, recipeIngredient.ingredientId), eq(ingredients.userId, userId)));
-        if (!ingredient) throw new Error("Ingredient does not belong to user");
+        const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.id, recipeIngredient.ingredientId));
+        if (!ingredient) throw new Error("Ingredient not found");
       }
       const [updated] = await tx.update(recipeIngredients).set(recipeIngredient).where(eq(recipeIngredients.id, id)).returning();
       return updated || undefined;
@@ -646,8 +599,8 @@ export class DatabaseStorage implements IStorage {
       const [recipe] = await tx.select({ id: recipes.id }).from(recipes).where(and(eq(recipes.id, recipeId), eq(recipes.userId, userId)));
       if (!recipe) throw new Error("Recipe does not belong to user");
       for (const item of ingredientsList) {
-        const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients).where(and(eq(ingredients.id, item.ingredientId), eq(ingredients.userId, userId)));
-        if (!ingredient) throw new Error("Ingredient does not belong to user");
+        const [ingredient] = await tx.select({ id: ingredients.id }).from(ingredients).where(eq(ingredients.id, item.ingredientId));
+        if (!ingredient) throw new Error("Ingredient not found");
       }
       await tx.delete(recipeIngredients).where(eq(recipeIngredients.recipeId, recipeId));
       
@@ -666,9 +619,8 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getLowStockIngredients(userId: string): Promise<IngredientWithStock[]> {
+  async getLowStockIngredients(_userId: string): Promise<IngredientWithStock[]> {
     const results = await db.query.ingredients.findMany({
-      where: eq(ingredients.userId, userId),
       with: { category: true },
       orderBy: asc(ingredients.name)
     });
@@ -700,7 +652,7 @@ export class DatabaseStorage implements IStorage {
 
   async addInventoryLog(log: InsertInventoryLog, userId: string): Promise<InventoryLog> {
     const ingredient = await this.getIngredient(log.ingredientId, userId);
-    if (!ingredient) throw new Error("Ingredient does not belong to user");
+    if (!ingredient) throw new Error("Ingredient not found");
     const [newLog] = await db.insert(inventoryLogs).values({ ...log, userId }).returning();
     return newLog;
   }
@@ -866,7 +818,7 @@ export class DatabaseStorage implements IStorage {
       .from(recipes)
       .where(and(eq(recipes.isActive, true), eq(recipes.userId, userId)));
     const [ingredientsCount] = await db.select({ count: sql<number>`count(*)` })
-      .from(ingredients).where(eq(ingredients.userId, userId));
+      .from(ingredients);
     const [categoriesCount] = await db.select({ count: sql<number>`count(*)` })
       .from(categories)
       .where(eq(categories.userId, userId));

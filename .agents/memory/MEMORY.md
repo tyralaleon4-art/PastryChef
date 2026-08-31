@@ -1,2 +1,2 @@
-- [Product direction](product-direction.md) — Pastry Pro supports per-user PL/EN; yearly access is admin-managed, currency stays PLN, and recipe data is private per account.
+- [Product direction](product-direction.md) — Pastry Pro uses shared ingredients/categories, private recipes and operational data, per-user PL/EN, admin-managed access, and PLN.
 - [iOS generated-file delivery](ios-generated-file-delivery.md) — async PDF generation must end with a separate user-clicked Share action; never claim a popup opened.
