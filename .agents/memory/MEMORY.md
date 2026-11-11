@@ -1,2 +1,3 @@
 - [Product direction](product-direction.md) — Pastry Pro uses shared ingredients/categories, private recipes and operational data, per-user PL/EN, admin-managed access, and PLN.
 - [iOS generated-file delivery](ios-generated-file-delivery.md) — async PDF generation must end with a separate user-clicked Share action; never claim a popup opened.
+- [Ingredient deduplication](ingredient-deduplication.md) — reassign references atomically; preserve recipe quantities and require explicit choices for conflicting ingredient data.

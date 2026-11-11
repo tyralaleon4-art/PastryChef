@@ -17,7 +17,7 @@ const isExternalDatabase = process.env.DATABASE_URL.includes('render.com') ||
                            !process.env.DATABASE_URL.includes('neon.tech');
 
 let db;
-let pool;
+let pool: any;
 
 if (isExternalDatabase) {
   // Use standard PostgreSQL driver for external databases (Render, Railway, etc.)
@@ -29,7 +29,7 @@ if (isExternalDatabase) {
     connectionTimeoutMillis: 10000,
   });
   
-  pool.on('error', (err) => {
+  pool.on('error', (err: Error) => {
     console.error('Unexpected database pool error:', err);
   });
   
@@ -45,7 +45,7 @@ if (isExternalDatabase) {
     connectionTimeoutMillis: 5000,
   });
   
-  pool.on('error', (err) => {
+  pool.on('error', (err: Error) => {
     console.error('Unexpected database pool error:', err);
   });
   

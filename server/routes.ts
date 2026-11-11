@@ -17,6 +17,7 @@ import {
   insertUserSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { registerIngredientMergeRoutes } from "./ingredient-merge";
 
 function isOwnershipError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("does not belong to user");
@@ -28,6 +29,7 @@ function logAuthError(operation: string, error: unknown): void {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  registerIngredientMergeRoutes(app);
 
   // ==================== AUTH ROUTES ====================
   app.post("/api/auth/register", async (req, res) => {

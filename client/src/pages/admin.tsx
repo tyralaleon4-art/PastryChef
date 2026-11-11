@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit, Shield, User, ChefHat, Loader2, BookOpen, Utensils, Tag, Download, CheckCircle2 } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { enAiAdmin, plAiAdmin } from "@/i18n/ai-admin";
+import IngredientDuplicates from "@/components/ingredient-duplicates";
 
 interface AdminUser {
   id: string;
@@ -382,6 +383,7 @@ export default function Admin() {
         />
 
         <div className="p-4 md:p-6 space-y-6">
+          <IngredientDuplicates />
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card>
