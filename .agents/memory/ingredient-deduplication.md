@@ -8,3 +8,9 @@ Merge duplicate catalog entries by reassigning recipe and inventory references b
 **Why:** after restoring the shared catalog, the user reported duplicate ingredients on Render and required removal without losing recipes. Summing migration-cloned stock can double inventory.
 
 **How to apply:** keep the administrator-selected record's metadata and stock without adding the duplicate's stock. Explain discarded differences before confirmation. Never treat the development database as evidence of Render's current data.
+
+Identical copies may be selected automatically for a single administrator-confirmed bulk merge; differing business data must remain a manual choice. Ignore identity/creator/creation time when comparing copies, but require matching business fields, including stock and units.
+
+**Why:** the user requested a fast way to handle roughly 126 ingredients without choosing every identical pair individually.
+
+**How to apply:** show the batch summary before confirmation, preserve recipe references and quantities, and refuse a stale batch instead of silently merging a changed selection.
